@@ -57,6 +57,7 @@ const store = immer((set, get) => ({
 
   // Layout
   rightColumnWidth: 520, // px, default width for right column in three-column layout
+  leftColumnWidth: 280, // px, default width for left column
 
   // Image Booth state
   activeModeKey: 'banana',
@@ -294,6 +295,10 @@ const store = immer((set, get) => ({
     // Layout actions
     setRightColumnWidth: (width) => set((state) => {
       state.rightColumnWidth = width;
+    }),
+    
+    setLeftColumnWidth: (width) => set((state) => {
+      state.leftColumnWidth = width;
     })
   }
 }));
@@ -313,6 +318,7 @@ export default createSelectorFunctions(
         serviceCredentials: state.serviceCredentials,
         selectedWorkflow: state.selectedWorkflow,
         rightColumnWidth: state.rightColumnWidth,
+        leftColumnWidth: state.leftColumnWidth,
         // Don't persist authentication state for security
       })
     })

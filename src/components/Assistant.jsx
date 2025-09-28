@@ -8,6 +8,7 @@ import useStore from '../lib/store';
 import { sendAssistantMessage, toggleAssistant } from '../lib/actions';
 import { personalities } from '../lib/assistant/personalities';
 import { getTasksForModule } from '../lib/assistant/tasks';
+import { useDraggable } from '../lib/hooks/useDraggable';
 
 export default function Assistant() {
     const assistantHistories = useStore.use.assistantHistories();
@@ -18,6 +19,9 @@ export default function Assistant() {
     const [showTaskMenu, setShowTaskMenu] = useState(false);
     const [showToolsMenu, setShowToolsMenu] = useState(false);
     const historyRef = useRef(null);
+    
+    // Add drag functionality
+    const { isDragging, position, handleMouseDown } = useDraggable();
 
     const activePersonality = personalities[activeModuleId] || {};
 
@@ -29,7 +33,9 @@ export default function Assistant() {
 
     const handleSubmit = (e) => {
         e.preventDefault();
-        sendAssistantMessage(input);
+        if (!input.trim() || isLoading) return;
+        
+        sendAssistantMessage(input.trim());
         setInput('');
     };
 
@@ -37,7 +43,8 @@ export default function Assistant() {
         const tasks = getTasksForModule(activeModuleId);
         const task = tasks.common[taskId] || tasks.specialized[taskId];
         if (task) {
-            sendAssistantMessage(`Please help me with: ${task.name}. ${task.description}`);
+            const message = `Please help me with: ${task.name}. ${task.description}`;
+            sendAssistantMessage(message);
         }
         setShowTaskMenu(false);
     };
@@ -45,6 +52,14 @@ export default function Assistant() {
     const handleToolAction = (tool) => {
         if (tool === 'search') {
             setInput('/search ');
+            // Focus the input after setting the value
+            setTimeout(() => {
+                const inputElement = document.querySelector('.assistant-input-form input');
+                if (inputElement) {
+                    inputElement.focus();
+                    inputElement.setSelectionRange(inputElement.value.length, inputElement.value.length);
+                }
+            }, 50);
         }
         setShowToolsMenu(false);
     };
@@ -68,14 +83,29 @@ export default function Assistant() {
 
     return (
         <div className="assistant-overlay" onClick={toggleAssistant}>
-            <div className="assistant-window" onClick={(e) => e.stopPropagation()}>
-                <div className="assistant-header">
+            <div 
+                className={`assistant-window ${isDragging ? 'dragging' : ''}`}
+                onClick={(e) => e.stopPropagation()}
+                style={{
+                    transform: `translate(${position.x}px, ${position.y}px)`,
+                    transition: isDragging ? 'none' : 'transform 0.2s ease'
+                }}
+            >
+                <div 
+                    className="assistant-header draggable-header"
+                    onMouseDown={handleMouseDown}
+                    style={{ cursor: isDragging ? 'grabbing' : 'grab' }}
+                >
                     <span className="icon assistant-icon">{activePersonality.icon || 'school'}</span>
                     <div className="assistant-header-text">
                         <h3>{activePersonality.name || 'Assistant'}</h3>
                         <h4>{activePersonality.title || 'Your creative partner'}</h4>
                     </div>
-                    <button className="close-btn" onClick={toggleAssistant}>
+                    <button 
+                        className="close-btn" 
+                        onClick={toggleAssistant}
+                        onMouseDown={(e) => e.stopPropagation()} // Prevent drag when clicking close
+                    >
                         <span className="icon">close</span>
                     </button>
                 </div>
@@ -88,14 +118,18 @@ export default function Assistant() {
                                     <span className="ai-name">{activePersonality.name || 'Assistant'}</span>
                                 </div>
                             )}
-                            <p dangerouslySetInnerHTML={{ __html: msg.responseText || msg.content }} />
+                            <div className="message-content">
+                                <p dangerouslySetInnerHTML={{ __html: msg.responseText || msg.content }} />
+                            </div>
                         </div>
                     ))}
                     {isLoading && (
                         <div className="assistant-message model loading">
-                            <div className="dot"></div>
-                            <div className="dot"></div>
-                            <div className="dot"></div>
+                            <div className="message-content">
+                                <div className="dot"></div>
+                                <div className="dot"></div>
+                                <div className="dot"></div>
+                            </div>
                         </div>
                     )}
                 </div>
@@ -207,9 +241,17 @@ export default function Assistant() {
                         type="text"
                         value={input}
                         onChange={(e) => setInput(e.target.value)}
-                        placeholder={`Ask ${activePersonality.name} for help...`}
+                        onKeyDown={(e) => {
+                            if (e.key === 'Escape') {
+                                setShowTaskMenu(false);
+                                setShowToolsMenu(false);
+                            }
+                        }}
+                        placeholder={`Ask ${activePersonality.name || 'Assistant'} for help...`}
                         disabled={isLoading}
                         autoFocus
+                        autoComplete="off"
+                        spellCheck="true"
                     />
                     <button type="submit" disabled={isLoading || !input.trim()}>
                         <span className="icon">send</span>

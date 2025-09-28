@@ -23,9 +23,10 @@ const services = {
         authUrl: 'https://api.notion.com/v1/oauth/authorize',
         tokenUrl: 'https://api.notion.com/v1/oauth/token',
         userUrl: 'https://api.notion.com/v1/users/me',
-        scopes: [],
+        scopes: [], // Notion doesn't use traditional scopes
         clientId: process.env.NOTION_CLIENT_ID,
         clientSecret: process.env.NOTION_CLIENT_SECRET,
+        requiresOwner: true, // Notion requires 'owner=user' parameter
     },
     googledrive: {
         name: 'Google Drive',

@@ -67,6 +67,8 @@ export default function App() {
   const isSettingsOpen = useStore.use.isSettingsOpen();
   const rightColumnWidth = useStore.use.rightColumnWidth();
   const setRightColumnWidth = useStore.use.actions().setRightColumnWidth;
+  const leftColumnWidth = useStore.use.leftColumnWidth();
+  const setLeftColumnWidth = useStore.use.actions().setLeftColumnWidth;
 
   useEffect(() => {
     checkAuthStatus();
@@ -79,7 +81,36 @@ export default function App() {
   // Column resizing logic
   const minRightWidth = 360;
   const maxRightWidth = 900;
+  const minLeftWidth = 240;
+  const maxLeftWidth = 480;
 
+  // Left column resizer
+  const handleLeftResizerMouseDown = (e) => {
+    e.preventDefault();
+    const startX = e.clientX;
+    const startWidth = leftColumnWidth;
+
+    const handleMouseMove = (moveEvent) => {
+      const deltaX = moveEvent.clientX - startX;
+      // Dragging right increases width, left decreases
+      const newWidth = Math.min(Math.max(startWidth + deltaX, minLeftWidth), maxLeftWidth);
+      setLeftColumnWidth(newWidth);
+    };
+
+    const handleMouseUp = () => {
+      window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('mouseup', handleMouseUp);
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
+    };
+
+    document.body.style.cursor = 'col-resize';
+    document.body.style.userSelect = 'none';
+    window.addEventListener('mousemove', handleMouseMove);
+    window.addEventListener('mouseup', handleMouseUp);
+  };
+
+  // Right column resizer
   const handleResizerMouseDown = (e) => {
     e.preventDefault();
     const startX = e.clientX;
@@ -164,13 +195,25 @@ export default function App() {
       {isAssistantOpen && <Assistant />}
       {isSettingsOpen && <SettingsModal />}
 
-      <div className="left-column">
+      <div 
+        className="left-column"
+        style={{ width: `${leftColumnWidth}px` }}
+      >
         <AppSwitcher />
         <div className="left-column-content">
           {renderLeftColumnContent()}
         </div>
         <UserBar />
       </div>
+
+      {/* Left column resizer */}
+      <div 
+        className="left-column-resizer"
+        onMouseDown={handleLeftResizerMouseDown}
+        role="separator"
+        aria-orientation="vertical"
+        title="Drag to resize left panel"
+      />
 
       {isThreeColumnLayout && (
         <div className="middle-column">

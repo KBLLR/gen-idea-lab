@@ -29,7 +29,11 @@ const LoadingSpinner = () => (
 );
 
 export default function BoothViewer() {
-    const { inputImage, outputImage, isGenerating, activeModeKey, generationError } = useStore.getState();
+    const inputImage = useStore.use.inputImage();
+    const outputImage = useStore.use.outputImage();
+    const isGenerating = useStore.use.isGenerating();
+    const activeModeKey = useStore.use.activeModeKey();
+    const generationError = useStore.use.generationError();
     const modeDetails = getModeDetails(activeModeKey);
 
     if (!inputImage) {
@@ -47,38 +51,129 @@ export default function BoothViewer() {
 
     return (
         <div className="booth-viewer">
+            {/* Header Section with Detailed Information */}
             <div className="booth-header">
-                <div className="booth-header-info">
-                    <h2>{modeDetails.emoji} {modeDetails.name}</h2>
-                    <p>{modeDetails.description}</p>
+                <div className="booth-title">
+                    <h1>{modeDetails.emoji} {modeDetails.name}</h1>
+                    <div className="mode-meta">
+                        <span className="mode-type">VizGen Transformation</span>
+                        <span className="mode-status">Ready</span>
+                    </div>
                 </div>
-                <button 
-                  className="booth-generate-btn" 
-                  onClick={generateImage} 
-                  disabled={isGenerating}
-                >
-                    <span className="icon">auto_awesome</span>
-                    Generate
-                </button>
+
+                <div className="booth-description">
+                    <p className="description-text">{modeDetails.description}</p>
+                    <div className="prompt-info">
+                        <h4>AI Prompt</h4>
+                        <p className="prompt-text">"{modeDetails.prompt}"</p>
+                    </div>
+                </div>
+
+                <div className="booth-actions">
+                    <button
+                        className="upload-new-btn secondary"
+                        onClick={() => useStore.setState({ inputImage: null, outputImage: null })}
+                    >
+                        <span className="icon">upload</span>
+                        Upload New Image
+                    </button>
+                    <button
+                        className="booth-generate-btn primary"
+                        onClick={generateImage}
+                        disabled={isGenerating}
+                    >
+                        <span className="icon">auto_awesome</span>
+                        {isGenerating ? 'Generating...' : 'Generate'}
+                    </button>
+                </div>
             </div>
 
-            <div className="image-previews">
+            {/* Main Content Section */}
+            <div className="booth-main">
                 {isGenerating && <LoadingSpinner />}
-                <div className="image-container">
-                    <h4>Input</h4>
-                    <img src={inputImage} alt="Input" />
-                </div>
-                <div className="image-container">
-                    <h4>Output</h4>
-                    {outputImage ? (
-                        <img src={outputImage} alt="Output" />
-                    ) : (
-                        <div className="placeholder icon">
-                            {generationError ? 'broken_image' : 'photo_spark'}
+                <div className="current-work">
+                    <div className="image-container input-container">
+                        <div className="image-header">
+                            <h3>Input Image</h3>
+                            <span className="image-info">Source</span>
                         </div>
-                    )}
+                        <div className="image-content">
+                            <img src={inputImage} alt="Input" />
+                        </div>
+                    </div>
+
+                    <div className="transformation-arrow">
+                        <span className="icon">arrow_forward</span>
+                        <span className="transform-label">{modeDetails.name}</span>
+                    </div>
+
+                    <div className="image-container output-container">
+                        <div className="image-header">
+                            <h3>Generated Result</h3>
+                            <span className="image-info">
+                                {outputImage ? 'Complete' : 'Pending'}
+                            </span>
+                        </div>
+                        <div className="image-content">
+                            {outputImage ? (
+                                <img src={outputImage} alt="Generated Output" />
+                            ) : (
+                                <div className="placeholder">
+                                    <span className="icon">
+                                        {generationError ? 'error' : 'auto_awesome'}
+                                    </span>
+                                    <p>
+                                        {generationError
+                                            ? 'Generation failed'
+                                            : 'Click Generate to create result'
+                                        }
+                                    </p>
+                                </div>
+                            )}
+                        </div>
+                        {outputImage && (
+                            <div className="image-actions">
+                                <button className="image-action-btn">
+                                    <span className="icon">download</span>
+                                    Download
+                                </button>
+                                <button className="image-action-btn">
+                                    <span className="icon">share</span>
+                                    Share
+                                </button>
+                            </div>
+                        )}
+                    </div>
                 </div>
-                {generationError && <div className="error-message">{generationError}</div>}
+
+                {generationError && (
+                    <div className="error-display">
+                        <span className="icon">error</span>
+                        <div>
+                            <h4>Generation Error</h4>
+                            <p>{generationError}</p>
+                        </div>
+                        <button onClick={() => useStore.setState({ generationError: null })}>
+                            <span className="icon">close</span>
+                        </button>
+                    </div>
+                )}
+            </div>
+
+            {/* Footer Section with Generation History */}
+            <div className="booth-footer">
+                <div className="history-header">
+                    <h3>Generation History</h3>
+                    <span className="history-count">Recent transformations with {modeDetails.name}</span>
+                </div>
+                <div className="history-scroll">
+                    {/* This would be populated with actual history once we add that feature */}
+                    <div className="history-placeholder">
+                        <span className="icon">history</span>
+                        <p>Your generated images will appear here</p>
+                        <small>Start generating to build your transformation history</small>
+                    </div>
+                </div>
             </div>
         </div>
     );

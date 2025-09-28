@@ -7,6 +7,8 @@ import express from 'express';
 import path from 'path';
 import cookieParser from 'cookie-parser';
 import { GoogleGenAI } from '@google/genai';
+import { GoogleAuth } from 'google-auth-library';
+import crypto from 'crypto';
 import logger from './src/lib/logger.js';
 import { register, httpRequestDurationMicroseconds, httpRequestsTotal } from './src/lib/metrics.js';
 import { verifyGoogleToken, generateJWT, requireAuth, optionalAuth } from './src/lib/auth.js';
@@ -43,19 +45,57 @@ app.use((req, res, next) => {
 
 const port = process.env.PORT || 8081;
 
-// Allow GEMINI_API_KEY fallback for local/dev environments
-if (!process.env.API_KEY && process.env.GEMINI_API_KEY) {
-  process.env.API_KEY = process.env.GEMINI_API_KEY;
-}
+// Initialize Google Auth for Gemini API with OAuth2
+let ai;
 
-// The API key must be set as an environment variable on the server.
-// The app will fail to start if it's missing.
-if (!process.env.API_KEY) {
-  logger.error("API_KEY environment variable not set. Application will exit.");
-  process.exit(1);
-}
+async function initializeGeminiAPI() {
+  try {
+    // Try to use OAuth2 credentials (preferred method for 2025)
+    const auth = new GoogleAuth({
+      scopes: [
+        'https://www.googleapis.com/auth/cloud-platform',
+        'https://www.googleapis.com/auth/generative-language.retriever'
+      ],
+      // This will use Application Default Credentials (ADC)
+      // Can be set via gcloud auth application-default login
+    });
 
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+    // Get credentials and access token
+    const authClient = await auth.getClient();
+    const accessToken = await authClient.getAccessToken();
+
+    if (accessToken.token) {
+      ai = new GoogleGenAI({
+        credentials: authClient
+      });
+      logger.info('Google Gemini API initialized with OAuth2 credentials');
+      return;
+    } else {
+      throw new Error('No access token obtained');
+    }
+  } catch (oauthError) {
+    logger.warn('OAuth2 initialization failed, trying API key fallback:', oauthError.message);
+
+    // Fallback to API key method (deprecated but may still work)
+    const apiKey = process.env.API_KEY || process.env.GEMINI_API_KEY;
+    if (apiKey) {
+      try {
+        ai = new GoogleGenAI({ apiKey });
+        logger.info('Google Gemini API initialized with API key (deprecated method)');
+        return;
+      } catch (apiKeyError) {
+        logger.error('Both OAuth2 and API key initialization failed');
+        logger.error('OAuth2 error:', oauthError.message);
+        logger.error('API key error:', apiKeyError.message);
+        process.exit(1);
+      }
+    } else {
+      logger.error('No authentication method available for Gemini API');
+      logger.error('Please run "gcloud auth application-default login" or set API_KEY environment variable');
+      process.exit(1);
+    }
+  }
+}
 
 // Increase payload limit for base64 image data
 app.use(express.json({ limit: '10mb' })); 
@@ -231,6 +271,13 @@ app.post('/api/services/:service/connect', requireAuth, (req, res) => {
   }
   
   res.json({ authUrl });
+});
+
+// Special handler for Notion OAuth redirect (before general routes)
+app.get('/auth/notion/callback', async (req, res) => {
+  // Redirect Notion OAuth to the standard callback endpoint
+  const notion_callback_url = `/api/services/notion/callback?${new URLSearchParams(req.query).toString()}`;
+  res.redirect(notion_callback_url);
 });
 
 // OAuth callback handler
@@ -512,6 +559,160 @@ app.post('/api/search', requireAuth, async (req, res) => {
   }
 });
 
+// Notion Webhook Handler
+// Store webhook subscriptions and verification tokens
+const webhookSubscriptions = new Map();
+
+// Webhook verification endpoint (called once by Notion to verify the endpoint)
+app.post('/api/webhooks/notion/verify', express.raw({ type: 'application/json' }), (req, res) => {
+  try {
+    const payload = JSON.parse(req.body.toString());
+
+    if (payload.verification_token) {
+      // Store the verification token for this webhook
+      const webhookId = payload.webhook_id || 'default';
+      webhookSubscriptions.set(webhookId, {
+        verification_token: payload.verification_token,
+        created_at: new Date().toISOString()
+      });
+
+      logger.info('Notion webhook verified successfully', {
+        webhook_id: webhookId,
+        verification_token: payload.verification_token
+      });
+
+      // Respond with the verification token to complete verification
+      res.status(200).json({
+        verification_token: payload.verification_token
+      });
+    } else {
+      logger.error('No verification token in webhook verification request');
+      res.status(400).json({ error: 'No verification token provided' });
+    }
+  } catch (error) {
+    logger.error('Error processing webhook verification:', error);
+    res.status(400).json({ error: 'Invalid payload' });
+  }
+});
+
+// Main webhook endpoint for receiving Notion events
+app.post('/api/webhooks/notion', express.raw({ type: 'application/json' }), (req, res) => {
+  try {
+    const signature = req.headers['x-notion-signature'];
+    const payload = req.body.toString();
+
+    // Verify webhook signature if we have verification tokens
+    if (signature && webhookSubscriptions.size > 0) {
+      let validSignature = false;
+
+      // Try to verify with any stored verification token
+      for (const [webhookId, subscription] of webhookSubscriptions) {
+        const expectedSignature = crypto
+          .createHmac('sha256', subscription.verification_token)
+          .update(payload)
+          .digest('hex');
+
+        if (signature === expectedSignature) {
+          validSignature = true;
+          logger.info('Webhook signature verified', { webhook_id: webhookId });
+          break;
+        }
+      }
+
+      if (!validSignature) {
+        logger.warn('Invalid webhook signature', { signature });
+        return res.status(401).json({ error: 'Invalid signature' });
+      }
+    }
+
+    // Parse the webhook payload
+    const event = JSON.parse(payload);
+
+    // Log the event for debugging
+    logger.info('Received Notion webhook event', {
+      event_type: event.event?.type,
+      object_type: event.event?.object?.object,
+      workspace_id: event.workspace_id,
+      timestamp: event.timestamp
+    });
+
+    // Process different event types
+    if (event.event) {
+      processNotionEvent(event.event, event.workspace_id);
+    }
+
+    // Always respond with 200 to acknowledge receipt
+    res.status(200).json({ received: true });
+
+  } catch (error) {
+    logger.error('Error processing Notion webhook:', error);
+    res.status(400).json({ error: 'Invalid payload' });
+  }
+});
+
+// Process different types of Notion events
+function processNotionEvent(event, workspaceId) {
+  const eventType = event.type;
+  const objectType = event.object?.object;
+
+  logger.info('Processing Notion event', {
+    eventType,
+    objectType,
+    workspaceId,
+    objectId: event.object?.id
+  });
+
+  switch (eventType) {
+    case 'page.property_values_updated':
+      logger.info('Page properties updated', {
+        pageId: event.object.id,
+        properties: Object.keys(event.object.properties || {})
+      });
+      // Handle page property updates
+      break;
+
+    case 'database.property_schema_updated':
+      logger.info('Database schema updated', {
+        databaseId: event.object.id,
+        title: event.object.title?.[0]?.plain_text
+      });
+      // Handle database schema changes
+      break;
+
+    case 'block.child_page_updated':
+      logger.info('Child page updated', {
+        blockId: event.object.id,
+        type: event.object.type
+      });
+      // Handle block updates
+      break;
+
+    default:
+      logger.info('Unhandled event type', { eventType, objectType });
+  }
+
+  // Here you could:
+  // - Update local cache/database
+  // - Trigger notifications to connected users
+  // - Sync changes to other services
+  // - Send real-time updates via WebSocket
+}
+
+// Endpoint to get webhook subscription status
+app.get('/api/webhooks/notion/status', requireAuth, (req, res) => {
+  const subscriptions = Array.from(webhookSubscriptions.entries()).map(([id, sub]) => ({
+    webhook_id: id,
+    created_at: sub.created_at,
+    verified: !!sub.verification_token
+  }));
+
+  res.json({
+    webhook_url: `${req.protocol}://${req.get('host')}/api/webhooks/notion`,
+    verification_url: `${req.protocol}://${req.get('host')}/api/webhooks/notion/verify`,
+    subscriptions
+  });
+});
+
 // Serve legal pages before static files
 app.get('/privacy', (req, res) => {
   res.sendFile(path.join(__dirname, 'src', 'pages', 'privacy.html'));
@@ -539,6 +740,21 @@ app.get('*', (req, res) => {
   res.status(404).sendFile(path.join(__dirname, 'src', 'pages', '404.html'));
 });
 
-app.listen(port, () => {
-  logger.info(`Server listening at http://localhost:${port}`);
-});
+// Main server startup function
+async function startServer() {
+  try {
+    // Initialize the Gemini API first
+    await initializeGeminiAPI();
+
+    // Start the server
+    app.listen(port, () => {
+      logger.info(`Server listening at http://localhost:${port}`);
+    });
+  } catch (error) {
+    logger.error('Failed to start server:', error.message);
+    process.exit(1);
+  }
+}
+
+// Start the server
+startServer();
