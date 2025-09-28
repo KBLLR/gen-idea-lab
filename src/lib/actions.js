@@ -67,6 +67,18 @@ export const selectModule = (moduleId) => {
   });
 };
 
+export const updateModuleResourceUrl = (moduleId, resourceType, url) => {
+  set(state => {
+    const module = state.modules[moduleId];
+    if (module && module.resources) {
+      const resource = module.resources.find(r => r.type === resourceType);
+      if (resource) {
+        resource.url = url;
+      }
+    }
+  });
+};
+
 
 // --- Orchestrator Actions ---
 export const sendMessageToOrchestrator = async (message) => {
@@ -282,6 +294,243 @@ export const updateArchivaEntryStatus = (entryId, status) => {
       state.archivaEntries[entryId].updatedAt = new Date().toISOString();
     }
   });
+};
+
+// Authentication actions
+export const checkAuthStatus = async () => {
+  try {
+    const response = await fetch('/auth/me', {
+      credentials: 'include',
+    });
+
+    if (response.ok) {
+      const data = await response.json();
+      set({
+        user: data.user,
+        isAuthenticated: true,
+        isCheckingAuth: false,
+      });
+    } else {
+      set({
+        user: null,
+        isAuthenticated: false,
+        isCheckingAuth: false,
+      });
+    }
+  } catch (error) {
+    console.error('Auth check failed:', error);
+    set({
+      user: null,
+      isAuthenticated: false,
+      isCheckingAuth: false,
+    });
+  }
+};
+
+export const loginWithGoogle = async (idToken) => {
+  try {
+    const response = await fetch('/auth/google', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      credentials: 'include',
+      body: JSON.stringify({ idToken }),
+    });
+
+    if (response.ok) {
+      const data = await response.json();
+      set({
+        user: data.user,
+        isAuthenticated: true,
+      });
+      return { success: true };
+    } else {
+      const errorData = await response.json();
+      return { success: false, error: errorData.error };
+    }
+  } catch (error) {
+    console.error('Login failed:', error);
+    return { success: false, error: 'Network error during login' };
+  }
+};
+
+export const logout = async () => {
+  try {
+    await fetch('/auth/logout', {
+      method: 'POST',
+      credentials: 'include',
+    });
+    
+    set({
+      user: null,
+      isAuthenticated: false,
+    });
+  } catch (error) {
+    console.error('Logout failed:', error);
+    // Still clear local state even if server request fails
+    set({
+      user: null,
+      isAuthenticated: false,
+    });
+  }
+};
+
+// Settings actions
+export const toggleSettings = () => {
+  set(state => {
+    state.isSettingsOpen = !state.isSettingsOpen;
+  });
+};
+
+// Service connection actions
+export const connectService = async (serviceId, credentials = null) => {
+  try {
+    // Handle API key based connections
+    if (credentials?.apiKey) {
+      const response = await fetch('/auth/connect/apikey', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+        body: JSON.stringify({ 
+          serviceId, 
+          apiKey: credentials.apiKey 
+        }),
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        set(state => {
+          state.connectedServices[serviceId] = {
+            connected: true,
+            type: 'apikey',
+            connectedAt: new Date().toISOString(),
+            ...result
+          };
+        });
+        return { success: true };
+      } else {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to connect service');
+      }
+    }
+
+    // Handle URL based connections (like Ollama)
+    if (credentials?.url) {
+      const response = await fetch('/auth/connect/url', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+        body: JSON.stringify({ 
+          serviceId, 
+          url: credentials.url 
+        }),
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        set(state => {
+          state.connectedServices[serviceId] = {
+            connected: true,
+            type: 'url',
+            connectedAt: new Date().toISOString(),
+            ...result
+          };
+        });
+        return { success: true };
+      } else {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to connect service');
+      }
+    }
+
+    // Handle OAuth based connections
+    const popup = window.open(
+      `/auth/connect/${serviceId}`,
+      'connect-service',
+      'width=600,height=600,scrollbars=yes,resizable=yes'
+    );
+
+    // Wait for OAuth completion
+    const result = await new Promise((resolve, reject) => {
+      const checkClosed = setInterval(() => {
+        if (popup.closed) {
+          clearInterval(checkClosed);
+          reject(new Error('OAuth popup was closed'));
+        }
+      }, 1000);
+
+      window.addEventListener('message', (event) => {
+        if (event.origin !== window.location.origin) return;
+        
+        if (event.data.type === 'OAUTH_SUCCESS') {
+          clearInterval(checkClosed);
+          popup.close();
+          resolve(event.data.payload);
+        } else if (event.data.type === 'OAUTH_ERROR') {
+          clearInterval(checkClosed);
+          popup.close();
+          reject(new Error(event.data.error));
+        }
+      });
+    });
+
+    // Update state with successful connection
+    set(state => {
+      state.connectedServices[serviceId] = {
+        connected: true,
+        type: 'oauth',
+        ...result
+      };
+    });
+
+    return { success: true };
+  } catch (error) {
+    console.error(`Failed to connect ${serviceId}:`, error);
+    return { success: false, error: error.message };
+  }
+};
+
+export const disconnectService = async (serviceId) => {
+  try {
+    const response = await fetch(`/auth/disconnect/${serviceId}`, {
+      method: 'POST',
+      credentials: 'include',
+    });
+
+    if (response.ok) {
+      set(state => {
+        delete state.connectedServices[serviceId];
+      });
+      return { success: true };
+    } else {
+      throw new Error('Failed to disconnect service');
+    }
+  } catch (error) {
+    console.error(`Failed to disconnect ${serviceId}:`, error);
+    return { success: false, error: error.message };
+  }
+};
+
+export const loadConnectedServices = async () => {
+  try {
+    const response = await fetch('/auth/services', {
+      credentials: 'include',
+    });
+
+    if (response.ok) {
+      const services = await response.json();
+      set(state => {
+        state.connectedServices = services;
+      });
+    }
+  } catch (error) {
+    console.error('Failed to load connected services:', error);
+  }
 };
 
 

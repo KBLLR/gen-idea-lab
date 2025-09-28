@@ -3,9 +3,12 @@
  * SPDX-License-Identifier: Apache-2.0
 */
 import c from 'clsx'
-import { selectModule } from '../lib/actions'
+import { useEffect } from 'react'
+import { selectModule, checkAuthStatus } from '../lib/actions'
 import useStore from '../lib/store'
 import WelcomeScreen from './WelcomeScreen.jsx'
+import LoginForm from './LoginForm.jsx'
+import SettingsModal from './SettingsModal.jsx'
 import AppSwitcher from './AppSwitcher.jsx'
 import ModeSelector from './ModeSelector.jsx'
 import BoothViewer from './BoothViewer.jsx'
@@ -57,6 +60,13 @@ export default function App() {
   const activeModuleId = useStore.use.activeModuleId();
   const isAssistantOpen = useStore.use.isAssistantOpen();
   const activeEntryId = useStore.use.activeEntryId();
+  const isAuthenticated = useStore.use.isAuthenticated();
+  const isCheckingAuth = useStore.use.isCheckingAuth();
+  const isSettingsOpen = useStore.use.isSettingsOpen();
+
+  useEffect(() => {
+    checkAuthStatus();
+  }, []);
 
   const handleStart = () => {
     useStore.setState({ isWelcomeScreenOpen: false });
@@ -88,12 +98,32 @@ export default function App() {
     }
   }
   
+  // Show loading spinner while checking authentication
+  if (isCheckingAuth) {
+    return (
+      <div className="auth-loading" data-theme={theme}>
+        <div className="spinner"></div>
+        <p>Checking authentication...</p>
+      </div>
+    );
+  }
+
+  // Show login form if not authenticated
+  if (!isAuthenticated) {
+    return (
+      <div data-theme={theme}>
+        <LoginForm />
+      </div>
+    );
+  }
+
   const isThreeColumnLayout = activeApp === 'ideaLab' && activeModuleId;
 
   return (
     <main data-theme={theme} className={c({ 'three-column': isThreeColumnLayout })}>
       {isWelcomeScreenOpen && <WelcomeScreen onStart={handleStart} />}
       {isAssistantOpen && <Assistant />}
+      {isSettingsOpen && <SettingsModal />}
 
       <div className="left-column">
         <AppSwitcher />

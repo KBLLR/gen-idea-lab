@@ -16,8 +16,7 @@ RUN npm ci --omit=dev
 # Copy server and built frontend
 COPY --from=builder /app/server.js ./server.js
 COPY --from=builder /app/dist ./dist
-# Server runtime helpers
-COPY --from=builder /app/src/lib/logger.js ./src/lib/logger.js
-COPY --from=builder /app/src/lib/metrics.js ./src/lib/metrics.js
+# Copy all server runtime helpers
+COPY --from=builder /app/src ./src
 EXPOSE 8080
 CMD ["node", "server.js"]

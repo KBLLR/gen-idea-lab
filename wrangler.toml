@@ -1,0 +1,15 @@
+name = "project-idea-lab"
+compatibility_date = "2025-09-28"
+
+[assets]
+directory = "./dist"
+
+[vars]
+NODE_ENV = "production"
+
+[[routes]]
+pattern = "www.kbllr.com/*"
+zone_name = "kbllr.com"
+
+[compatibility_flags]
+nodejs_compat = true

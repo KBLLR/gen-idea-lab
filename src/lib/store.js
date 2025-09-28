@@ -12,10 +12,21 @@ import {createSelectorFunctions} from 'auto-zustand-selectors-hook'
 import { modules } from './modules'
 import { personalities } from './assistant/personalities'
 
-const store = immer((set) => ({
+const store = immer((set, get) => ({
   didInit: false,
   isWelcomeScreenOpen: true,
+  isSettingsOpen: false,
   theme: 'dark',
+  
+  // Authentication state
+  user: null,
+  isAuthenticated: false,
+  isCheckingAuth: true,
+  
+  // Service connections state
+  connectedServices: {},
+  // Service credentials (stored separately from connection status)
+  serviceCredentials: {},
   
   // App switcher state
   activeApp: 'ideaLab', // 'ideaLab', 'imageBooth', or 'archiva'
@@ -48,6 +59,224 @@ const store = immer((set) => ({
   // Archiva State
   archivaEntries: {}, // Store entries by ID
   activeEntryId: null,
+  
+  // Actions
+  actions: {
+    // Authentication actions
+    setUser: (user) => set((state) => {
+      state.user = user;
+      state.isAuthenticated = !!user;
+      state.isCheckingAuth = false;
+    }),
+    
+    logout: () => set((state) => {
+      state.user = null;
+      state.isAuthenticated = false;
+      state.isCheckingAuth = false;
+    }),
+    
+    setCheckingAuth: (checking) => set((state) => {
+      state.isCheckingAuth = checking;
+    }),
+    
+    // Service management actions
+    setConnectedServices: (services) => set((state) => {
+      state.connectedServices = services;
+    }),
+    
+    updateServiceConnection: (serviceId, connectionInfo) => set((state) => {
+      state.connectedServices[serviceId] = connectionInfo;
+    }),
+    
+    removeServiceConnection: (serviceId) => set((state) => {
+      delete state.connectedServices[serviceId];
+    }),
+    
+    // Store service credentials separately from connection status
+    storeServiceCredentials: (serviceId, credentials) => set((state) => {
+      state.serviceCredentials[serviceId] = {
+        ...credentials,
+        storedAt: new Date().toISOString()
+      };
+    }),
+    
+    // Toggle service on/off using stored credentials
+    toggleService: async (serviceId, enabled) => {
+      const credentials = get().serviceCredentials[serviceId];
+      if (!credentials) {
+        throw new Error('No stored credentials found for this service');
+      }
+      
+      try {
+        if (enabled) {
+          // Re-enable service using stored credentials
+          const response = await fetch(`/api/services/${serviceId}/connect`, {
+            method: 'POST',
+            credentials: 'include',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(credentials)
+          });
+          
+          if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.error || 'Failed to enable service');
+          }
+          
+          const result = await response.json();
+          
+          if (result.authUrl) {
+            window.location.href = result.authUrl;
+            return;
+          }
+          
+          if (result.success) {
+            set((state) => {
+              state.connectedServices[serviceId] = {
+                connected: true,
+                info: result.info || { name: serviceId }
+              };
+            });
+          }
+        } else {
+          // Disable service (but keep credentials)
+          const response = await fetch(`/api/services/${serviceId}`, {
+            method: 'DELETE',
+            credentials: 'include'
+          });
+          
+          if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.error || 'Failed to disable service');
+          }
+          
+          set((state) => {
+            state.connectedServices[serviceId] = {
+              connected: false,
+              info: null
+            };
+          });
+        }
+      } catch (error) {
+        console.error(`Failed to toggle ${serviceId}:`, error);
+        throw error;
+      }
+    },
+    
+    // Service connection API calls
+    connectService: async (serviceId, credentials) => {
+      try {
+        const response = await fetch(`/api/services/${serviceId}/connect`, {
+          method: 'POST',
+          credentials: 'include',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(credentials)
+        });
+        
+        if (!response.ok) {
+          const error = await response.json();
+          throw new Error(error.error || 'Failed to connect service');
+        }
+        
+        const result = await response.json();
+        
+        // For OAuth services, redirect to auth URL
+        if (result.authUrl) {
+          window.location.href = result.authUrl;
+          return;
+        }
+        
+        // For API key/URL services, update the connection immediately
+        if (result.success) {
+          // Store credentials for future use
+          get().actions.storeServiceCredentials(serviceId, credentials);
+          // Refresh connected services
+          await get().actions.fetchConnectedServices();
+        }
+        
+        return result;
+      } catch (error) {
+        console.error(`Failed to connect ${serviceId}:`, error);
+        throw error;
+      }
+    },
+    
+    disconnectService: async (serviceId) => {
+      try {
+        const response = await fetch(`/api/services/${serviceId}`, {
+          method: 'DELETE',
+          credentials: 'include'
+        });
+        
+        if (!response.ok) {
+          const error = await response.json();
+          throw new Error(error.error || 'Failed to disconnect service');
+        }
+        
+        // Update local state
+        set((state) => {
+          delete state.connectedServices[serviceId];
+        });
+        
+        return await response.json();
+      } catch (error) {
+        console.error(`Failed to disconnect ${serviceId}:`, error);
+        throw error;
+      }
+    },
+    
+    fetchConnectedServices: async () => {
+      try {
+        const response = await fetch('/api/services', {
+          credentials: 'include'
+        });
+        
+        if (response.ok) {
+          const services = await response.json();
+          set((state) => {
+            state.connectedServices = services;
+          });
+        }
+      } catch (error) {
+        console.error('Failed to fetch connected services:', error);
+      }
+    },
+    
+    testServiceConnection: async (serviceId) => {
+      try {
+        const response = await fetch(`/api/services/${serviceId}/test`, {
+          method: 'POST',
+          credentials: 'include'
+        });
+        
+        if (!response.ok) {
+          const error = await response.json();
+          throw new Error(error.error || 'Connection test failed');
+        }
+        
+        return await response.json();
+      } catch (error) {
+        console.error(`Failed to test ${serviceId} connection:`, error);
+        throw error;
+      }
+    },
+    
+    // UI Actions
+    setIsSettingsOpen: (open) => set((state) => {
+      state.isSettingsOpen = open;
+    }),
+    
+    setActiveApp: (app) => set((state) => {
+      state.activeApp = app;
+    }),
+    
+    setTheme: (theme) => set((state) => {
+      state.theme = theme;
+    })
+  }
 }));
 
 export default createSelectorFunctions(
@@ -61,6 +290,9 @@ export default createSelectorFunctions(
         orchestratorHistory: state.orchestratorHistory,
         assistantHistories: state.assistantHistories,
         archivaEntries: state.archivaEntries,
+        connectedServices: state.connectedServices,
+        serviceCredentials: state.serviceCredentials,
+        // Don't persist authentication state for security
       })
     })
   )

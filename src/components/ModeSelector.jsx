@@ -44,7 +44,11 @@ export default function ModeSelector() {
                                             onClick={() => selectMode(modeKey)}
                                             title={modeDetails.name}
                                         >
-                                            <img src={thumbnails[modeKey]} alt={modeDetails.name} loading="lazy" />
+                                            {thumbnails[modeKey] ? (
+                                                <img src={thumbnails[modeKey]} alt={modeDetails.name} loading="lazy" />
+                                            ) : (
+                                                <div className="placeholder icon">photo_spark</div>
+                                            )}
                                             <span>{modeDetails.emoji} {modeDetails.name}</span>
                                         </button>
                                     ))}

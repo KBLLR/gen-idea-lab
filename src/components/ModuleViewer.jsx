@@ -4,11 +4,22 @@
 */
 import useStore from '../lib/store';
 import { personalities } from '../lib/assistant/personalities';
-import { modules } from '../lib/modules';
-import { toggleAssistant } from '../lib/actions';
+import { toggleAssistant, updateModuleResourceUrl } from '../lib/actions';
+import c from 'clsx';
+
+// Official brand icons via react-icons (Simple Icons set)
+import { SiFigma, SiGithub, SiNotion, SiGoogledrive } from 'react-icons/si';
+
+const resourceIcons = {
+    figma: SiFigma,
+    github: SiGithub,
+    notion: SiNotion,
+    googledrive: SiGoogledrive,
+};
 
 export default function ModuleViewer() {
     const activeModuleId = useStore.use.activeModuleId();
+    const modules = useStore.use.modules();
 
     if (!activeModuleId) {
         return null;
@@ -16,6 +27,13 @@ export default function ModuleViewer() {
 
     const module = modules[activeModuleId];
     const personality = personalities[activeModuleId];
+
+    const handleResourceClick = (resourceType, currentUrl) => {
+        const newUrl = prompt(`Enter the URL for ${resourceType}:`, currentUrl);
+        if (newUrl !== null) {
+            updateModuleResourceUrl(activeModuleId, resourceType, newUrl);
+        }
+    };
 
     return (
         <div className="module-viewer">
@@ -25,15 +43,27 @@ export default function ModuleViewer() {
                     <p>{module['Module Code']} - {personality.title}</p>
                 </div>
                 <div className="module-connectors">
-                    <button className="icon-btn" title="Figma"><span className="icon">design_services</span></button>
-                    <button className="icon-btn" title="GitHub"><span className="icon">code</span></button>
-                    <button className="icon-btn" title="Notion"><span className="icon">article</span></button>
-                    <button className="icon-btn" title="Google Drive"><span className="icon">folder_open</span></button>
-                    <button className="icon-btn" title="Documentation"><span className="icon">description</span></button>
+                    {module.resources.map(resource => {
+                        const Icon = resourceIcons[resource.type];
+                        const hasUrl = resource.url && resource.url.trim() !== '';
+                        return (
+                            <button 
+                                key={resource.type}
+                                className={c('icon-btn', { 'has-url': hasUrl })}
+                                title={resource.type} 
+                                aria-label={resource.type}
+                                onClick={() => handleResourceClick(resource.type, resource.url)}
+                            >
+                                <Icon size={20} />
+                            </button>
+                        );
+                    })}
+                    <button className="icon-btn" title="Documentation" aria-label="Documentation"><span className="icon">description</span></button>
                     <button 
                         className="icon-btn assistant-chat-icon" 
                         onClick={toggleAssistant} 
                         title={`Chat with ${personality.name}`}
+                        aria-label={`Chat with ${personality.name}`}
                     >
                         <span className="icon">chat</span>
                     </button>
