@@ -1,0 +1,1212 @@
+
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+* ::selection {
+  background: var(--color-selection-bg);
+  color: var(--color-selection-text);
+}
+:root {
+  --bg-main: #000;
+  --bg-panel: #0a0a0a;
+  --bg-item: #1a1a1a;
+  --bg-item-hover: #252525;
+  --bg-item-active: #fff;
+  --bg-overlay: rgba(0,0,0,0.8);
+  --bg-modal: #0a0a0a;
+  --bg-input: #1a1a1a;
+  --bg-button-primary: #1e88e5;
+  --bg-button-secondary: #222;
+  --bg-button-icon-hover: #2a2a2a;
+  --bg-error: #ff4d4d;
+  --bg-spinner-track: #444;
+
+  --text-primary: #fff;
+  --text-secondary: #bbb;
+  --text-tertiary: #888;
+  --text-muted: #666;
+  --text-inverse: #000;
+  --text-accent: #1e88e5;
+  --text-on-primary: #fff;
+
+  --border-primary: #333;
+  --border-secondary: #2a2a2a;
+  --border-accent: #1e88e5;
+  --border-dashed: #333;
+
+  --backdrop-filter: blur(10px);
+
+  --color-selection-bg: #fff;
+  --color-selection-text: #111;
+}
+
+[data-theme="light"] {
+  --bg-main: #f0f2f5;
+  --bg-panel: #ffffff;
+  --bg-item: #f0f2f5;
+  --bg-item-hover: #e4e6e9;
+  --bg-item-active: #1e88e5;
+  --bg-overlay: rgba(255,255,255,0.8);
+  --bg-modal: #ffffff;
+  --bg-input: #e4e6e9;
+  --bg-button-primary: #1e88e5;
+  --bg-button-secondary: #e4e6e9;
+  --bg-button-icon-hover: #dcdfe2;
+  --bg-error: #d93025;
+  --bg-spinner-track: #ccc;
+  
+  --text-primary: #1c1e21;
+  --text-secondary: #65676b;
+  --text-tertiary: #8a8d91;
+  --text-muted: #b0b3b8;
+  --text-inverse: #fff;
+  --text-accent: #1e88e5;
+  --text-on-primary: #fff;
+
+  --border-primary: #ced0d4;
+  --border-secondary: #dcdfe2;
+  --border-accent: #1e88e5;
+  --border-dashed: #ced0d4;
+
+  --backdrop-filter: blur(10px);
+
+  --color-selection-bg: #1e88e5;
+  --color-selection-text: #fff;
+}
+
+
+body {
+  background: var(--bg-main);
+  color: var(--text-primary);
+  font-family:
+    Space Mono,
+    Google Sans Display,
+    sans-serif;
+  transition: background-color 0.2s, color 0.2s;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  font-weight: 400;
+}
+li {
+  list-style: none;
+}
+button {
+  font-family:
+    Space Mono,
+    Google Sans Display,
+    sans-serif;
+  background: none;
+  color: var(--text-primary);
+  border: none;
+  font-size: 16px;
+  cursor: pointer;
+  -webkit-user-select: none;
+  user-select: none;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+button:focus {
+  outline: none;
+}
+button[disabled] {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+button .icon {
+  display: block;
+}
+.icon {
+  font-family: Material Symbols Outlined;
+  font-weight: 300;
+  line-height: 1;
+}
+main {
+  width: 100vw;
+  height: 100dvh;
+  overflow: hidden;
+  display: flex;
+  flex-direction: row;
+}
+.left-column {
+  padding: 20px;
+  background: var(--bg-panel);
+  display: flex;
+  flex-direction: column;
+  flex: 0 0 25%;
+  max-width: 380px;
+  border-right: 1px solid var(--border-primary);
+  transition: all 0.3s ease-in-out;
+}
+main.three-column .left-column {
+  flex: 0 0 20%;
+  max-width: 320px;
+}
+
+.left-column-content {
+  flex-grow: 1;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.app-switcher {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0 10px 10px 10px;
+  border-bottom: 1px solid var(--border-primary);
+  margin-bottom: 10px;
+  flex-shrink: 0;
+}
+.app-switcher .app-title {
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  color: var(--text-primary);
+  text-align: center;
+  flex-grow: 1;
+}
+.app-switcher .switch-btn {
+  font-size: 28px;
+  padding: 4px;
+  border-radius: 50%;
+  transition: background-color 0.2s;
+}
+.app-switcher .switch-btn:hover {
+  background-color: var(--bg-item-hover);
+}
+
+
+.left-column h2 {
+  font-size: 14px;
+  text-transform: uppercase;
+  color: var(--text-tertiary);
+  letter-spacing: 1px;
+  margin-bottom: 10px;
+  padding-left: 10px;
+}
+
+.middle-column {
+  border-right: 1px solid var(--border-primary);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+main.three-column .middle-column {
+  flex: 1 1 50%;
+}
+.right-column {
+  display: flex;
+  flex-direction: column;
+}
+main.three-column .right-column {
+  flex: 1 1 30%;
+}
+main:not(.three-column) .right-column {
+  flex: 1 1 75%;
+  padding: 0 20px;
+}
+
+@media (max-width: 1024px) {
+  .left-column { display: none; }
+  .middle-column { display: none; }
+}
+
+.semester-group h2 {
+  font-size: 14px;
+  text-transform: uppercase;
+  color: var(--text-tertiary);
+  letter-spacing: 1px;
+  margin-bottom: 10px;
+  padding-left: 10px;
+  border-bottom: 1px solid var(--border-primary);
+  padding-bottom: 10px;
+}
+.module-list {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+.module-list button {
+  font-size: 14px;
+  transition: all 0.2s;
+  white-space: nowrap;
+  gap: 10px;
+  width: 100%;
+  padding: 10px 15px;
+  border-radius: 5px;
+  opacity: 0.7;
+  text-align: left;
+}
+.module-list button:hover {
+  opacity: 1;
+  background: var(--bg-item-hover);
+}
+.module-list button.active {
+  opacity: 1;
+  background: var(--bg-item-active);
+  color: var(--text-inverse);
+}
+.module-list button .icon {
+  font-size: 20px;
+}
+.module-info {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+  flex-grow: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.module-info p {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.orchestrator-chat-container {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    background-color: var(--bg-main);
+    padding: 0 20px;
+}
+
+.assistant-history {
+  flex-grow: 1;
+  overflow-y: auto;
+  padding: 20px 0;
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.assistant-message {
+  padding: 12px 18px;
+  border-radius: 18px;
+  max-width: 85%;
+  line-height: 1.6;
+  font-size: 14px;
+}
+.assistant-message.user {
+  background: var(--bg-button-primary);
+  color: var(--text-on-primary);
+  border-bottom-right-radius: 4px;
+  align-self: flex-end;
+}
+.assistant-message.model {
+  background: var(--bg-button-secondary);
+  color: var(--text-primary);
+  border-bottom-left-radius: 4px;
+  align-self: flex-start;
+}
+.assistant-message.model.loading {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+.assistant-message.system {
+    align-self: center;
+    text-align: center;
+    font-size: 12px;
+    color: var(--text-muted);
+    background-color: transparent;
+    font-style: italic;
+    padding: 5px 0;
+}
+
+.assistant-message.model.loading .dot {
+  width: 8px;
+  height: 8px;
+  background-color: #555;
+  border-radius: 50%;
+  animation: loading-dots 1.4s infinite ease-in-out both;
+}
+.assistant-message.model.loading .dot:nth-child(1) { animation-delay: -0.32s; }
+.assistant-message.model.loading .dot:nth-child(2) { animation-delay: -0.16s; }
+@keyframes loading-dots {
+  0%, 80%, 100% { transform: scale(0); }
+  40% { transform: scale(1.0); }
+}
+
+.agent-task-message {
+    background-color: var(--bg-item);
+    border: 1px solid var(--border-secondary);
+    border-radius: 8px;
+    padding: 15px;
+    max-width: 85%;
+    align-self: flex-start;
+}
+.agent-task-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    color: var(--text-tertiary);
+    font-size: 14px;
+    font-weight: 700;
+}
+.agent-task-body {
+    padding-top: 10px;
+    margin-top: 10px;
+    border-top: 1px solid var(--border-primary);
+    font-size: 14px;
+    line-height: 1.6;
+    color: var(--text-secondary);
+}
+.spinner-line {
+  height: 2px;
+  width: 100%;
+  background-color: var(--border-primary);
+  margin: 15px 0;
+  position: relative;
+  overflow: hidden;
+}
+.spinner-dot {
+  position: absolute;
+  width: 50%;
+  height: 100%;
+  background-color: var(--text-accent);
+  animation: move-dot 2s infinite ease-in-out;
+}
+@keyframes move-dot {
+  0% { left: -50%; }
+  100% { left: 100%; }
+}
+.agent-task-result {
+    margin-top: 10px;
+    background-color: var(--bg-main);
+    padding: 10px;
+    border-radius: 4px;
+}
+
+
+.assistant-input-form {
+  padding: 20px 0;
+  border-top: 1px solid var(--border-primary);
+  display: flex;
+  gap: 10px;
+  background-color: var(--bg-main);
+}
+.assistant-input-form input {
+  font-family:
+    Space Mono,
+    Google Sans Display,
+    sans-serif;
+  background: var(--bg-input);
+  color: var(--text-primary);
+  flex-grow: 1;
+  padding: 12px 15px;
+  border-radius: 20px;
+  font-size: 14px;
+  border: 1px solid var(--border-primary);
+  outline: none;
+}
+.assistant-input-form button {
+  background: var(--bg-button-primary);
+  border-radius: 50%;
+  padding: 10px;
+}
+.assistant-input-form button .icon {
+  font-size: 24px;
+  color: var(--text-on-primary);
+}
+
+
+/* Image Booth Styles */
+.mode-selector {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+.mode-category > h2 {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  cursor: pointer;
+  border-bottom: 1px solid var(--border-primary);
+  padding-bottom: 10px;
+}
+.mode-subcategory {
+  margin-top: 15px;
+}
+.mode-subcategory h3 {
+  font-size: 13px;
+  color: var(--text-tertiary);
+  margin-bottom: 10px;
+  padding-left: 10px;
+}
+.mode-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+  gap: 10px;
+}
+.mode-item {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 8px;
+  padding: 10px;
+  border-radius: 8px;
+  background-color: var(--bg-item);
+  border: 1px solid var(--border-secondary);
+  transition: all 0.2s;
+  text-align: center;
+  font-size: 12px;
+}
+.mode-item:hover {
+  transform: translateY(-3px);
+  background-color: var(--bg-item-hover);
+  border-color: var(--border-primary);
+}
+.mode-item.active {
+  background-color: var(--bg-item-active);
+  color: var(--text-inverse);
+  border-color: var(--bg-item-active);
+}
+.mode-item img {
+  width: 100%;
+  height: 70px;
+  object-fit: cover;
+  border-radius: 4px;
+  background: var(--bg-main);
+  flex-shrink: 0;
+}
+.mode-item span {
+  white-space: normal;
+  line-height: 1.3;
+  flex-grow: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.booth-viewer {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  height: 100%;
+  padding: 20px 0;
+}
+.image-uploader {
+  flex-grow: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  border: 2px dashed var(--border-dashed);
+  border-radius: 12px;
+  padding: 20px;
+  text-align: center;
+  color: var(--text-muted);
+  position: relative;
+  transition: border-color 0.2s;
+}
+.image-uploader:hover {
+  border-color: var(--text-accent);
+  color: var(--text-secondary);
+}
+.image-uploader .icon {
+  font-size: 64px;
+  margin-bottom: 20px;
+}
+.image-uploader input[type="file"] {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  cursor: pointer;
+}
+.booth-header {
+  padding-bottom: 20px;
+  border-bottom: 1px solid var(--border-primary);
+  display: flex;
+  align-items: flex-start;
+  gap: 20px;
+}
+.booth-header-info {
+  flex-grow: 1;
+}
+.booth-header-info h2 {
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--text-primary);
+  padding-left: 0;
+  margin-bottom: 5px;
+}
+.booth-header-info p {
+  font-size: 14px;
+  color: var(--text-secondary);
+  line-height: 1.6;
+}
+.booth-generate-btn {
+  font-size: 16px;
+  padding: 10px 25px;
+  background: var(--bg-button-primary);
+  color: var(--text-on-primary);
+  border-radius: 50px;
+  border: none;
+  font-weight: 700;
+  letter-spacing: 1px;
+  transition: transform 0.2s;
+  white-space: nowrap;
+}
+.booth-generate-btn:hover {
+  transform: scale(1.05);
+}
+
+.image-previews {
+  flex-grow: 1;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 30px;
+  position: relative;
+}
+.image-container {
+  background: var(--bg-item);
+  border: 1px solid var(--border-secondary);
+  border-radius: 8px;
+  padding: 15px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  position: relative;
+}
+.image-container h4 {
+  text-align: center;
+  font-size: 12px;
+  text-transform: uppercase;
+  color: var(--text-tertiary);
+}
+.image-container img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  border-radius: 4px;
+}
+.image-container .placeholder {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--bg-spinner-track);
+  font-size: 48px;
+}
+.loading-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(0,0,0,0.7);
+  backdrop-filter: blur(5px);
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+}
+.spinner {
+  width: 50px;
+  height: 50px;
+  border: 5px solid var(--bg-spinner-track);
+  border-top-color: var(--text-accent);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+.error-message {
+    position: absolute;
+    bottom: 20px;
+    left: 20px;
+    right: 20px;
+    background: var(--bg-error);
+    color: var(--text-on-primary);
+    padding: 10px;
+    border-radius: 5px;
+    text-align: center;
+    font-size: 14px;
+}
+
+/* User Bar Styles */
+.user-bar {
+  padding-top: 20px;
+  border-top: 1px solid var(--border-primary);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-shrink: 0;
+}
+.user-info {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 14px;
+}
+.user-info .icon {
+  font-size: 28px;
+}
+.user-actions {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+.user-actions .icon-btn {
+  font-size: 24px;
+  padding: 6px;
+  border-radius: 50%;
+  color: var(--text-tertiary);
+}
+.user-actions .icon-btn:hover {
+  color: var(--text-primary);
+  background-color: var(--bg-item-hover);
+}
+
+/* Archiva Styles */
+.archiva-dashboard {
+    padding: 20px;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+}
+.archiva-home {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    color: var(--text-muted);
+    flex-grow: 1;
+}
+.archiva-home .icon {
+    font-size: 64px;
+    margin-bottom: 20px;
+}
+.archiva-home button {
+    font-size: 16px;
+    padding: 10px 25px;
+    background: var(--bg-button-primary);
+    color: var(--text-on-primary);
+    border-radius: 50px;
+    margin-top: 20px;
+}
+.template-selector {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+.template-selector h2 {
+    font-size: 20px;
+    font-weight: 700;
+}
+.template-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 15px;
+}
+.template-card {
+    background: var(--bg-item);
+    border: 1px solid var(--border-secondary);
+    border-radius: 8px;
+    padding: 15px;
+    transition: all 0.2s ease;
+    text-align: left;
+}
+.template-card:hover {
+    transform: translateY(-3px);
+    border-color: var(--border-accent);
+}
+.template-card h3 {
+    font-size: 16px;
+    font-weight: 700;
+    margin-bottom: 5px;
+}
+.template-card p {
+    font-size: 13px;
+    color: var(--text-secondary);
+}
+.back-btn {
+    align-self: flex-start;
+    margin-bottom: 10px;
+    color: var(--text-tertiary);
+}
+.back-btn:hover {
+    color: var(--text-primary);
+}
+
+.archiva-entry-form {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+}
+.archiva-form-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-bottom: 15px;
+    border-bottom: 1px solid var(--border-primary);
+    gap: 15px;
+}
+.archiva-form-header-title h2 {
+    font-size: 20px;
+    font-weight: 700;
+}
+.archiva-form-header-title p {
+    font-size: 14px;
+    color: var(--text-tertiary);
+}
+.archiva-form-actions {
+    display: flex;
+    gap: 10px;
+}
+.archiva-form-actions button {
+    padding: 8px 15px;
+    border-radius: 5px;
+    font-size: 14px;
+    white-space: nowrap;
+}
+.archiva-form-actions button.secondary {
+    background: var(--bg-button-secondary);
+}
+.archiva-form-actions button.primary {
+    background: var(--bg-button-primary);
+    color: var(--text-on-primary);
+}
+.archiva-form-content {
+    flex-grow: 1;
+    overflow-y: auto;
+    padding: 20px 10px 20px 0;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+.form-field {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+.form-field label {
+    font-size: 12px;
+    text-transform: uppercase;
+    color: var(--text-tertiary);
+    font-weight: 700;
+}
+.form-field input,
+.form-field textarea {
+    background: var(--bg-input);
+    color: var(--text-primary);
+    border: 1px solid var(--border-secondary);
+    border-radius: 4px;
+    padding: 10px;
+    font-size: 14px;
+    font-family: Space Mono, Google Sans Display, sans-serif;
+    width: 100%;
+}
+.form-field textarea {
+    min-height: 120px;
+    resize: vertical;
+}
+.form-field textarea.code {
+    font-family: 'Space Mono', monospace;
+    min-height: 200px;
+}
+.empty-list-message {
+    padding: 10px 15px;
+    font-size: 13px;
+    color: var(--text-muted);
+    font-style: italic;
+}
+
+
+/* Welcome Screen Styles */
+.welcome-screen {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: var(--bg-overlay);
+  backdrop-filter: var(--backdrop-filter);
+  animation: fade-in 0.3s ease-out;
+}
+
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.welcome-content {
+  background-color: var(--bg-panel);
+  padding: 40px;
+  border-radius: 12px;
+  border: 1px solid var(--border-primary);
+  max-width: 600px;
+  text-align: center;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+  animation: slide-up 0.4s ease-out;
+}
+
+@keyframes slide-up {
+    from { transform: translateY(20px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+}
+
+.welcome-content h1 {
+  font-size: 28px;
+  font-weight: 700;
+  margin-bottom: 15px;
+  color: var(--text-primary);
+}
+
+.welcome-content .intro {
+  font-size: 16px;
+  line-height: 1.6;
+  color: var(--text-secondary);
+  margin-bottom: 30px;
+}
+
+.welcome-start-btn {
+  font-size: 16px;
+  padding: 12px 30px;
+  background: var(--bg-button-primary);
+  color: var(--text-on-primary);
+  border-radius: 50px;
+  border: none;
+  font-weight: 700;
+  letter-spacing: 1px;
+  transition: transform 0.2s;
+}
+
+.welcome-start-btn:hover {
+  transform: scale(1.05);
+}
+
+/* Module Viewer Styles */
+.module-viewer {
+    background-color: var(--bg-panel);
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+}
+.module-viewer-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-bottom: 15px;
+    border-bottom: 1px solid var(--border-primary);
+    flex-shrink: 0;
+}
+.module-viewer-title {
+  flex-grow: 1;
+}
+.module-viewer-title h2 {
+    font-size: 20px;
+    font-weight: 700;
+}
+.module-viewer-title p {
+    font-size: 14px;
+    color: var(--text-tertiary);
+}
+
+.module-connectors {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+.module-connectors .icon-btn {
+    font-size: 24px;
+    padding: 8px;
+    border-radius: 50%;
+    color: var(--text-tertiary);
+    transition: all 0.2s ease;
+}
+.module-connectors .icon-btn:hover {
+    color: var(--text-primary);
+    background-color: var(--bg-item-hover);
+}
+.module-connectors .assistant-chat-icon {
+    background-color: var(--text-accent);
+    color: var(--text-on-primary);
+}
+.module-connectors .assistant-chat-icon:hover {
+    background-color: var(--text-accent);
+    color: var(--text-on-primary);
+    transform: scale(1.1);
+}
+
+.module-viewer-content {
+    flex-grow: 1;
+    overflow-y: auto;
+    padding-top: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    font-size: 14px;
+    line-height: 1.7;
+    color: var(--text-secondary);
+}
+.module-viewer-content h3 {
+    font-size: 14px;
+    text-transform: uppercase;
+    color: var(--text-tertiary);
+    letter-spacing: 1px;
+    margin-bottom: 10px;
+    border-bottom: 1px solid var(--border-secondary);
+    padding-bottom: 5px;
+}
+.module-viewer-content ul {
+    list-style: disc;
+    padding-left: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+/* Assistant Modal Styles */
+.assistant-overlay {
+  position: fixed;
+  inset: 0;
+  background-color: var(--bg-overlay);
+  backdrop-filter: var(--backdrop-filter);
+  z-index: 1001;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: fade-in 0.3s ease;
+}
+.assistant-window {
+    background-color: var(--bg-modal);
+    border: 1px solid var(--border-primary);
+    border-radius: 12px;
+    width: 90%;
+    max-width: 600px;
+    height: 80%;
+    max-height: 700px;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+    animation: slide-up 0.4s ease;
+    overflow: hidden;
+}
+.assistant-header {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    padding: 15px 20px;
+    border-bottom: 1px solid var(--border-primary);
+    flex-shrink: 0;
+}
+.assistant-icon {
+    font-size: 32px;
+    color: var(--text-accent);
+}
+.assistant-header-text {
+    flex-grow: 1;
+}
+.assistant-header-text h3 {
+    font-size: 16px;
+    font-weight: 700;
+}
+.assistant-header-text h4 {
+    font-size: 13px;
+    color: var(--text-tertiary);
+}
+.assistant-window .assistant-history {
+    padding: 20px;
+}
+.assistant-window .assistant-input-form {
+    padding: 15px 20px;
+    background-color: var(--bg-modal);
+}
+.close-btn {
+    padding: 6px;
+    border-radius: 50%;
+}
+.close-btn:hover {
+    background-color: var(--bg-button-icon-hover);
+}
+.close-btn .icon {
+    font-size: 24px;
+}--- START OF FILE src/components/ArchivaEntryForm.jsx ---
+
+/**
+ * @license
+ * SPDX-License-Identifier: Apache-2.0
+*/
+import React from 'react';
+import useStore from '../lib/store';
+import { templates } from '../lib/archiva/templates';
+import { updateArchivaEntry, updateArchivaEntryStatus, clearActiveEntryId } from '../lib/actions';
+
+const Field = ({ field, value, onChange }) => {
+    const { field_key, label, field_type } = field;
+
+    const renderInput = () => {
+        switch (field_type) {
+            case 'date':
+                return <input type="date" value={value} onChange={onChange} />;
+            case 'string':
+                return <input type="text" value={value} onChange={onChange} />;
+            case 'markdown':
+            case 'multiline':
+                return <textarea value={value} onChange={onChange} />;
+            case 'code':
+                return <textarea className="code" value={value} onChange={onChange} />;
+            default:
+                return <input type="text" value={value} onChange={onChange} />;
+        }
+    };
+
+    return (
+        <div className="form-field">
+            <label htmlFor={field_key}>{label}</label>
+            {renderInput()}
+        </div>
+    );
+};
+
+export default function ArchivaEntryForm() {
+    const activeEntryId = useStore.use.activeEntryId();
+    const entry = useStore(s => s.archivaEntries[activeEntryId]);
+
+    if (!entry) {
+        return <div>Error: Entry not found.</div>;
+    }
+
+    const template = templates[entry.templateKey];
+
+    const handleFieldChange = (fieldKey, value) => {
+        updateArchivaEntry(activeEntryId, fieldKey, value);
+    };
+
+    return (
+        <div className="archiva-entry-form">
+            <div className="archiva-form-header">
+                <div className="archiva-form-header-title">
+                    <h2>{entry.values.title || template.name}</h2>
+                    <p>Status: <span className={`status-${entry.status}`}>{entry.status}</span></p>
+                </div>
+                 <div className="archiva-form-actions">
+                    <button className="back-btn" onClick={clearActiveEntryId}>
+                        <span className="icon">close</span> Close
+                    </button>
+                    <button className="secondary" onClick={() => updateArchivaEntryStatus(activeEntryId, 'draft')}>
+                        Save as Draft
+                    </button>
+                    <button className="primary" onClick={() => updateArchivaEntryStatus(activeEntryId, 'published')}>
+                        Publish
+                    </button>
+                </div>
+            </div>
+            <div className="archiva-form-content">
+                {template.fields.map(field => (
+                    <Field
+                        key={field.field_key}
+                        field={field}
+                        value={entry.values[field.field_key]}
+                        onChange={(e) => handleFieldChange(field.field_key, e.target.value)}
+                    />
+                ))}
+            </div>
+        </div>
+    );
+}--- START OF FILE src/components/ArchivaSidebar.jsx ---
+
+/**
+ * @license
+ * SPDX-License-Identifier: Apache-2.0
+*/
+import React from 'react';
+import useStore from '../lib/store';
+import c from 'clsx';
+import { setActiveEntryId } from '../lib/actions';
+
+export default function ArchivaSidebar() {
+    const entries = useStore(s => Object.values(s.archivaEntries));
+    const activeEntryId = useStore.use.activeEntryId();
+
+    const drafts = entries.filter(e => e.status === 'draft').sort((a,b) => new Date(b.updatedAt) - new Date(a.updatedAt));
+    const published = entries.filter(e => e.status === 'published').sort((a,b) => new Date(b.updatedAt) - new Date(a.updatedAt));
+    
+    return (
+        <>
+            <div className="semester-group">
+                <h2>Drafts ({drafts.length})</h2>
+                <div className="module-list">
+                    {drafts.map(entry => (
+                        <button
+                            key={entry.id}
+                            className={c({ active: entry.id === activeEntryId })}
+                            onClick={() => setActiveEntryId(entry.id)}
+                        >
+                            <div className="module-info">
+                                <span className="icon">edit_document</span>
+                                <p>{entry.values.title || 'Untitled Entry'}</p>
+                            </div>
+                        </button>
+                    ))}
+                    {drafts.length === 0 && <p className="empty-list-message">No drafts yet.</p>}
+                </div>
+            </div>
+             <div className="semester-group">
+                <h2>Published ({published.length})</h2>
+                <div className="module-list">
+                    {published.map(entry => (
+                         <button
+                            key={entry.id}
+                            className={c({ active: entry.id === activeEntryId })}
+                            onClick={() => setActiveEntryId(entry.id)}
+                        >
+                            <div className="module-info">
+                                <span className="icon">article</span>
+                                <p>{entry.values.title || 'Untitled Entry'}</p>
+                            </div>
+                        </button>
+                    ))}
+                    {published.length === 0 && <p className="empty-list-message">No published entries.</p>}
+                </div>
+            </div>
+        </>
+    );
+}--- START OF FILE Dockerfile ---
+
+# Use an official Node.js runtime as a parent image
+# Using a specific version is good practice for reproducibility
+FROM node:20-slim
+
+# Create and define the working directory for the application
+WORKDIR /usr/src/app
+
+# Copy package.json and package-lock.json to leverage Docker cache
+COPY package*.json ./
+
+# Install only production dependencies
+RUN npm install --only=production
+
+# Copy the rest of the application's source code
+COPY . .
+
+# Create a non-root user and group for better security
+RUN addgroup --system appgroup && adduser --system --ingroup appgroup appuser
+USER appuser
+
+# Inform Docker that the container listens on port 8080 at runtime
+EXPOSE 8080
+
+# Define the command to run the application
+# This will execute `node server.js`
+CMD [ "npm", "start" 
