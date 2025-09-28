@@ -1,0 +1,75 @@
+{
+  "motion": {
+    "duration": {
+      "instant": {
+        "value": "0ms",
+        "type": "duration",
+        "description": "Instant transition"
+      },
+      "fast": {
+        "value": "200ms", 
+        "type": "duration",
+        "description": "Fast transition for backgrounds, colors"
+      },
+      "normal": {
+        "value": "300ms",
+        "type": "duration", 
+        "description": "Normal transition for layout changes"
+      },
+      "slow": {
+        "value": "400ms",
+        "type": "duration",
+        "description": "Slow transition for slide animations"
+      },
+      "loading": {
+        "spin": {
+          "value": "1000ms",
+          "type": "duration",
+          "description": "Loading spinner rotation duration"
+        },
+        "dots": {
+          "value": "1400ms", 
+          "type": "duration",
+          "description": "Loading dots animation duration"
+        },
+        "line": {
+          "value": "2000ms",
+          "type": "duration",
+          "description": "Loading line animation duration"
+        }
+      }
+    },
+    "easing": {
+      "linear": {
+        "value": "linear",
+        "type": "cubicBezier",
+        "description": "Linear easing for spinners"
+      },
+      "ease": {
+        "value": "ease",
+        "type": "cubicBezier",
+        "description": "Default ease"
+      },
+      "easeIn": {
+        "value": "ease-in",
+        "type": "cubicBezier",
+        "description": "Ease in"
+      },
+      "easeOut": {
+        "value": "ease-out",
+        "type": "cubicBezier", 
+        "description": "Ease out for welcome screen and modals"
+      },
+      "easeInOut": {
+        "value": "ease-in-out",
+        "type": "cubicBezier",
+        "description": "Ease in-out for layout transitions"
+      },
+      "easeInOutBoth": {
+        "value": "ease-in-out both",
+        "type": "cubicBezier",
+        "description": "Loading dots easing"
+      }
+    }
+  }
+}

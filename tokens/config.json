@@ -1,0 +1,29 @@
+{
+  "source": [
+    "primitives/**/*.json",
+    "themes/dark.json",
+    "components/**/*.json"
+  ],
+  "platforms": {
+    "css": {
+      "transformGroup": "css",
+      "buildPath": "../src/styles/tokens/",
+      "files": [
+        {
+          "destination": "tokens.css",
+          "format": "css/variables"
+        }
+      ]
+    },
+    "json": {
+      "transformGroup": "web", 
+      "buildPath": "../tokens/build/json/",
+      "files": [
+        {
+          "destination": "tokens.json",
+          "format": "json/nested"
+        }
+      ]
+    }
+  }
+}

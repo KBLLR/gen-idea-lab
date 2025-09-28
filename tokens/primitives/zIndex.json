@@ -1,0 +1,41 @@
+{
+  "zIndex": {
+    "base": {
+      "value": "0",
+      "type": "number",
+      "description": "Base z-index"
+    },
+    "loading": {
+      "value": "10",
+      "type": "number",
+      "description": "Loading overlay z-index"
+    },
+    "dropdown": {
+      "value": "100",
+      "type": "number",
+      "description": "Dropdown z-index"
+    },
+    "tooltip": {
+      "value": "200",
+      "type": "number",
+      "description": "Tooltip z-index"
+    },
+    "modal": {
+      "base": {
+        "value": "1000",
+        "type": "number", 
+        "description": "Base modal z-index (welcome screen)"
+      },
+      "assistant": {
+        "value": "1001",
+        "type": "number",
+        "description": "Assistant modal z-index"
+      },
+      "settings": {
+        "value": "1002",
+        "type": "number",
+        "description": "Settings modal z-index (highest)"
+      }
+    }
+  }
+}

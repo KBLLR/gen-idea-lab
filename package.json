@@ -8,11 +8,16 @@
     "dev": "concurrently -k -n client,server -c green,blue \"npm:dev:client\" \"npm:dev:server\"",
     "dev:client": "vite --port 3000",
     "dev:server": "nodemon server.js",
-    "build": "vite build",
-    "vercel-build": "vite build",
+    "build": "npm run tokens:build && vite build",
+    "vercel-build": "npm run tokens:build && vite build",
     "preview": "vite preview",
     "start": "node server.js",
-    "generate-thumbnails": "node scripts/generate-thumbnails.mjs"
+    "generate-thumbnails": "node scripts/generate-thumbnails.mjs",
+    "tokens:build": "cd tokens && npx style-dictionary build --config config.json",
+    "tokens:watch": "cd tokens && npx style-dictionary build --watch",
+    "tokens:clean": "rm -rf src/styles/tokens/tokens-*.css src/styles/tokens/tokens.js tokens/build",
+    "tokens:audit": "node scripts/audit-css.js",
+    "tokens:validate": "node scripts/validate-tokens.js"
   },
   "dependencies": {
     "@google/genai": "^1.21.0",
@@ -39,6 +44,7 @@
     "@vitejs/plugin-react": "^4.3.0",
     "concurrently": "^8.2.2",
     "nodemon": "^3.1.0",
+    "style-dictionary": "^5.0.4",
     "vite": "^5.4.0"
   }
 }

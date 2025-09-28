@@ -1,0 +1,135 @@
+{
+  "spacing": {
+    "0": {
+      "value": "0px",
+      "type": "dimension",
+      "description": "No spacing"
+    },
+    "1": {
+      "value": "2px",
+      "type": "dimension",
+      "description": "Minimal spacing"
+    },
+    "2": {
+      "value": "4px", 
+      "type": "dimension",
+      "description": "Extra small spacing"
+    },
+    "3": {
+      "value": "5px",
+      "type": "dimension",
+      "description": "Small spacing"
+    },
+    "4": {
+      "value": "6px",
+      "type": "dimension", 
+      "description": "Small-medium spacing"
+    },
+    "5": {
+      "value": "8px",
+      "type": "dimension",
+      "description": "Medium spacing"
+    },
+    "6": {
+      "value": "10px",
+      "type": "dimension",
+      "description": "Medium-large spacing"
+    },
+    "7": {
+      "value": "12px",
+      "type": "dimension",
+      "description": "Large spacing"
+    },
+    "8": {
+      "value": "15px",
+      "type": "dimension",
+      "description": "Extra large spacing"
+    },
+    "9": {
+      "value": "16px",
+      "type": "dimension",
+      "description": "Card padding"
+    },
+    "10": {
+      "value": "20px",
+      "type": "dimension",
+      "description": "Section spacing"
+    },
+    "11": {
+      "value": "24px",
+      "type": "dimension",
+      "description": "Large section spacing"
+    },
+    "12": {
+      "value": "30px",
+      "type": "dimension",
+      "description": "Extra large section spacing"
+    },
+    "13": {
+      "value": "40px",
+      "type": "dimension",
+      "description": "Page spacing"
+    },
+    "layout": {
+      "column": {
+        "padding": {
+          "value": "20px",
+          "type": "dimension",
+          "description": "Standard column padding"
+        }
+      },
+      "modal": {
+        "padding": {
+          "value": "40px",
+          "type": "dimension", 
+          "description": "Modal content padding"
+        }
+      },
+      "maxWidth": {
+        "leftColumn": {
+          "twoColumn": {
+            "value": "380px",
+            "type": "dimension",
+            "description": "Left column max width in two-column layout"
+          },
+          "threeColumn": {
+            "value": "320px", 
+            "type": "dimension",
+            "description": "Left column max width in three-column layout"
+          }
+        }
+      },
+      "flex": {
+        "leftColumn": {
+          "twoColumn": {
+            "value": "0 0 25%",
+            "type": "string",
+            "description": "Left column flex in two-column layout"
+          },
+          "threeColumn": {
+            "value": "0 0 20%",
+            "type": "string", 
+            "description": "Left column flex in three-column layout"
+          }
+        },
+        "middleColumn": {
+          "value": "1 1 50%",
+          "type": "string",
+          "description": "Middle column flex"
+        },
+        "rightColumn": {
+          "twoColumn": {
+            "value": "1 1 75%",
+            "type": "string",
+            "description": "Right column flex in two-column layout"
+          },
+          "threeColumn": {
+            "value": "1 1 30%",
+            "type": "string",
+            "description": "Right column flex in three-column layout"
+          }
+        }
+      }
+    }
+  }
+}

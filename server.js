@@ -470,6 +470,48 @@ app.post('/api/proxy', requireAuth, async (req, res) => {
   }
 });
 
+// Web search endpoint
+app.post('/api/search', requireAuth, async (req, res) => {
+  const end = httpRequestDurationMicroseconds.startTimer();
+  try {
+    const { query, maxResults = 5 } = req.body;
+
+    if (!query) {
+      logger.warn('Bad request to /api/search', { body: req.body });
+      return res.status(400).json({ error: 'Missing "query" in request body' });
+    }
+
+    // Use DuckDuckGo Instant Answer API for simple search results
+    const searchUrl = `https://api.duckduckgo.com/?q=${encodeURIComponent(query)}&format=json&no_html=1&skip_disambig=1`;
+
+    const response = await fetch(searchUrl);
+    const data = await response.json();
+
+    // Format the results for the frontend
+    const results = {
+      query,
+      instant_answer: data.AbstractText || data.Answer || null,
+      abstract_url: data.AbstractURL || null,
+      definition: data.Definition || null,
+      related_topics: (data.RelatedTopics || []).slice(0, maxResults).map(topic => ({
+        title: topic.Text || '',
+        url: topic.FirstURL || ''
+      }))
+    };
+
+    res.json(results);
+
+  } catch (error) {
+    logger.error('Error performing web search:', { errorMessage: error.message, stack: error.stack });
+    if (!res.headersSent) {
+      res.status(500).json({ error: 'Search failed: ' + error.message });
+    }
+  } finally {
+    end({ route: '/api/search', code: res.statusCode, method: 'POST' });
+    httpRequestsTotal.inc({ route: '/api/search', code: res.statusCode, method: 'POST' });
+  }
+});
+
 // Serve legal pages before static files
 app.get('/privacy', (req, res) => {
   res.sendFile(path.join(__dirname, 'src', 'pages', 'privacy.html'));

@@ -1,0 +1,59 @@
+{
+  "radius": {
+    "none": {
+      "value": "0px",
+      "type": "dimension", 
+      "description": "No border radius"
+    },
+    "xs": {
+      "value": "4px",
+      "type": "dimension",
+      "description": "Extra small border radius"
+    },
+    "sm": {
+      "value": "5px",
+      "type": "dimension",
+      "description": "Small border radius"
+    },
+    "md": {
+      "value": "6px", 
+      "type": "dimension",
+      "description": "Medium border radius"
+    },
+    "lg": {
+      "value": "8px",
+      "type": "dimension",
+      "description": "Large border radius for cards and inputs"
+    },
+    "xl": {
+      "value": "12px",
+      "type": "dimension",
+      "description": "Extra large border radius for modals"
+    },
+    "2xl": {
+      "value": "16px",
+      "type": "dimension",
+      "description": "Large component border radius"
+    },
+    "3xl": {
+      "value": "18px",
+      "type": "dimension",
+      "description": "Chat message border radius"
+    },
+    "full": {
+      "value": "50%",
+      "type": "percentage",
+      "description": "Circular border radius"
+    },
+    "pill": {
+      "value": "20px",
+      "type": "dimension",
+      "description": "Pill-shaped border radius for inputs and buttons"
+    },
+    "rounded": {
+      "value": "50px",
+      "type": "dimension",
+      "description": "Large pill border radius"
+    }
+  }
+}

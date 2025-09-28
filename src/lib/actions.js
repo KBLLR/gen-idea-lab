@@ -122,6 +122,68 @@ export const sendMessageToOrchestrator = async (message) => {
           return;
         }
 
+        if (command === '/search') {
+          const query = args.join(' ');
+          if (!query) {
+            set(state => {
+              state.orchestratorHistory.push({ role: 'system', parts: [{ text: '*Please provide a search query. Usage: /search <your query>*' }]});
+            });
+            return;
+          }
+
+          // Add a searching message
+          set(state => {
+            state.orchestratorHistory.push({ role: 'system', parts: [{ text: `*Searching for "${query}"...*` }]});
+          });
+
+          // Perform the search
+          fetch('/api/search', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            credentials: 'include',
+            body: JSON.stringify({ query, maxResults: 3 })
+          })
+          .then(response => response.json())
+          .then(data => {
+            let resultText = `**Search Results for "${query}":**\n\n`;
+
+            if (data.instant_answer) {
+              resultText += `**Quick Answer:** ${data.instant_answer}\n\n`;
+            }
+
+            if (data.definition) {
+              resultText += `**Definition:** ${data.definition}\n\n`;
+            }
+
+            if (data.related_topics && data.related_topics.length > 0) {
+              resultText += `**Related Results:**\n`;
+              data.related_topics.forEach((topic, index) => {
+                if (topic.title && topic.url) {
+                  resultText += `${index + 1}. [${topic.title}](${topic.url})\n`;
+                }
+              });
+            }
+
+            if (!data.instant_answer && !data.definition && (!data.related_topics || data.related_topics.length === 0)) {
+              resultText += `No specific results found for "${query}". Try refining your search terms.`;
+            }
+
+            set(state => {
+              state.orchestratorHistory.push({ role: 'model', parts: [{ text: resultText }]});
+            });
+          })
+          .catch(error => {
+            console.error('Search failed:', error);
+            set(state => {
+              state.orchestratorHistory.push({ role: 'system', parts: [{ text: `*Search failed: ${error.message}*` }]});
+            });
+          });
+
+          return;
+        }
+
         set(state => {
             state.orchestratorHistory.push({ role: 'system', parts: [{ text: `*Unknown command: ${command}*` }] });
         });

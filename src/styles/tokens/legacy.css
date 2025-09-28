@@ -1,0 +1,52 @@
+/**
+ * LEGACY COMPATIBILITY LAYER
+ * 
+ * This file provides backward compatibility for existing CSS custom properties.
+ * It maps the old naming scheme to the new design token structure.
+ * 
+ * @deprecated This file will be removed in v2.0.0
+ * 
+ * Migration Guide:
+ * - Replace --bg-main with --gbl-surface-primary
+ * - Replace --text-primary with --gbl-text-primary
+ * - See docs/tokens/naming.md for complete mapping
+ */
+
+:root {
+  /* Background Colors - Legacy Mapping */
+  --bg-main: var(--gbl-surface-primary);
+  --bg-panel: var(--gbl-surface-secondary);
+  --bg-item: var(--gbl-surface-tertiary);
+  --bg-item-hover: var(--gbl-surface-quaternary);
+  --bg-item-active: var(--gbl-surface-active);
+  --bg-overlay: var(--gbl-surface-overlay);
+  --bg-modal: var(--gbl-surface-modal);
+  --bg-input: var(--gbl-surface-input);
+  --bg-button-primary: var(--gbl-interactive-primary-default);
+  --bg-button-secondary: var(--gbl-interactive-secondary-default);
+  --bg-button-icon-hover: var(--gbl-interactive-icon-hover);
+  --bg-error: var(--gbl-surface-error);
+  --bg-spinner-track: var(--gbl-surface-spinner-track);
+
+  /* Text Colors - Legacy Mapping */
+  --text-primary: var(--gbl-text-primary);
+  --text-secondary: var(--gbl-text-secondary);
+  --text-tertiary: var(--gbl-text-tertiary);
+  --text-muted: var(--gbl-text-muted);
+  --text-inverse: var(--gbl-text-inverse);
+  --text-accent: var(--gbl-text-accent);
+  --text-on-primary: var(--gbl-text-on-primary);
+
+  /* Border Colors - Legacy Mapping */
+  --border-primary: var(--gbl-border-primary);
+  --border-secondary: var(--gbl-border-secondary);
+  --border-accent: var(--gbl-border-accent);
+  --border-dashed: var(--gbl-border-dashed);
+
+  /* Selection Colors - Legacy Mapping */
+  --color-selection-bg: var(--gbl-selection-background);
+  --color-selection-text: var(--gbl-selection-text);
+
+  /* Other Properties - Legacy Mapping */
+  --backdrop-filter: var(--gbl-backdrop-filter);
+}

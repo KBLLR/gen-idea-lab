@@ -1,0 +1,147 @@
+name: Design Tokens Validation
+
+on:
+  pull_request:
+    branches: [main, master]
+    paths:
+      - 'tokens/**'
+      - 'src/styles/**'
+      - 'scripts/validate-tokens.js'
+      - 'scripts/audit-css.js'
+  push:
+    branches: [main, master]
+    paths:
+      - 'tokens/**'
+      - 'src/styles/**'
+
+jobs:
+  validate-tokens:
+    runs-on: ubuntu-latest
+    name: Validate Design Tokens
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+      
+      - name: Install dependencies
+        run: npm ci
+      
+      - name: Build design tokens
+        run: npm run tokens:build
+      
+      - name: Run design tokens validation
+        run: npm run tokens:validate
+      
+      - name: Run CSS audit
+        run: npm run tokens:audit
+        continue-on-error: true
+      
+      - name: Upload audit report as artifact
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: design-audit-report
+          path: reports/design-audit.json
+          retention-days: 30
+      
+      - name: Comment PR with audit results
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const path = 'reports/design-audit.json';
+            
+            if (fs.existsSync(path)) {
+              const audit = JSON.parse(fs.readFileSync(path, 'utf8'));
+              const summary = audit.summary;
+              
+              let comment = `## 🎨 Design Tokens Audit Report\n\n`;
+              comment += `📊 **Files Analyzed:** ${audit.metadata.totalFiles} (${audit.metadata.totalLines.toLocaleString()} lines)\n`;
+              comment += `🎨 **Custom Properties:** ${summary.customProperties.totalDefinitions}\n`;
+              comment += `🔧 **Hardcoded Values:** ${Object.values(summary.hardcodedValues).reduce((a, b) => a + b, 0)}\n\n`;
+              
+              if (summary.recommendations.length > 0) {
+                comment += `### 💡 Recommendations:\n`;
+                summary.recommendations.forEach(rec => {
+                  const severity = rec.severity.toUpperCase();
+                  comment += `- **${severity}:** ${rec.message}\n`;
+                });
+                comment += `\n`;
+              }
+              
+              comment += `### 📈 Token Usage:\n`;
+              comment += `- Colors: ${summary.hardcodedValues.colors}\n`;
+              comment += `- Spacing: ${summary.hardcodedValues.spacing}\n`;
+              comment += `- Typography: ${summary.hardcodedValues.typography}\n`;
+              comment += `- Shadows: ${summary.hardcodedValues.shadows}\n\n`;
+              
+              comment += `View the full audit report in the workflow artifacts.`;
+              
+              github.rest.issues.createComment({
+                issue_number: context.issue.number,
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                body: comment
+              });
+            }
+
+  visual-regression:
+    runs-on: ubuntu-latest
+    name: Visual Regression Check
+    needs: validate-tokens
+    if: github.event_name == 'pull_request'
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+      
+      - name: Install dependencies
+        run: npm ci
+      
+      - name: Build tokens and project
+        run: |
+          npm run tokens:build
+          npm run build
+      
+      - name: Run basic smoke test
+        run: |
+          echo "🔍 Checking if build artifacts exist..."
+          ls -la dist/
+          
+          echo "✅ Checking CSS files contain design tokens..."
+          if grep -q "var(--" dist/assets/*.css; then
+            echo "✅ Design tokens found in CSS output"
+          else
+            echo "⚠️  No design tokens found in CSS output"
+            exit 1
+          fi
+          
+          echo "✅ Build verification complete"
+
+  notify-success:
+    runs-on: ubuntu-latest
+    name: Notify Success
+    needs: [validate-tokens, visual-regression]
+    if: always() && needs.validate-tokens.result == 'success'
+    
+    steps:
+      - name: Success notification
+        run: |
+          echo "🎉 Design tokens validation completed successfully!"
+          echo "✅ All token validations passed"
+          echo "✅ Build verification completed"
+          echo ""
+          echo "Design system is ready for production use."

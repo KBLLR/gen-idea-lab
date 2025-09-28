@@ -53,6 +53,10 @@ const store = immer((set, get) => ({
   workflowHistory: {}, // Track completed and in-progress workflows
   activeWorkflow: null, // Currently running workflow
   workflowStep: 0, // Current step in active workflow
+  selectedWorkflow: null, // Currently selected workflow for editing
+
+  // Layout
+  rightColumnWidth: 520, // px, default width for right column in three-column layout
 
   // Image Booth state
   activeModeKey: 'banana',
@@ -280,6 +284,16 @@ const store = immer((set, get) => ({
     
     setTheme: (theme) => set((state) => {
       state.theme = theme;
+    }),
+    
+    // Workflow actions
+    setSelectedWorkflow: (workflow) => set((state) => {
+      state.selectedWorkflow = workflow;
+    }),
+
+    // Layout actions
+    setRightColumnWidth: (width) => set((state) => {
+      state.rightColumnWidth = width;
     })
   }
 }));
@@ -297,6 +311,8 @@ export default createSelectorFunctions(
         archivaEntries: state.archivaEntries,
         connectedServices: state.connectedServices,
         serviceCredentials: state.serviceCredentials,
+        selectedWorkflow: state.selectedWorkflow,
+        rightColumnWidth: state.rightColumnWidth,
         // Don't persist authentication state for security
       })
     })

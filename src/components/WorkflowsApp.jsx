@@ -7,6 +7,8 @@ import { useState, useEffect } from 'react';
 import useStore from '../lib/store';
 import { workflowTemplates, getWorkflowsForModule } from '../lib/workflows';
 import { RiPlayLine, RiEditLine, RiFileCopyLine, RiDeleteBinLine, RiAddLine, RiTimeLine, RiCheckLine, RiLightbulbLine, RiArrowRightLine } from 'react-icons/ri';
+import UserBar from './UserBar.jsx';
+import AppSwitcher from './AppSwitcher.jsx';
 
 const WorkflowsApp = () => {
   const [selectedWorkflow, setSelectedWorkflow] = useState(null);
@@ -327,6 +329,7 @@ const WorkflowsApp = () => {
     <div className="workflows-app">
       {/* Left Column - Workflow List */}
       <div className="workflows-sidebar">
+        <AppSwitcher />
         <div className="workflows-header">
           <h2>Workflows</h2>
           <p>Structured guidance for AI assistants</p>
@@ -374,6 +377,9 @@ const WorkflowsApp = () => {
             Create New Workflow
           </button>
         </div>
+        
+        {/* User Bar in sidebar footer */}
+        <UserBar />
       </div>
 
       {/* Right Column - Workflow Editor */}

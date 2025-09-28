@@ -1,0 +1,165 @@
+{
+  "surface": {
+    "primary": {
+      "value": "{color.gray.100}",
+      "type": "color",
+      "description": "Main background surface"
+    },
+    "secondary": {
+      "value": "{color.white}",
+      "type": "color", 
+      "description": "Panel and card backgrounds"
+    },
+    "tertiary": {
+      "value": "{color.gray.100}",
+      "type": "color",
+      "description": "Input and item backgrounds"
+    },
+    "quaternary": {
+      "value": "{color.gray.200}",
+      "type": "color",
+      "description": "Hover state backgrounds"
+    },
+    "active": {
+      "value": "{color.blue.500}",
+      "type": "color",
+      "description": "Active item background"
+    },
+    "overlay": {
+      "value": "{color.alpha.white80}",
+      "type": "color",
+      "description": "Modal overlay background"
+    },
+    "modal": {
+      "value": "{color.white}",
+      "type": "color",
+      "description": "Modal content background"
+    },
+    "input": {
+      "value": "{color.gray.200}",
+      "type": "color",
+      "description": "Input field background"
+    },
+    "error": {
+      "value": "{color.red.500}",
+      "type": "color",
+      "description": "Error background"
+    },
+    "spinner": {
+      "track": {
+        "value": "#ccc",
+        "type": "color",
+        "description": "Spinner track background"
+      }
+    }
+  },
+  "text": {
+    "primary": {
+      "value": "{color.gray.800}",
+      "type": "color",
+      "description": "Primary text color"
+    },
+    "secondary": {
+      "value": "{color.gray.700}",
+      "type": "color", 
+      "description": "Secondary text color"
+    },
+    "tertiary": {
+      "value": "{color.gray.600}",
+      "type": "color",
+      "description": "Tertiary text color for labels"
+    },
+    "muted": {
+      "value": "{color.gray.500}",
+      "type": "color",
+      "description": "Muted text color"
+    },
+    "inverse": {
+      "value": "{color.white}",
+      "type": "color",
+      "description": "Inverse text color (on dark backgrounds)"
+    },
+    "accent": {
+      "value": "{color.blue.500}",
+      "type": "color",
+      "description": "Accent text color for links and highlights"
+    },
+    "onPrimary": {
+      "value": "{color.white}",
+      "type": "color",
+      "description": "Text color on primary backgrounds"
+    }
+  },
+  "border": {
+    "primary": {
+      "value": "{color.gray.400}",
+      "type": "color",
+      "description": "Primary border color"
+    },
+    "secondary": {
+      "value": "{color.gray.300}",
+      "type": "color",
+      "description": "Secondary border color"
+    },
+    "accent": {
+      "value": "{color.blue.500}",
+      "type": "color",
+      "description": "Accent border color for focus states"
+    },
+    "dashed": {
+      "value": "{color.gray.400}",
+      "type": "color",
+      "description": "Dashed border color"
+    }
+  },
+  "interactive": {
+    "primary": {
+      "default": {
+        "value": "{color.blue.500}",
+        "type": "color",
+        "description": "Primary button background"
+      },
+      "hover": {
+        "value": "{color.blue.600}",
+        "type": "color",
+        "description": "Primary button hover background"
+      }
+    },
+    "secondary": {
+      "default": {
+        "value": "{color.gray.200}",
+        "type": "color",
+        "description": "Secondary button background"
+      },
+      "hover": {
+        "value": "{color.gray.300}",
+        "type": "color",
+        "description": "Secondary button hover background"
+      }
+    },
+    "iconHover": {
+      "value": "{color.gray.300}",
+      "type": "color",
+      "description": "Icon button hover background"
+    }
+  },
+  "selection": {
+    "background": {
+      "value": "{color.blue.500}",
+      "type": "color",
+      "description": "Text selection background"
+    },
+    "text": {
+      "value": "{color.white}",
+      "type": "color",
+      "description": "Text selection text color"
+    }
+  },
+  "backdrop": {
+    "filter": {
+      "value": "blur(10px)",
+      "type": "string",
+      "description": "Backdrop filter for overlays"
+    }
+  }
+}

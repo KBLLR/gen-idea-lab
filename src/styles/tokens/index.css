@@ -1,0 +1,70 @@
+/**
+ * GenBooth Lab Design Tokens
+ * 
+ * This file imports all design tokens and provides the entry point for the design system.
+ * 
+ * Usage:
+ * @import 'styles/tokens' in your main CSS file
+ */
+
+/* Import generated design tokens */
+@import './tokens.css';
+
+/* Import legacy compatibility layer (will be removed in v2.0) */
+@import './legacy.css';
+
+/* Theme-specific overrides */
+:root[data-theme="light"] {
+  /* Light theme tokens will be generated in future versions */
+}
+
+/* Component-specific utility classes */
+.gbl-surface-primary { background: var(--surface-primary); }
+.gbl-surface-secondary { background: var(--surface-secondary); }
+.gbl-surface-tertiary { background: var(--surface-tertiary); }
+
+.gbl-text-primary { color: var(--text-primary); }
+.gbl-text-secondary { color: var(--text-secondary); }
+.gbl-text-tertiary { color: var(--text-tertiary); }
+
+.gbl-border-primary { border-color: var(--border-primary); }
+.gbl-border-accent { border-color: var(--border-accent); }
+
+/* Spacing utilities */
+.gbl-p-4 { padding: var(--spacing-4); }
+.gbl-p-6 { padding: var(--spacing-6); }
+.gbl-p-10 { padding: var(--spacing-10); }
+.gbl-m-4 { margin: var(--spacing-4); }
+.gbl-m-6 { margin: var(--spacing-6); }
+.gbl-m-10 { margin: var(--spacing-10); }
+
+/* Border radius utilities */
+.gbl-rounded-sm { border-radius: var(--radius-sm); }
+.gbl-rounded-md { border-radius: var(--radius-md); }
+.gbl-rounded-lg { border-radius: var(--radius-lg); }
+.gbl-rounded-xl { border-radius: var(--radius-xl); }
+.gbl-rounded-full { border-radius: var(--radius-full); }
+
+/* Typography utilities */
+.gbl-text-xs { font-size: var(--typography-font-size-xs); }
+.gbl-text-sm { font-size: var(--typography-font-size-sm); }
+.gbl-text-base { font-size: var(--typography-font-size-normal); }
+.gbl-text-lg { font-size: var(--typography-font-size-lg); }
+.gbl-text-xl { font-size: var(--typography-font-size-xl); }
+
+.gbl-font-light { font-weight: var(--typography-font-weight-light); }
+.gbl-font-normal { font-weight: var(--typography-font-weight-normal); }
+.gbl-font-medium { font-weight: var(--typography-font-weight-medium); }
+.gbl-font-semibold { font-weight: var(--typography-font-weight-semibold); }
+.gbl-font-bold { font-weight: var(--typography-font-weight-bold); }
+
+/* Shadow utilities */
+.gbl-shadow-sm { box-shadow: var(--shadow-sm); }
+.gbl-shadow-md { box-shadow: var(--shadow-md); }
+.gbl-shadow-lg { box-shadow: var(--shadow-lg); }
+.gbl-shadow-xl { box-shadow: var(--shadow-xl); }
+
+/* Interactive state utilities */
+.gbl-transition-fast { transition-duration: var(--motion-duration-fast); }
+.gbl-transition-normal { transition-duration: var(--motion-duration-normal); }
+.gbl-ease-out { transition-timing-function: var(--motion-easing-ease-out); }

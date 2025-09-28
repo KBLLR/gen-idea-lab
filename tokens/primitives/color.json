@@ -1,0 +1,154 @@
+{
+  "color": {
+    "black": {
+      "value": "#000000",
+      "type": "color",
+      "description": "Pure black"
+    },
+    "white": {
+      "value": "#ffffff", 
+      "type": "color",
+      "description": "Pure white"
+    },
+    "blue": {
+      "500": {
+        "value": "#1e88e5",
+        "type": "color",
+        "description": "Primary blue, used for interactive elements"
+      },
+      "600": {
+        "value": "#1976d2",
+        "type": "color",
+        "description": "Darker blue for hover states"
+      }
+    },
+    "red": {
+      "400": {
+        "value": "#ff4d4d",
+        "type": "color",
+        "description": "Error red for dark theme"
+      },
+      "500": {
+        "value": "#d93025",
+        "type": "color", 
+        "description": "Error red for light theme"
+      }
+    },
+    "gray": {
+      "50": {
+        "value": "#ffffff",
+        "type": "color",
+        "description": "Lightest gray (white)"
+      },
+      "100": {
+        "value": "#f0f2f5",
+        "type": "color",
+        "description": "Very light gray"
+      },
+      "200": {
+        "value": "#e4e6e9", 
+        "type": "color",
+        "description": "Light gray"
+      },
+      "300": {
+        "value": "#dcdfe2",
+        "type": "color",
+        "description": "Medium-light gray"
+      },
+      "400": {
+        "value": "#ced0d4",
+        "type": "color",
+        "description": "Medium gray"
+      },
+      "500": {
+        "value": "#b0b3b8",
+        "type": "color",
+        "description": "Medium-dark gray"
+      },
+      "600": {
+        "value": "#8a8d91",
+        "type": "color",
+        "description": "Dark gray"
+      },
+      "700": {
+        "value": "#65676b",
+        "type": "color",
+        "description": "Darker gray"
+      },
+      "800": {
+        "value": "#1c1e21",
+        "type": "color",
+        "description": "Very dark gray"
+      },
+      "900": {
+        "value": "#000000",
+        "type": "color", 
+        "description": "Darkest gray (black)"
+      }
+    },
+    "neutral": {
+      "100": {
+        "value": "#bbb",
+        "type": "color",
+        "description": "Light neutral"
+      },
+      "200": {
+        "value": "#888",
+        "type": "color",
+        "description": "Medium neutral"
+      },
+      "300": {
+        "value": "#666", 
+        "type": "color",
+        "description": "Dark neutral"
+      },
+      "400": {
+        "value": "#444",
+        "type": "color",
+        "description": "Darker neutral"
+      },
+      "500": {
+        "value": "#333",
+        "type": "color",
+        "description": "Very dark neutral"
+      },
+      "600": {
+        "value": "#2a2a2a",
+        "type": "color",
+        "description": "Near black neutral"
+      },
+      "700": {
+        "value": "#252525",
+        "type": "color",
+        "description": "Almost black neutral"
+      },
+      "800": {
+        "value": "#222",
+        "type": "color",
+        "description": "Dark background neutral"
+      },
+      "900": {
+        "value": "#1a1a1a",
+        "type": "color",
+        "description": "Darkest background neutral"
+      },
+      "950": {
+        "value": "#0a0a0a",
+        "type": "color",
+        "description": "Panel background neutral"
+      }
+    },
+    "alpha": {
+      "black80": {
+        "value": "rgba(0, 0, 0, 0.8)",
+        "type": "color",
+        "description": "Black with 80% opacity"
+      },
+      "white80": {
+        "value": "rgba(255, 255, 255, 0.8)", 
+        "type": "color",
+        "description": "White with 80% opacity"
+      }
+    }
+  }
+}

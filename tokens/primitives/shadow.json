@@ -1,0 +1,39 @@
+{
+  "shadow": {
+    "none": {
+      "value": "none",
+      "type": "boxShadow",
+      "description": "No shadow"
+    },
+    "sm": {
+      "value": "0 2px 4px rgba(0, 0, 0, 0.2)",
+      "type": "boxShadow", 
+      "description": "Small shadow for toggle switches"
+    },
+    "md": {
+      "value": "0 4px 12px rgba(30, 136, 229, 0.3)",
+      "type": "boxShadow",
+      "description": "Medium shadow with brand color"
+    },
+    "lg": {
+      "value": "0 10px 30px rgba(0, 0, 0, 0.2)",
+      "type": "boxShadow",
+      "description": "Large shadow for welcome screen"
+    },
+    "xl": {
+      "value": "0 10px 40px rgba(0, 0, 0, 0.3)",
+      "type": "boxShadow",
+      "description": "Extra large shadow for modals"
+    },
+    "inner": {
+      "value": "inset 0 0 0 2px rgba(30, 136, 229, 0.1)",
+      "type": "boxShadow",
+      "description": "Inner shadow for focus states"
+    },
+    "focus": {
+      "value": "0 0 0 3px rgba(30, 136, 229, 0.1)",
+      "type": "boxShadow",
+      "description": "Focus ring shadow"
+    }
+  }
+}

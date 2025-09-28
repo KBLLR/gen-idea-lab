@@ -1,0 +1,165 @@
+{
+  "surface": {
+    "primary": {
+      "value": "{color.black}",
+      "type": "color",
+      "description": "Main background surface"
+    },
+    "secondary": {
+      "value": "{color.neutral.950}",
+      "type": "color", 
+      "description": "Panel and card backgrounds"
+    },
+    "tertiary": {
+      "value": "{color.neutral.900}",
+      "type": "color",
+      "description": "Input and item backgrounds"
+    },
+    "quaternary": {
+      "value": "{color.neutral.700}",
+      "type": "color",
+      "description": "Hover state backgrounds"
+    },
+    "active": {
+      "value": "{color.white}",
+      "type": "color",
+      "description": "Active item background (inverted)"
+    },
+    "overlay": {
+      "value": "{color.alpha.black80}",
+      "type": "color",
+      "description": "Modal overlay background"
+    },
+    "modal": {
+      "value": "{color.neutral.950}",
+      "type": "color",
+      "description": "Modal content background"
+    },
+    "input": {
+      "value": "{color.neutral.900}",
+      "type": "color",
+      "description": "Input field background"
+    },
+    "error": {
+      "value": "{color.red.400}",
+      "type": "color",
+      "description": "Error background"
+    },
+    "spinner": {
+      "track": {
+        "value": "{color.neutral.400}",
+        "type": "color",
+        "description": "Spinner track background"
+      }
+    }
+  },
+  "text": {
+    "primary": {
+      "value": "{color.white}",
+      "type": "color",
+      "description": "Primary text color"
+    },
+    "secondary": {
+      "value": "{color.neutral.100}",
+      "type": "color", 
+      "description": "Secondary text color"
+    },
+    "tertiary": {
+      "value": "{color.neutral.200}",
+      "type": "color",
+      "description": "Tertiary text color for labels"
+    },
+    "muted": {
+      "value": "{color.neutral.300}",
+      "type": "color",
+      "description": "Muted text color"
+    },
+    "inverse": {
+      "value": "{color.black}",
+      "type": "color",
+      "description": "Inverse text color (on light backgrounds)"
+    },
+    "accent": {
+      "value": "{color.blue.500}",
+      "type": "color",
+      "description": "Accent text color for links and highlights"
+    },
+    "onPrimary": {
+      "value": "{color.white}",
+      "type": "color",
+      "description": "Text color on primary backgrounds"
+    }
+  },
+  "border": {
+    "primary": {
+      "value": "{color.neutral.500}",
+      "type": "color",
+      "description": "Primary border color"
+    },
+    "secondary": {
+      "value": "{color.neutral.600}",
+      "type": "color",
+      "description": "Secondary border color"
+    },
+    "accent": {
+      "value": "{color.blue.500}",
+      "type": "color",
+      "description": "Accent border color for focus states"
+    },
+    "dashed": {
+      "value": "{color.neutral.500}",
+      "type": "color",
+      "description": "Dashed border color"
+    }
+  },
+  "interactive": {
+    "primary": {
+      "default": {
+        "value": "{color.blue.500}",
+        "type": "color",
+        "description": "Primary button background"
+      },
+      "hover": {
+        "value": "{color.blue.600}",
+        "type": "color",
+        "description": "Primary button hover background"
+      }
+    },
+    "secondary": {
+      "default": {
+        "value": "{color.neutral.800}",
+        "type": "color",
+        "description": "Secondary button background"
+      },
+      "hover": {
+        "value": "{color.neutral.600}",
+        "type": "color",
+        "description": "Secondary button hover background"
+      }
+    },
+    "iconHover": {
+      "value": "{color.neutral.600}",
+      "type": "color",
+      "description": "Icon button hover background"
+    }
+  },
+  "selection": {
+    "background": {
+      "value": "{color.white}",
+      "type": "color",
+      "description": "Text selection background"
+    },
+    "text": {
+      "value": "#111",
+      "type": "color",
+      "description": "Text selection text color"
+    }
+  },
+  "backdrop": {
+    "filter": {
+      "value": "blur(10px)",
+      "type": "string",
+      "description": "Backdrop filter for overlays"
+    }
+  }
+}
