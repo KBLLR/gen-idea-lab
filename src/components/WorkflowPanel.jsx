@@ -5,11 +5,12 @@
 
 import { useState, useEffect } from 'react';
 import useStore from '../lib/store';
+import { getWorkflowsForModule } from '../lib/workflows';
 import { RiArrowRightLine, RiArrowLeftLine, RiPlayLine, RiCheckLine, RiTimeLine, RiLightbulbLine } from 'react-icons/ri';
 
 const WorkflowPanel = ({ moduleId, onWorkflowSelect, onClose }) => {
   const [selectedWorkflow, setSelectedWorkflow] = useState(null);
-  const [workflowHistory] = useStore.use.workflowHistory();
+  const workflowHistory = useStore.use.workflowHistory();
   const [workflows, setWorkflows] = useState([]);
 
   useEffect(() => {
@@ -17,10 +18,10 @@ const WorkflowPanel = ({ moduleId, onWorkflowSelect, onClose }) => {
     loadWorkflowsForModule(moduleId);
   }, [moduleId]);
 
-  const loadWorkflowsForModule = async (moduleId) => {
-    // This would fetch from your workflows data
-    const moduleWorkflows = await fetch(`/api/workflows/${moduleId}`);
-    setWorkflows(await moduleWorkflows.json());
+  const loadWorkflowsForModule = (moduleId) => {
+    // Load workflows from local templates
+    const moduleWorkflows = getWorkflowsForModule(moduleId);
+    setWorkflows(moduleWorkflows);
   };
 
   const startWorkflow = (workflow) => {
@@ -209,22 +210,8 @@ const WorkflowPanel = ({ moduleId, onWorkflowSelect, onClose }) => {
         <div className="workflow-list">
           <div className="workflow-categories">
             <div className="category-section">
-              <h3>Recommended for You</h3>
-              {workflows.filter(w => w.category === 'recommended').map(workflow => (
-                <WorkflowCard key={workflow.id} workflow={workflow} />
-              ))}
-            </div>
-
-            <div className="category-section">
-              <h3>Module Workflows</h3>
-              {workflows.filter(w => w.moduleId === moduleId).map(workflow => (
-                <WorkflowCard key={workflow.id} workflow={workflow} />
-              ))}
-            </div>
-
-            <div className="category-section">
-              <h3>Cross-Module</h3>
-              {workflows.filter(w => w.category === 'interdisciplinary').map(workflow => (
+              <h3>Available Workflows</h3>
+              {workflows.map(workflow => (
                 <WorkflowCard key={workflow.id} workflow={workflow} />
               ))}
             </div>

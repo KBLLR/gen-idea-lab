@@ -9,7 +9,7 @@ import { getAssistantResponse } from './assistant.js';
 import { personalities } from './assistant/personalities.js';
 import gen from './llm.js'
 import modes from './modes.js'
-import { workflows } from './workflows.js'
+import { workflowTemplates, getWorkflowsForModule, getWorkflowById } from './workflows.js'
 import { templates } from './archiva/templates.js';
 
 const get = useStore.getState
@@ -200,8 +200,8 @@ export const generateImage = async () => {
     const model = 'gemini-2.5-flash-image-preview';
     let result;
 
-    if (workflow && workflows[workflow]) {
-      result = await workflows[workflow]({
+    if (workflow && workflowTemplates[workflow]) {
+      result = await workflowTemplates[workflow]({
         gen,
         model,
         base64: inputImage,
