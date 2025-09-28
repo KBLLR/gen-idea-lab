@@ -479,13 +479,22 @@ app.get('/terms', (req, res) => {
   res.sendFile(path.join(__dirname, 'src', 'pages', 'terms.html'));
 });
 
+// Explicit 404 route
+app.get('/404', (req, res) => {
+  res.status(404).sendFile(path.join(__dirname, 'src', 'pages', '404.html'));
+});
+
 // Serve all static files from the project root directory (after API routes)
 app.use(express.static(path.join(__dirname, 'dist')));
 
-// A catch-all route to serve the main index.html for any non-API GET requests.
-// This is crucial for single-page applications with client-side routing.
-app.get('*', (req, res) => {
+// Serve the main app for known routes (you might want to customize this list)
+app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'dist', 'index.html'));
+});
+
+// 404 handler for all other routes
+app.get('*', (req, res) => {
+  res.status(404).sendFile(path.join(__dirname, 'src', 'pages', '404.html'));
 });
 
 app.listen(port, () => {
