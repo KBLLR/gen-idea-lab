@@ -33,7 +33,7 @@ const serviceCategories = {
                 helpText: 'Create a new integration in your Notion workspace'
             },
             {
-                id: 'googledrive',
+                id: 'googleDrive',
                 name: 'Google Drive',
                 description: 'Connect to access and manage your Google Drive files',
                 icon: SiGoogledrive,
@@ -43,7 +43,7 @@ const serviceCategories = {
                 helpText: 'Enable Google Drive API and create OAuth credentials'
             },
             {
-                id: 'googlephotos',
+                id: 'googlePhotos',
                 name: 'Google Photos',
                 description: 'Connect to access and manage your Google Photos library',
                 icon: RiImageLine,
@@ -53,7 +53,7 @@ const serviceCategories = {
                 helpText: 'Enable Google Photos API and create OAuth credentials'
             },
             {
-                id: 'googlecalendar',
+                id: 'googleCalendar',
                 name: 'Google Calendar',
                 description: 'Connect to access and manage your Google Calendar events',
                 icon: RiCalendarLine,
@@ -141,23 +141,6 @@ const serviceCategories = {
                     '3. Pull a model: ollama pull llama2',
                     '4. Connect using the default URL below'
                 ]
-            }
-        ]
-    },
-    search: {
-        name: 'Search & Discovery',
-        services: [
-            {
-                id: 'googlesearch',
-                name: 'Google Search',
-                description: 'Enable web search capabilities for assistants',
-                icon: RiSearchLine,
-                color: '#4285F4',
-                scopes: [],
-                requiresApiKey: true,
-                setupUrl: 'https://console.cloud.google.com/apis/library/customsearch.googleapis.com',
-                helpText: 'Enable Custom Search API and create credentials',
-                placeholder: 'AIzaSy...'
             }
         ]
     }
