@@ -7,6 +7,8 @@ import { useState, useEffect, useRef } from 'react';
 import useStore from '../lib/store';
 import { sendMessageToOrchestrator } from '../lib/actions';
 import { personalities } from '../lib/assistant/personalities';
+import WorkflowPanel from './WorkflowPanel';
+import { RiArrowRightLine, RiPlayLine } from 'react-icons/ri';
 
 const AgentTask = ({ message }) => (
     <div className="agent-task-message">
@@ -34,6 +36,8 @@ export default function OrchestratorChat() {
     const history = useStore.use.orchestratorHistory();
     const isLoading = useStore.use.isOrchestratorLoading();
     const [input, setInput] = useState('');
+    const [showWorkflows, setShowWorkflows] = useState(false);
+    const [activeWorkflow, setActiveWorkflow] = useState(null);
     const historyRef = useRef(null);
     const activeModuleId = useStore.use.activeModuleId();
 
@@ -48,13 +52,58 @@ export default function OrchestratorChat() {
         sendMessageToOrchestrator(input);
         setInput('');
     };
-    
-    const placeholderText = activeModuleId 
-      ? `Message or try /invite @${personalities[activeModuleId]?.name || 'Agent'}` 
+
+    const handleWorkflowSelect = (workflow) => {
+        setActiveWorkflow(workflow);
+        setShowWorkflows(false);
+        // Start workflow by sending first prompt to chat
+        sendMessageToOrchestrator(`Starting workflow: ${workflow.title}. ${workflow.steps[0].promptChain[0].prompt}`);
+    };
+
+    const placeholderText = activeModuleId
+      ? `Message or try /invite @${personalities[activeModuleId]?.name || 'Agent'}`
       : 'Select a module to begin...';
+
+    if (showWorkflows) {
+        return (
+            <div className="orchestrator-chat-container workflow-mode">
+                <WorkflowPanel
+                    moduleId={activeModuleId}
+                    onWorkflowSelect={handleWorkflowSelect}
+                    onClose={() => setShowWorkflows(false)}
+                />
+            </div>
+        );
+    }
 
     return (
         <div className="orchestrator-chat-container">
+            <div className="chat-header">
+                <div className="chat-title">
+                    <h3>Orchestrator Chat</h3>
+                    {activeWorkflow && (
+                        <div className="active-workflow-indicator">
+                            <RiPlayLine />
+                            <span>{activeWorkflow.title}</span>
+                            <button onClick={() => setActiveWorkflow(null)} className="stop-workflow">
+                                Stop
+                            </button>
+                        </div>
+                    )}
+                </div>
+                <div className="chat-actions">
+                    <button
+                        className="workflow-toggle"
+                        onClick={() => setShowWorkflows(true)}
+                        disabled={!activeModuleId}
+                        title="Start a guided workflow"
+                    >
+                        <RiArrowRightLine />
+                        Workflows
+                    </button>
+                </div>
+            </div>
+
             <div className="assistant-history" ref={historyRef}>
                 {history.map((msg, index) => {
                     if (msg.role === 'agent-task') {

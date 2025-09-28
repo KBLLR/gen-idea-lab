@@ -49,6 +49,11 @@ const store = immer((set, get) => ({
     }
   ],
 
+  // Workflow State
+  workflowHistory: {}, // Track completed and in-progress workflows
+  activeWorkflow: null, // Currently running workflow
+  workflowStep: 0, // Current step in active workflow
+
   // Image Booth state
   activeModeKey: 'banana',
   inputImage: null,
