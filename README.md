@@ -4,139 +4,305 @@
 
 # GenBooth Idea Lab
 
-GenBooth Idea Lab is a Vite + React app with an Express server that proxies Google Gemini requests server‑side via `@google/genai`. The server also serves the production build from `dist/`. Client requests never expose API keys.
+GenBooth Idea Lab is a comprehensive educational platform designed for CODE University of Applied Sciences students, integrating AI-powered learning assistance with project management and creative tools.
 
+**Three-Application Suite:**
+- **Idea Lab** - AI-assisted academic module exploration with specialized agents
+- **Image Booth** - Creative AI image transformation tool powered by Google Gemini
+- **Archiva** - Documentation and project archive system with templates
+
+**Tech Stack:**
 - Frontend: React 19 + Vite 5
-- Server: Express 4 (ESM)
-- AI: Google Gemini via `@google/genai`
-- Observability: `prom-client` metrics at `/metrics`, health at `/healthz`
-- Logging: `winston`
-- State: `zustand`
-- Container: Multi-stage Dockerfile (Cloud Run friendly)
+- Backend: Express 4 (ESM) with Google Gemini integration
+- Authentication: Google OAuth with JWT tokens
+- State: Zustand with persistence
+- Services: GitHub, Notion, Figma, Google APIs integration
+- Observability: Prometheus metrics, Winston logging
+- Deployment: Vercel, Docker, Cloud Run
 
 ## Contents
-- Purpose
-- Overview & Features
-- Project Structure
-- Prerequisites
-- Environment Variables
-- Quickstart (Local Dev)
-- Production Build (Local)
-- Docker (Local)
-- Deploy to Cloud Run
-- API Endpoints
-- Scripts
-- Troubleshooting
-- License
+- [Purpose & Features](#purpose--features)
+- [Architecture](#architecture)
+- [Prerequisites](#prerequisites)
+- [Environment Setup](#environment-setup)
+- [Development](#development)
+- [Deployment](#deployment)
+- [Service Integrations](#service-integrations)
+- [API Reference](#api-reference)
+- [Troubleshooting](#troubleshooting)
 
 ---
 
-## Overview & Features
-- Image-to-image creative transformations driven by Gemini models
-- Safe server-side proxy for AI calls (`/api/proxy`)
-- Production bundle served via Express
-- Health and metrics endpoints for ops tooling
-- Robust client retries and timeouts for API calls
-- Scripted thumbnail generation for all creative modes
+## Purpose & Features
 
-## Project Structure
+### 🎓 Idea Lab (Academic Focus)
+- **Module System**: Organized by CODE University semester structure (Orientation, Core 2-5, Synthesis)
+- **AI Agents**: Each academic module (Design, Software Engineering, STS) has specialized AI personalities
+- **Orchestrator Chat**: Central AI coordinator that invites module-specific agents to conversations
+- **Three-Column Layout**: Module selector → Module viewer → AI-powered chat interface
+- **Academic Integration**: Real university module data with learning objectives and resources
+
+### 🎨 Image Booth (Creative Tools)
+- **AI Transformations**: Google Gemini-powered image-to-image generation
+- **Creative Modes**: Multiple artistic transformation styles with auto-generated thumbnails
+- **Safe Processing**: Server-side AI calls protect API keys from client exposure
+- **Batch Operations**: Thumbnail generation scripts for all creative modes
+
+### 📚 Archiva (Documentation)
+- **Entry Management**: Create and organize academic project documentation
+- **Template System**: Pre-built templates for different types of coursework
+- **Category Organization**: Structured workflows for academic documentation
+- **Version Control**: Track document iterations and changes
+
+## Architecture
+
+### Application Structure
+```
+Three-App Layout (Adaptive):
+┌─────────────┬─────────────┬─────────────┐
+│ Left Column │Middle Column│Right Column │
+│             │(Conditional)│             │
+├─────────────┼─────────────┼─────────────┤
+│App Switcher │             │             │
+│             │             │             │
+│Module/Mode  │Module       │Orchestrator │
+│Selector     │Viewer       │Chat         │
+│             │(Idea Lab    │(Main        │
+│             │only)        │Content)     │
+│             │             │             │
+│User Bar     │             │             │
+└─────────────┴─────────────┴─────────────┘
+```
+
+### Project Structure
 ```
 .
-├─ server.js                # Express server, proxy + static serve + health/metrics
+├─ server.js                # Express server: API, OAuth, static serving
 ├─ src/
-│  ├─ main.jsx             # Vite entry
-│  ├─ components/          # UI components (App.jsx, BoothViewer.jsx, Assistant.jsx, ...)
-│  └─ lib/                 # Client libs (llm.js, modes.js, workflows.js, logger.js, metrics.js, store.js, ...)
-├─ assets/
-│  └─ index.js             # Asset loader
-├─ scripts/
-│  ├─ generate-thumbnails.mjs
-│  └─ README.md
-├─ Dockerfile              # Multi-stage build and runtime
-├─ package.json
-└─ README.md
+│  ├─ main.jsx             # Vite entry point
+│  ├─ components/          # React components
+│  │  ├─ App.jsx           # Main app with adaptive layout
+│  │  ├─ LoginForm.jsx     # Google OAuth authentication
+│  │  ├─ AppSwitcher.jsx   # Three-app navigation
+│  │  ├─ ModeSelector.jsx  # Image Booth mode selection
+│  │  ├─ ModuleViewer.jsx  # Academic module display
+│  │  ├─ OrchestratorChat.jsx # AI chat interface
+│  │  ├─ ArchivaDashboard.jsx # Documentation management
+│  │  └─ Settings.jsx      # Service connections UI
+│  └─ lib/                 # Core libraries
+│     ├─ store.js          # Zustand state management
+│     ├─ actions.js        # Cross-component operations
+│     ├─ modules.js        # Academic module data
+│     ├─ auth.js           # JWT authentication
+│     ├─ llm.js            # AI integration
+│     └─ services.js       # OAuth service management
+├─ templates/              # Documentation templates and guides
+├─ scripts/                # Utility scripts (thumbnail generation)
+├─ Dockerfile              # Multi-stage containerization
+└─ vite.config.js          # Vite configuration with proxy
 ```
 
 ## Prerequisites
 - Node.js 18+ (Node 20 recommended)
-- A Gemini API key
+- Google Gemini API key
+- Google OAuth 2.0 credentials
+- Optional: Service API keys (GitHub, Notion, Figma, etc.)
 
-## Environment Variables
-Create a `.env` file at the project root with one of the following. The server prefers `API_KEY` but will fall back to `GEMINI_API_KEY`.
-```
-API_KEY={{GEMINI_API_KEY}}
-```
-Or:
-```
-GEMINI_API_KEY={{GEMINI_API_KEY}}
-```
-Notes
-- Never expose your key to the browser. All requests go through the server proxy.
-- The server listens on `PORT` if provided (defaults to `8080`).
+## Environment Setup
 
-## Quickstart (Local Dev)
-Install dependencies and start the client + server together:
+### Required Variables
+Create a `.env` file with:
+
+```bash
+# Core API
+API_KEY=your-gemini-api-key-here
+
+# Authentication (Google OAuth)
+AUTH_SECRET=your-jwt-secret-here
+GOOGLE_CLIENT_ID=your-google-oauth-client-id
+GOOGLE_CLIENT_SECRET=your-google-oauth-client-secret
+VITE_GOOGLE_CLIENT_ID=your-google-oauth-client-id
+
+# Server Configuration
+PORT=8081
+NODE_ENV=development
 ```
+
+### Optional Service Integrations
+```bash
+# GitHub OAuth
+GITHUB_CLIENT_ID=your-github-client-id
+GITHUB_CLIENT_SECRET=your-github-client-secret
+
+# Notion OAuth
+NOTION_CLIENT_ID=your-notion-client-id
+NOTION_CLIENT_SECRET=your-notion-client-secret
+
+# Figma OAuth
+FIGMA_CLIENT_ID=your-figma-client-id
+FIGMA_CLIENT_SECRET=your-figma-client-secret
+```
+
+**OAuth Configuration Guide**: See `/templates/oauth_configuration_guide.md` for complete setup instructions.
+
+## Development
+
+### Local Development
+```bash
+# Install dependencies
 npm install
+
+# Start development servers (Vite + Express)
 npm run dev
 ```
-- Frontend: http://localhost:3000 (Vite)
-- Server: http://localhost:8080
-- Proxy: client calls the server at `/api/proxy` (also `/metrics`, `/healthz`)
 
-## Production Build (Local)
-```
-npm run build
-npm start
-```
-Then open http://localhost:8080.
+**Development URLs:**
+- Frontend: http://localhost:3000 (Vite dev server)
+- Backend: http://localhost:8081 (Express server)
+- Proxy: All `/api/*` requests routed to Express
 
-## Docker (Local)
-Use the provided multi-stage Dockerfile.
-```
-docker build -t genbooth:local .
-docker run --rm -p 8080:8080 \
-  -e API_KEY={{GEMINI_API_KEY}} \
-  genbooth:local
+### Available Scripts
+- `npm run dev` — Concurrent Vite + Express development
+- `npm run dev:client` — Vite development server only
+- `npm run dev:server` — Express server with nodemon
+- `npm run build` — Production build
+- `npm run vercel-build` — Vercel deployment build
+- `npm run preview` — Preview production build
+- `npm run generate-thumbnails` — Generate AI-powered thumbnails
+
+## Deployment
+
+### Vercel (Recommended)
+```bash
+# Deploy to Vercel
+vercel
+
+# Set environment variables in Vercel dashboard
+# Uses npm run vercel-build automatically
 ```
 
-## Deploy to Cloud Run (from Source)
+### Docker
+```bash
+# Build container
+docker build -t genbooth:latest .
+
+# Run locally
+docker run --rm -p 8081:8081 \
+  -e API_KEY=your-gemini-key \
+  -e GOOGLE_CLIENT_ID=your-client-id \
+  genbooth:latest
 ```
-gcloud run deploy genbooth \
+
+### Google Cloud Run
+```bash
+gcloud run deploy genbooth-idea-lab \
   --source . \
-  --region {{REGION}} \
+  --region us-central1 \
   --allow-unauthenticated \
-  --set-env-vars API_KEY={{GEMINI_API_KEY}}
+  --set-env-vars API_KEY=your-gemini-key
 ```
-Tips
-- Ensure egress to the Gemini API is allowed from your service.
-- Configure min instances if you want faster cold starts.
 
-## API Endpoints (Server)
-- POST `/api/proxy`
-  - Body: `{ model, contents, config, safetySettings }`
-  - For image generation, the client sends base64 image data (if present) and text prompt as `contents.parts`.
-  - Returns the raw Gemini response JSON.
-- GET `/healthz`
-  - Performs a lightweight call to `gemini-2.5-flash` to verify upstream health.
-  - 200 OK if healthy; 503 otherwise.
-- GET `/metrics`
-  - Prometheus metrics via `prom-client`.
+## Service Integrations
 
-## Scripts
-- `npm run dev` — Run Vite (port 3000) and Express (nodemon) together.
-- `npm run build` — Build the production bundle with Vite.
-- `npm start` — Start the Express server to serve `dist/` and the proxy.
-- `npm run preview` — Vite preview server for the built client bundle.
-- `npm run generate-thumbnails` — Generate per-mode thumbnails using the Gemini API (see `scripts/README.md`).
+GenBooth supports OAuth integration with multiple services:
+
+### Supported Services
+- **Google Services**: Drive, Photos, Calendar, Gmail
+- **Development Tools**: GitHub repositories, Notion workspaces, Figma files
+- **AI Services**: OpenAI, Claude API keys (user-configurable)
+- **Local AI**: Ollama endpoints
+
+### OAuth Flow
+1. **Google Login**: Primary authentication (JavaScript SDK)
+2. **Service Connections**: Optional OAuth integrations via Settings
+3. **API Management**: Server-side token storage and refresh
+4. **Security**: HTTP-only cookies, no client-side API keys
+
+## API Reference
+
+### Authentication Endpoints
+- `POST /auth/google` - Google OAuth login
+- `POST /auth/logout` - Clear authentication
+- `GET /auth/me` - Get current user
+
+### AI Proxy
+- `POST /api/proxy` - Secure Gemini API proxy
+  ```json
+  {
+    "model": "gemini-2.5-flash",
+    "contents": [{"parts": [{"text": "prompt"}]}],
+    "config": {},
+    "safetySettings": []
+  }
+  ```
+
+### Service Management
+- `GET /api/services` - List connected services
+- `POST /api/services/:service/connect` - Initiate OAuth flow
+- `DELETE /api/services/:service` - Disconnect service
+- `POST /api/services/:service/test` - Test connection
+
+### Health & Monitoring
+- `GET /healthz` - Health check (tests Gemini API)
+- `GET /metrics` - Prometheus metrics
+- Legal pages: `/privacy`, `/terms`
 
 ## Troubleshooting
-- Server exits on start: ensure `API_KEY` or `GEMINI_API_KEY` is set in `.env`.
-- 500 from `/api/proxy`: check server logs; verify model name and payload shape.
-- Rate limits: client has backoff/retry; still consider reducing concurrency or waiting.
-- Dev ports in use: close other processes using 3000/8080 or change ports.
-- Blank images: model may return text or be blocked; see client error messaging in the UI.
+
+### Common Issues
+
+**Authentication Problems:**
+- Google login fails: Check JavaScript origins in Google Cloud Console (no redirect URIs needed)
+- Service connections fail: Verify OAuth callback URLs match exactly
+- Token expired: Services auto-refresh or reconnect as needed
+
+**Development Issues:**
+- Server won't start: Ensure `API_KEY` is set in `.env`
+- Port conflicts: Change ports in vite.config.js or use different terminals
+- Proxy errors: Verify Vite proxy configuration points to correct Express port (8081)
+
+**Deployment Issues:**
+- Vercel build fails: Check `vercel-build` script and environment variables
+- Service integrations break: Ensure production OAuth URLs are configured
+- Health checks fail: Verify Gemini API key works in production environment
+
+### Debug Commands
+```bash
+# Check environment variables
+grep VITE_ .env
+
+# Test server independently
+npm run dev:server
+
+# Check service connections
+curl http://localhost:8081/api/services
+```
+
+### Performance Notes
+- AI requests are proxied to prevent API key exposure
+- Zustand state persists across sessions (except authentication)
+- Service connections cached in-memory (use database in production)
+- Thumbnails generated server-side to optimize client performance
+
+## Educational Context
+
+**Target Audience**: CODE University of Applied Sciences students
+**Academic Integration**:
+- Real university module structure and learning objectives
+- Interdisciplinary approach (Design + Software + Business)
+- Project-based learning methodology support
+- AI agents tailored to specific academic domains
+
+**Learning Workflow**:
+1. Select academic module from semester-organized structure
+2. Interact with specialized AI agent for that domain
+3. Document learning and projects in Archiva
+4. Create visual assets with Image Booth
+5. Integrate with external tools (GitHub, Notion, Figma)
+
+---
 
 ## License
 SPDX-License-Identifier: Apache-2.0
-Auto-deployment test
+
+**GenBooth Idea Lab** - Empowering CODE University students with AI-enhanced learning tools.

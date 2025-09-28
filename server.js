@@ -159,7 +159,7 @@ app.post('/api/services/:service/connect', requireAuth, (req, res) => {
     },
     figma: {
       clientId: process.env.FIGMA_CLIENT_ID,
-      scope: 'file_read',
+      scope: 'files:read',
       authUrl: 'https://www.figma.com/oauth'
     },
     googleDrive: {
@@ -468,6 +468,15 @@ app.post('/api/proxy', requireAuth, async (req, res) => {
     end({ route: '/api/proxy', code: res.statusCode, method: 'POST' });
     httpRequestsTotal.inc({ route: '/api/proxy', code: res.statusCode, method: 'POST' });
   }
+});
+
+// Serve legal pages before static files
+app.get('/privacy', (req, res) => {
+  res.sendFile(path.join(__dirname, 'src', 'pages', 'privacy.html'));
+});
+
+app.get('/terms', (req, res) => {
+  res.sendFile(path.join(__dirname, 'src', 'pages', 'terms.html'));
 });
 
 // Serve all static files from the project root directory (after API routes)

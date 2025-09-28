@@ -8,6 +8,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - `npm run dev:client` - Start only Vite development server on port 3000
 - `npm run dev:server` - Start only Express server with nodemon on port 8081
 - `npm run build` - Build production bundle with Vite
+- `npm run vercel-build` - Build command for Vercel deployment
 - `npm start` - Start production server (serves built files from dist/)
 - `npm run preview` - Preview production build with Vite preview server
 - `npm run generate-thumbnails` - Generate thumbnails for creative modes using Gemini API
@@ -60,11 +61,11 @@ Optional OAuth environment variables for service integrations:
 
 ## Deployment
 
-The application includes:
-- **Multi-stage Dockerfile** for production builds
-- **Cloud Run deployment** with `gcloud run deploy`
-- **Express static serving** of Vite build output
-- **Health checks** and **metrics** endpoints for production monitoring
+The application supports multiple deployment targets:
+- **Vercel**: Uses `npm run vercel-build` for serverless deployment
+- **Docker/Cloud Run**: Multi-stage Dockerfile with `gcloud run deploy`
+- **Express static serving** of Vite build output for self-hosted deployments
+- **Health checks** at `/healthz` and **metrics** at `/metrics` for production monitoring
 
 ## Development Notes
 
