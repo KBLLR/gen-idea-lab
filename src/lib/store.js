@@ -29,7 +29,7 @@ const store = immer((set, get) => ({
   serviceCredentials: {},
   
   // App switcher state
-  activeApp: 'ideaLab', // 'ideaLab', 'imageBooth', or 'archiva'
+  activeApp: 'ideaLab', // 'ideaLab', 'imageBooth', 'archiva', or 'workflows'
 
   // Module state (Idea Lab)
   modules: modules,

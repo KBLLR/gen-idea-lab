@@ -7,9 +7,10 @@ import useStore from '../lib/store';
 import { switchApp } from '../lib/actions';
 
 const apps = [
-  { id: 'ideaLab', title: 'Gen Project Idea Lab' },
-  { id: 'imageBooth', title: 'Gen Image Booth' },
-  { id: 'archiva', title: 'ArchivaAI' },
+  { id: 'ideaLab', title: 'ProjectGen Lab' },
+  { id: 'imageBooth', title: 'VizGen Booth' },
+  { id: 'archiva', title: 'ArchivAI' },
+  { id: 'workflows', title: 'Workflows' },
 ];
 
 export default function AppSwitcher() {

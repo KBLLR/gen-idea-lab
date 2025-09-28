@@ -17,6 +17,7 @@ import OrchestratorChat from './OrchestratorChat.jsx'
 import ArchivaDashboard from './ArchivaDashboard.jsx'
 import ArchivaSidebar from './ArchivaSidebar.jsx'
 import ArchivaEntryForm from './ArchivaEntryForm.jsx'
+import WorkflowsApp from './WorkflowsApp.jsx'
 import ModuleViewer from './ModuleViewer.jsx'
 import Assistant from './Assistant.jsx'
 import { personalities } from '../lib/assistant/personalities'
@@ -80,6 +81,8 @@ export default function App() {
         return <ModeSelector />;
       case 'archiva':
         return <ArchivaSidebar />;
+      case 'workflows':
+        return null; // Workflows handles its own layout
       default:
         return null;
     }
@@ -93,6 +96,8 @@ export default function App() {
         return <BoothViewer />;
       case 'archiva':
         return activeEntryId ? <ArchivaEntryForm /> : <ArchivaDashboard />;
+      case 'workflows':
+        return <WorkflowsApp />;
       default:
         return null;
     }
@@ -118,28 +123,40 @@ export default function App() {
   }
 
   const isThreeColumnLayout = activeApp === 'ideaLab' && activeModuleId;
+  const isWorkflowsLayout = activeApp === 'workflows';
 
   return (
-    <main data-theme={theme} className={c({ 'three-column': isThreeColumnLayout })}>
+    <main data-theme={theme} className={c({
+      'three-column': isThreeColumnLayout,
+      'workflows-layout': isWorkflowsLayout
+    })}>
       {isWelcomeScreenOpen && <WelcomeScreen onStart={handleStart} />}
       {isAssistantOpen && <Assistant />}
       {isSettingsOpen && <SettingsModal />}
 
-      <div className="left-column">
-        <AppSwitcher />
-        <div className="left-column-content">
-          {renderLeftColumnContent()}
+      {!isWorkflowsLayout && (
+        <div className="left-column">
+          <AppSwitcher />
+          <div className="left-column-content">
+            {renderLeftColumnContent()}
+          </div>
+          <UserBar />
         </div>
-        <UserBar />
-      </div>
-      
+      )}
+
       {isThreeColumnLayout && (
         <div className="middle-column">
           <ModuleViewer />
         </div>
       )}
 
-      <div className="right-column">
+      <div className={`right-column ${isWorkflowsLayout ? 'workflows-full-width' : ''}`}>
+        {isWorkflowsLayout && (
+          <div className="workflows-header">
+            <AppSwitcher />
+            <UserBar />
+          </div>
+        )}
         {renderRightColumnContent()}
       </div>
     </main>

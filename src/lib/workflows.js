@@ -9,7 +9,7 @@ export const workflowTemplates = {
     title: "Design Thinking Process",
     description: "Complete design thinking methodology from empathy to testing",
     moduleId: "DS_06",
-    category: "design_research",
+    category: "module_assistant",
     difficulty: "intermediate",
     estimatedTime: "45-60 minutes",
 
@@ -84,7 +84,7 @@ export const workflowTemplates = {
     title: "Algorithm Design & Analysis",
     description: "Systematic approach to designing, implementing, and analyzing algorithms",
     moduleId: "SE_02",
-    category: "programming",
+    category: "module_assistant",
     difficulty: "intermediate",
     estimatedTime: "30-45 minutes",
 
@@ -121,6 +121,172 @@ export const workflowTemplates = {
             "Edge cases identified",
             "Constraints understood",
             "Performance requirements defined"
+          ]
+        }
+      }
+    ]
+  },
+
+  // Orchestrator Workflows - Cross-module coordination
+  project_kickoff: {
+    id: "project_kickoff",
+    title: "Project Kickoff & Planning",
+    description: "Guide teams through project initialization, scope definition, and resource planning",
+    moduleId: null, // Orchestrator workflows are cross-module
+    category: "orchestrator",
+    difficulty: "intermediate",
+    estimatedTime: "60-90 minutes",
+
+    metadata: {
+      tags: ["project-management", "planning", "team-coordination"],
+      learningObjectives: [
+        "Define clear project scope and objectives",
+        "Identify required resources and team roles",
+        "Create actionable project timeline",
+        "Establish communication and workflow processes"
+      ]
+    },
+
+    steps: [
+      {
+        id: "project_definition",
+        title: "Define Project Scope & Objectives",
+        type: "prompt_chain",
+        promptChain: [
+          {
+            id: "scope_discovery",
+            prompt: "Let's start your project! First, tell me about the problem you're trying to solve or the opportunity you want to pursue. What's the core challenge?",
+            waitForUser: true
+          },
+          {
+            id: "success_metrics",
+            prompt: "Great! Now let's define success. How will you know this project has achieved its goals? What specific outcomes or metrics will indicate success?",
+            dependsOn: "scope_discovery"
+          }
+        ],
+        guidance: {
+          explanation: "The orchestrator helps teams align on project fundamentals before diving into execution. Focus on clarity and measurable outcomes.",
+          tips: [
+            "Ask clarifying questions to uncover hidden assumptions",
+            "Push for specific, measurable success criteria",
+            "Identify potential stakeholders early in the conversation",
+            "Help teams think through constraints and limitations"
+          ]
+        }
+      },
+      {
+        id: "team_module_mapping",
+        title: "Map Team Skills to Required Modules",
+        type: "interactive",
+        prompt: {
+          system: "Help the team identify which CODE University modules and skills are needed for this project, and map team members to appropriate roles.",
+          user: "Based on our project scope, help me figure out what skills we'll need and which team members should focus on which modules."
+        },
+        guidance: {
+          explanation: "The orchestrator connects project requirements to academic modules and helps distribute work based on team member strengths and learning goals.",
+          frameworks: [
+            "Module mapping: SE (technical), DS (design), STS (research/business)",
+            "Skill assessment: current abilities vs. project requirements",
+            "Learning opportunities: stretch assignments for growth"
+          ]
+        }
+      }
+    ],
+
+    completion: {
+      deliverables: ["project_charter", "team_roles_matrix", "module_learning_plan"],
+      reflection_prompts: [
+        "How well does our team composition match project requirements?",
+        "What are the biggest risks or unknowns in our plan?",
+        "How will we coordinate across different modules and disciplines?"
+      ]
+    }
+  },
+
+  interdisciplinary_synthesis: {
+    id: "interdisciplinary_synthesis",
+    title: "Cross-Module Integration & Synthesis",
+    description: "Help teams integrate insights and deliverables from different academic modules into cohesive solutions",
+    moduleId: null,
+    category: "orchestrator",
+    difficulty: "advanced",
+    estimatedTime: "45-75 minutes",
+
+    metadata: {
+      tags: ["integration", "synthesis", "interdisciplinary"],
+      learningObjectives: [
+        "Identify connections between different disciplinary approaches",
+        "Synthesize technical, design, and business perspectives",
+        "Resolve conflicts between different module recommendations",
+        "Create unified project vision from diverse inputs"
+      ]
+    },
+
+    steps: [
+      {
+        id: "perspective_gathering",
+        title: "Gather Multi-Module Perspectives",
+        type: "prompt_chain",
+        promptChain: [
+          {
+            id: "collect_insights",
+            prompt: "Let's bring together insights from your different module work. What have you learned from the technical/SE perspective? What about design/DS insights? And any business/STS considerations?",
+            waitForUser: true
+          },
+          {
+            id: "identify_tensions",
+            prompt: "I notice some potential tensions between these different perspectives. Where do the technical constraints conflict with design ideals? How do business requirements challenge both?",
+            dependsOn: "collect_insights"
+          }
+        ],
+        guidance: {
+          explanation: "The orchestrator helps teams see their project from multiple disciplinary lenses and identifies where different approaches might conflict or complement each other.",
+          tips: [
+            "Actively look for contradictions between different module approaches",
+            "Help teams see tensions as creative opportunities, not problems",
+            "Encourage specific examples rather than abstract statements",
+            "Guide teams to prioritize based on user/stakeholder needs"
+          ]
+        }
+      }
+    ]
+  },
+
+  learning_reflection: {
+    id: "learning_reflection",
+    title: "Learning Journey Reflection & Portfolio",
+    description: "Guide students through systematic reflection on their learning across modules and projects",
+    moduleId: null,
+    category: "orchestrator",
+    difficulty: "beginner",
+    estimatedTime: "30-45 minutes",
+
+    metadata: {
+      tags: ["reflection", "learning", "portfolio", "metacognition"],
+      learningObjectives: [
+        "Articulate learning growth across different modules",
+        "Connect academic work to personal/professional goals",
+        "Identify patterns in learning preferences and challenges",
+        "Plan future learning based on reflection insights"
+      ]
+    },
+
+    steps: [
+      {
+        id: "learning_inventory",
+        title: "Inventory Learning Experiences",
+        type: "prompt",
+        prompt: {
+          system: "Help the student reflect systematically on their learning journey across different modules and projects. Focus on both successes and challenges.",
+          user: "Help me reflect on my learning journey this semester. What have been my biggest growth areas, challenges, and insights across different modules?"
+        },
+        guidance: {
+          explanation: "The orchestrator facilitates deep reflection that connects learning across modules and helps students see patterns in their development.",
+          tips: [
+            "Ask for specific examples and evidence of learning",
+            "Help students connect academic work to real-world applications",
+            "Encourage honest assessment of both strengths and areas for growth",
+            "Guide students to see failures as learning opportunities"
           ]
         }
       }

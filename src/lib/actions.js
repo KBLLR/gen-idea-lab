@@ -33,7 +33,7 @@ export const toggleTheme = () => {
 
 
 // --- App Switching Actions ---
-const apps = ['ideaLab', 'imageBooth', 'archiva'];
+const apps = ['ideaLab', 'imageBooth', 'archiva', 'workflows'];
 
 export const switchApp = (direction) => {
   set(state => {
