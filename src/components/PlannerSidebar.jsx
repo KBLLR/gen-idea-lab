@@ -8,6 +8,7 @@ import useStore from '../lib/store';
 import { personalities } from '../lib/assistant/personalities';
 import { commonTasks, specializedTasks } from '../lib/assistant/tasks';
 import { modules } from '../lib/modules';
+import { templates as archivaTemplates } from '../lib/archiva/templates';
 import '../styles/components/planner.css';
 
 // Helper: build assistants list (exclude OS_* and BM_* as requested)
@@ -85,6 +86,28 @@ function WorkflowsList(customWorkflows) {
   return [...builtIn, ...Object.values(custom).map(w => ({ id: w.id, label: w.title, kind: 'workflow' }))];
 }
 
+function ArchivAITemplatesList() {
+  // Convert ArchivAI templates to draggable items
+  return Object.entries(archivaTemplates).map(([key, template]) => ({
+    id: key,
+    label: template.name,
+    kind: 'archiva-template',
+    icon: getTemplateIcon(template.type),
+    templateType: template.type,
+    purpose: template.purpose,
+    fields: template.fields
+  }));
+}
+
+function getTemplateIcon(type) {
+  switch (type) {
+    case 'Reflective': return 'lightbulb';
+    case 'Technical': return 'code';
+    case 'Creative': return 'palette';
+    default: return 'description';
+  }
+}
+
 const ACCORDION_SECTIONS = [
   { id: 'modules', title: 'Modules' },
   { id: 'assistants', title: 'Assistants' },
@@ -93,6 +116,7 @@ const ACCORDION_SECTIONS = [
   { id: 'sources', title: 'Sources' },
   { id: 'model-providers', title: 'Model Providers' },
   { id: 'workflows', title: 'Workflows' },
+  { id: 'archiva-templates', title: 'ArchivAI Templates' },
   { id: 'connectors', title: 'Connectors' },
 ];
 
@@ -137,6 +161,8 @@ export default function PlannerSidebar() {
     { id: 'connector:trigger', label: 'Trigger', kind: 'connector' },
   ];
 
+  const archivaTemplates = ArchivAITemplatesList();
+
   const sectionData = {
     modules: modulesList,
     assistants,
@@ -145,6 +171,7 @@ export default function PlannerSidebar() {
     sources,
     'model-providers': modelProviders,
     workflows,
+    'archiva-templates': archivaTemplates,
     connectors,
   };
 

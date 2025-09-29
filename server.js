@@ -716,10 +716,14 @@ app.post('/api/chat', requireAuth, async (req, res) => {
 
       response = claudeData.content[0].text;
 
-    } else if (model.includes('gpt-oss') || model.includes('deepseek') || model.includes('llama') || model.includes('qwen') || connections.ollama?.connected) {
-      // Ollama models (including gpt-oss) or fallback if Ollama is connected
+    } else if (model.includes('gpt-oss') || model.includes('deepseek') || model.includes('llama') || model.includes('qwen') || model.includes('gemma')) {
+      // Ollama models (including gpt-oss and gemma)
       service = 'ollama';
       const connection = connections[service];
+
+      if (!connection) {
+        return res.status(400).json({ error: 'Ollama is not connected. Please connect Ollama in Settings first.' });
+      }
 
       const ollamaMessages = messages.map(msg => ({
         role: msg.role === 'model' ? 'assistant' : msg.role,
@@ -823,6 +827,74 @@ app.post('/api/chat', requireAuth, async (req, res) => {
   } finally {
     end({ route: '/api/chat', code: res.statusCode, method: 'POST' });
     httpRequestsTotal.inc({ route: '/api/chat', code: res.statusCode, method: 'POST' });
+  }
+});
+
+// Universal endpoint to get available models from all connected services
+app.get('/api/models', requireAuth, async (req, res) => {
+  try {
+    const connections = getUserConnections(req.user.email);
+    const availableModels = [];
+
+    // Always include Gemini models (built-in)
+    availableModels.push(
+      { id: 'gemini-2.5-flash', name: 'Gemini 2.5 Flash', provider: 'Gemini', category: 'text', available: true },
+      { id: 'gemini-2.0-flash-exp', name: 'Gemini 2.0 Flash Experimental', provider: 'Gemini', category: 'text', available: true }
+    );
+
+    // OpenAI models (if connected)
+    if (connections.openai?.apiKey) {
+      availableModels.push(
+        { id: 'gpt-4o', name: 'GPT-4o', provider: 'OpenAI', category: 'text', available: true },
+        { id: 'gpt-4o-mini', name: 'GPT-4o Mini', provider: 'OpenAI', category: 'text', available: true },
+        { id: 'gpt-4-turbo', name: 'GPT-4 Turbo', provider: 'OpenAI', category: 'text', available: true }
+      );
+    }
+
+    // Claude models (if connected)
+    if (connections.claude?.apiKey) {
+      availableModels.push(
+        { id: 'claude-3-5-sonnet-20241022', name: 'Claude 3.5 Sonnet', provider: 'Claude', category: 'text', available: true },
+        { id: 'claude-3-5-haiku-20241022', name: 'Claude 3.5 Haiku', provider: 'Claude', category: 'text', available: true }
+      );
+    }
+
+    // Ollama models (if connected) - fetch from the instance
+    if (connections.ollama) {
+      try {
+        if (connections.ollama.type === 'url') {
+          // Local Ollama instance
+          const resp = await fetch(`${connections.ollama.url}/api/tags`);
+          if (resp.ok) {
+            const data = await resp.json();
+            const ollamaModels = (data.models || []).map(m => ({
+              id: m.name,
+              name: m.name.split(':')[0] || m.name, // Remove tag for display
+              provider: 'Ollama',
+              category: 'text',
+              available: true,
+              size: m.size,
+              modified_at: m.modified_at
+            }));
+            availableModels.push(...ollamaModels);
+          }
+        } else if (connections.ollama.type === 'api_key') {
+          // Ollama Cloud - add some common cloud models
+          availableModels.push(
+            { id: 'qwen3:480b-cloud', name: 'Qwen 3 480B', provider: 'Ollama Cloud', category: 'text', available: true },
+            { id: 'gpt-oss', name: 'GPT OSS', provider: 'Ollama Cloud', category: 'text', available: true }
+          );
+        }
+      } catch (ollamaError) {
+        logger.warn('Failed to fetch Ollama models:', ollamaError.message);
+        // Don't fail the entire request if Ollama is unreachable
+      }
+    }
+
+    res.json({ models: availableModels });
+  } catch (error) {
+    logger.error('Error fetching available models:', { errorMessage: error.message });
+    res.status(500).json({ error: error.message });
   }
 });
 

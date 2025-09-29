@@ -210,9 +210,126 @@ function ModelProviderNode({ data, id }) {
   );
 }
 
+// ArchivAI Template Node Component
+function ArchivAITemplateNode({ data, id }) {
+  const [isConfiguring, setIsConfiguring] = useState(false);
+  const [templateData, setTemplateData] = useState({});
+  const [outputFormat, setOutputFormat] = useState('markdown');
+  const { updateNode } = React.useContext(NodeUpdateContext);
+
+  const templateFields = data.fields || [];
+
+  const handleConfigure = useCallback(() => {
+    setIsConfiguring(true);
+  }, []);
+
+  const handleSave = useCallback(() => {
+    // Update node with configuration
+    updateNode(id, {
+      ...data,
+      configured: true,
+      templateData,
+      outputFormat,
+      sub: `${data.templateType} • ${outputFormat.toUpperCase()}`
+    });
+    setIsConfiguring(false);
+  }, [id, data, templateData, outputFormat, updateNode]);
+
+  const handleCancel = useCallback(() => {
+    setIsConfiguring(false);
+  }, []);
+
+  return (
+    <div className={`${data.className} node-archiva-template`}>
+      {/* Input handle on the left */}
+      <Handle
+        type="target"
+        position={Position.Left}
+        style={{
+          background: '#555',
+          width: 8,
+          height: 8,
+          border: '2px solid #fff',
+        }}
+      />
+
+      <div className="node-title">{data.label}</div>
+      {data.sub && <div className="node-sub">{data.sub}</div>}
+
+      {!data.configured && (
+        <div className="node-config-prompt">
+          <button onClick={handleConfigure} className="btn-configure">
+            <span className="icon">settings</span>
+            Configure Template
+          </button>
+        </div>
+      )}
+
+      {/* Output handle on the right */}
+      <Handle
+        type="source"
+        position={Position.Right}
+        style={{
+          background: '#555',
+          width: 8,
+          height: 8,
+          border: '2px solid #fff',
+        }}
+      />
+
+      {/* Configuration Modal */}
+      {isConfiguring && (
+        <div className="template-config-modal">
+          <div className="config-header">
+            <h3>Configure {data.label}</h3>
+            <p>{data.purpose}</p>
+          </div>
+
+          <div className="config-body">
+            <div className="config-section">
+              <label>Output Format:</label>
+              <select
+                value={outputFormat}
+                onChange={(e) => setOutputFormat(e.target.value)}
+                className="format-select"
+              >
+                <option value="markdown">Markdown (.md)</option>
+                <option value="html">HTML (.html)</option>
+              </select>
+            </div>
+
+            <div className="config-section">
+              <label>Template Fields:</label>
+              <div className="fields-preview">
+                {templateFields.slice(0, 5).map((field, index) => (
+                  <div key={index} className="field-preview">
+                    <span className="field-name">{field.label}</span>
+                    <span className="field-type">{field.field_type}</span>
+                  </div>
+                ))}
+                {templateFields.length > 5 && (
+                  <div className="field-preview">
+                    <span className="field-more">+ {templateFields.length - 5} more fields</span>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+
+          <div className="config-actions">
+            <button onClick={handleCancel} className="btn-cancel">Cancel</button>
+            <button onClick={handleSave} className="btn-save">Save Configuration</button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 const nodeTypes = {
   default: LabelNode,
   'model-provider': ModelProviderNode,
+  'archiva-template': ArchivAITemplateNode,
 };
 
 // Note: nodeStyles now include source and model-provider
@@ -226,6 +343,7 @@ export default function PlannerCanvas() {
   const [isGeneratingTitle, setIsGeneratingTitle] = useState(false);
   const setActiveApp = useStore.use.actions().setActiveApp;
   const addCustomWorkflow = useStore.use.actions().addCustomWorkflow;
+  const workflowAutoTitleModel = useStore.use.workflowAutoTitleModel();
 
   const rfRef = useRef(null);
   const fileInputRef = useRef(null);
@@ -278,7 +396,8 @@ export default function PlannerCanvas() {
     }
 
     // Add the dropped node
-    const nodeType = item.kind === 'model-provider' ? 'model-provider' : 'default';
+    const nodeType = item.kind === 'model-provider' ? 'model-provider' :
+                     item.kind === 'archiva-template' ? 'archiva-template' : 'default';
     setNodes((nds) => nds.concat({
       id: nid,
       type: nodeType,
@@ -286,9 +405,16 @@ export default function PlannerCanvas() {
       data: {
         label: item.label,
         className: styleClass,
-        sub: subText,
+        sub: subText || (item.kind === 'archiva-template' ? `${item.templateType} Template` : undefined),
         kind: item.kind,
         providerId: item.id, // Store the provider ID for model providers
+        // ArchivAI template specific data
+        ...(item.kind === 'archiva-template' && {
+          templateType: item.templateType,
+          purpose: item.purpose,
+          fields: item.fields,
+          configured: false,
+        }),
       },
     }));
 
@@ -615,10 +741,10 @@ export default function PlannerCanvas() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          model: 'gemini-1.5-flash',
+          model: workflowAutoTitleModel,
           messages: [{
             role: 'user',
-            content: `Analyze this workflow/flow data and suggest a concise, descriptive title (2-4 words max): ${JSON.stringify(flowData, null, 2)}`
+            content: `Analyze this workflow/flow data and suggest a concise, descriptive title (2-4 words max). Return only the title, no explanation: ${JSON.stringify(flowData, null, 2)}`
           }]
         }),
         credentials: 'include'
@@ -653,7 +779,7 @@ export default function PlannerCanvas() {
     } finally {
       setIsGeneratingTitle(false);
     }
-  }, [nodes, edges, isGeneratingTitle]);
+  }, [nodes, edges, isGeneratingTitle, workflowAutoTitleModel]);
 
   // Persist planner graph on each change
   useEffect(() => {

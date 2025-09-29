@@ -5,6 +5,7 @@
 
 import { useState, useEffect } from 'react';
 import useStore from '../lib/store';
+import { useAvailableModels } from '../hooks/useAvailableModels';
 import { SiFigma, SiGithub, SiNotion, SiGoogledrive, SiOpenai, SiGoogle, SiGmail } from 'react-icons/si';
 import { RiRobot2Line, RiBrainLine, RiSearchLine, RiImageLine, RiCalendarLine } from 'react-icons/ri';
 
@@ -503,6 +504,83 @@ function ServiceConnector({ service }) {
     );
 }
 
+function WorkflowAutoTitleModelSelector() {
+    const workflowAutoTitleModel = useStore.use.workflowAutoTitleModel();
+    const setWorkflowAutoTitleModel = useStore((state) => state.actions.setWorkflowAutoTitleModel);
+    const { textModels, loading, error, refetch } = useAvailableModels();
+
+    // Find current model details
+    const currentModel = textModels.find(m => m.id === workflowAutoTitleModel);
+
+    // If current model is not in available models, and we have models, update to first available
+    useEffect(() => {
+        if (!loading && textModels.length > 0 && !currentModel) {
+            console.log('Current model not available, switching to:', textModels[0].id);
+            setWorkflowAutoTitleModel(textModels[0].id);
+        }
+    }, [loading, textModels, currentModel, workflowAutoTitleModel, setWorkflowAutoTitleModel]);
+
+    if (loading) {
+        return (
+            <div className="model-selector">
+                <div className="loading-state">
+                    <span className="icon">refresh</span>
+                    Loading available models...
+                </div>
+            </div>
+        );
+    }
+
+    if (error) {
+        return (
+            <div className="model-selector">
+                <div className="error-state">
+                    <span className="icon">error</span>
+                    <span>Failed to load models: {error}</span>
+                    <button onClick={refetch} className="retry-btn">
+                        <span className="icon">refresh</span>
+                        Retry
+                    </button>
+                </div>
+            </div>
+        );
+    }
+
+    if (textModels.length === 0) {
+        return (
+            <div className="model-selector">
+                <div className="no-models-state">
+                    <span className="icon">warning</span>
+                    <span>No models available. Please connect at least one AI service.</span>
+                </div>
+            </div>
+        );
+    }
+
+    return (
+        <div className="model-selector">
+            <select
+                id="workflow-auto-title-model"
+                value={workflowAutoTitleModel}
+                onChange={(e) => setWorkflowAutoTitleModel(e.target.value)}
+                className="model-select"
+            >
+                {textModels.map(model => (
+                    <option key={model.id} value={model.id}>
+                        {model.name} ({model.provider})
+                    </option>
+                ))}
+            </select>
+            <p className="model-selector-note">
+                Current: {currentModel?.name || workflowAutoTitleModel}
+                {textModels.length > 0 && (
+                    <span> • {textModels.length} models available</span>
+                )}
+            </p>
+        </div>
+    );
+}
+
 export default function SettingsModal() {
     // Always call hooks at the top level
     const isSettingsOpen = useStore.use.isSettingsOpen();
@@ -569,6 +647,23 @@ export default function SettingsModal() {
                             </div>
                         </section>
                     ))}
+
+                    <section className="settings-section">
+                        <h3>Workflow Preferences</h3>
+                        <p className="section-description">
+                            Configure default settings for workflow creation and management.
+                        </p>
+
+                        <div className="preference-item">
+                            <label htmlFor="workflow-auto-title-model" className="preference-label">
+                                Auto-Title Model
+                            </label>
+                            <p className="preference-description">
+                                Choose which AI model should be used to automatically generate workflow titles when you click the sparkles button.
+                            </p>
+                            <WorkflowAutoTitleModelSelector />
+                        </div>
+                    </section>
 
                     <section className="settings-section">
                         <h3>Privacy & Data</h3>

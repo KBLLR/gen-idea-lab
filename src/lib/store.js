@@ -43,6 +43,7 @@ const store = immer((set, get) => ({
   // Orchestrator Chat State
   isOrchestratorLoading: false,
   orchestratorModel: 'gemini-2.0-flash-exp', // Default orchestrator model
+  workflowAutoTitleModel: 'gemma3:4b-it-qat', // Default model for workflow auto-titling
   orchestratorHistory: [
     {
       role: 'model',
@@ -332,6 +333,10 @@ const store = immer((set, get) => ({
       state.orchestratorModel = model;
     }),
 
+    setWorkflowAutoTitleModel: (model) => set((state) => {
+      state.workflowAutoTitleModel = model;
+    }),
+
     // Floating Orchestrator actions
     toggleFloatingOrchestrator: () => set((state) => {
       state.isFloatingOrchestratorOpen = !state.isFloatingOrchestratorOpen;
@@ -367,6 +372,7 @@ export default createSelectorFunctions(
         theme: state.theme,
         orchestratorHistory: state.orchestratorHistory,
         orchestratorModel: state.orchestratorModel,
+        workflowAutoTitleModel: state.workflowAutoTitleModel,
         orchestratorHasConversation: state.orchestratorHasConversation,
         orchestratorSavedSessions: state.orchestratorSavedSessions,
         floatingOrchestratorPosition: state.floatingOrchestratorPosition,

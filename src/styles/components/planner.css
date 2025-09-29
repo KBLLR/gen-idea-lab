@@ -270,3 +270,193 @@
   background: var(--interactive-primary-default) !important;
   box-shadow: 0 0 8px rgba(59, 130, 246, 0.8);
 }
+
+/* ArchivAI Template Node Styles */
+.node-archiva-template {
+  border-color: var(--status-success);
+  background: linear-gradient(135deg, var(--surface-tertiary), var(--surface-quaternary));
+  position: relative;
+}
+
+.node-archiva-template .node-title {
+  color: var(--text-primary);
+  font-weight: var(--typography-font-weight-semibold);
+}
+
+.node-archiva-template .node-sub {
+  color: var(--text-secondary);
+  font-size: var(--typography-font-size-sm);
+}
+
+.node-config-prompt {
+  margin-top: var(--spacing-3);
+  padding: var(--spacing-3);
+  border-top: 1px solid var(--border-secondary);
+}
+
+.btn-configure {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-2);
+  padding: var(--spacing-2) var(--spacing-3);
+  border: 1px solid var(--border-accent);
+  border-radius: var(--radius-sm);
+  background: var(--interactive-primary-default);
+  color: var(--text-on-primary);
+  font-size: var(--typography-font-size-xs);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  width: 100%;
+  justify-content: center;
+}
+
+.btn-configure:hover {
+  background: var(--interactive-primary-hover);
+  transform: scale(1.02);
+}
+
+/* Template Configuration Modal */
+.template-config-modal {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  z-index: 1000;
+  background: var(--surface-modal);
+  border: 1px solid var(--border-primary);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-xl);
+  backdrop-filter: var(--backdrop-filter);
+  margin-top: var(--spacing-2);
+  min-width: 300px;
+  max-width: 400px;
+}
+
+.config-header {
+  padding: var(--spacing-5) var(--spacing-6);
+  border-bottom: 1px solid var(--border-secondary);
+}
+
+.config-header h3 {
+  margin: 0 0 var(--spacing-2) 0;
+  font-size: var(--typography-font-size-lg);
+  font-weight: var(--typography-font-weight-semibold);
+  color: var(--text-primary);
+}
+
+.config-header p {
+  margin: 0;
+  font-size: var(--typography-font-size-sm);
+  color: var(--text-secondary);
+}
+
+.config-body {
+  padding: var(--spacing-5) var(--spacing-6);
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.config-section {
+  margin-bottom: var(--spacing-5);
+}
+
+.config-section:last-child {
+  margin-bottom: 0;
+}
+
+.config-section label {
+  display: block;
+  margin-bottom: var(--spacing-3);
+  font-size: var(--typography-font-size-sm);
+  font-weight: var(--typography-font-weight-medium);
+  color: var(--text-primary);
+}
+
+.format-select {
+  width: 100%;
+  padding: var(--spacing-3) var(--spacing-4);
+  border: 1px solid var(--border-primary);
+  border-radius: var(--radius-md);
+  background: var(--surface-input);
+  color: var(--text-primary);
+  font-size: var(--typography-font-size-sm);
+}
+
+.fields-preview {
+  border: 1px solid var(--border-secondary);
+  border-radius: var(--radius-md);
+  background: var(--surface-quaternary);
+  padding: var(--spacing-4);
+  max-height: 150px;
+  overflow-y: auto;
+}
+
+.field-preview {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--spacing-2) 0;
+  border-bottom: 1px solid var(--border-tertiary);
+}
+
+.field-preview:last-child {
+  border-bottom: none;
+}
+
+.field-name {
+  font-size: var(--typography-font-size-sm);
+  color: var(--text-primary);
+  font-weight: var(--typography-font-weight-medium);
+}
+
+.field-type {
+  font-size: var(--typography-font-size-xs);
+  color: var(--text-secondary);
+  background: var(--surface-tertiary);
+  padding: var(--spacing-1) var(--spacing-2);
+  border-radius: var(--radius-sm);
+}
+
+.field-more {
+  font-size: var(--typography-font-size-sm);
+  color: var(--text-tertiary);
+  font-style: italic;
+}
+
+.config-actions {
+  padding: var(--spacing-5) var(--spacing-6);
+  border-top: 1px solid var(--border-secondary);
+  display: flex;
+  gap: var(--spacing-3);
+  justify-content: flex-end;
+}
+
+.btn-cancel,
+.btn-save {
+  padding: var(--spacing-3) var(--spacing-4);
+  border: 1px solid var(--border-primary);
+  border-radius: var(--radius-md);
+  font-size: var(--typography-font-size-sm);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-cancel {
+  background: var(--surface-secondary);
+  color: var(--text-secondary);
+}
+
+.btn-cancel:hover {
+  background: var(--interactive-secondary-hover);
+  color: var(--text-primary);
+}
+
+.btn-save {
+  background: var(--interactive-primary-default);
+  color: var(--text-on-primary);
+  border-color: var(--interactive-primary-default);
+}
+
+.btn-save:hover {
+  background: var(--interactive-primary-hover);
+}
