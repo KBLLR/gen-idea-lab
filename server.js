@@ -117,6 +117,16 @@ const port = process.env.PORT || 8081;
 // Initialize Google Auth for Gemini API with OAuth2
 let ai;
 
+function ensureGeminiAvailable(res) {
+  if (!ai) {
+    if (!res.headersSent) {
+      res.status(503).json({ error: 'Gemini API is not configured. Please add credentials to enable this feature.' });
+    }
+    return false;
+  }
+  return true;
+}
+
 async function initializeGeminiAPI() {
   try {
     // Try to use OAuth2 credentials (preferred method for 2025)
@@ -156,13 +166,15 @@ async function initializeGeminiAPI() {
         logger.error('Both OAuth2 and API key initialization failed');
         logger.error('OAuth2 error:', oauthError.message);
         logger.error('API key error:', apiKeyError.message);
-        process.exit(1);
       }
     } else {
-      logger.error('No authentication method available for Gemini API');
-      logger.error('Please run "gcloud auth application-default login" or set API_KEY environment variable');
-      process.exit(1);
+      logger.warn('No authentication method available for Gemini API');
+      logger.warn('Proceeding without Gemini integration. Set GOOGLE_API_KEY or configure ADC to enable it.');
     }
+  }
+
+  if (!ai) {
+    logger.warn('Gemini functionality is disabled; related endpoints will return 503 responses.');
   }
 }
 
@@ -568,6 +580,9 @@ app.get('/metrics', async (req, res) => {
 // Add a /healthz endpoint for load balancers and orchestration tools.
 // It performs a live check against the Gemini API.
 app.get('/healthz', async (req, res) => {
+  if (!ai) {
+    return res.status(503).json({ status: 'error', message: 'Gemini API not configured.' });
+  }
   try {
     // Make a lightweight, non-streaming call to the Gemini API to check its health.
     // A simple prompt is sufficient and cost-effective.
@@ -601,7 +616,11 @@ app.post('/api/proxy', requireAuth, async (req, res) => {
       logger.warn('Bad request to /api/proxy', { body: req.body });
       return res.status(400).json({ error: 'Missing "model" or "contents" in request body' });
     }
-    
+
+    if (!ensureGeminiAvailable(res)) {
+      return;
+    }
+
     const response = await ai.models.generateContent({
         model,
         contents,
@@ -814,6 +833,10 @@ app.post('/api/chat', requireAuth, async (req, res) => {
       // Default to Gemini for built-in models
       service = 'gemini';
 
+      if (!ensureGeminiAvailable(res)) {
+        return;
+      }
+
       // Convert messages to Gemini format
       const geminiContents = messages.map(msg => ({
         role: msg.role === 'model' ? 'model' : 'user',
@@ -874,8 +897,8 @@ app.get('/api/models', requireAuth, async (req, res) => {
 
     // Always include Gemini models (built-in)
     availableModels.push(
-      { id: 'gemini-2.5-flash', name: 'Gemini 2.5 Flash', provider: 'Gemini', category: 'text', available: true },
-      { id: 'gemini-2.0-flash-exp', name: 'Gemini 2.0 Flash Experimental', provider: 'Gemini', category: 'text', available: true }
+      { id: 'gemini-2.5-flash', name: 'Gemini 2.5 Flash', provider: 'Gemini', category: 'text', available: Boolean(ai) },
+      { id: 'gemini-2.0-flash-exp', name: 'Gemini 2.0 Flash Experimental', provider: 'Gemini', category: 'text', available: Boolean(ai) }
     );
 
     // OpenAI models (if connected)
