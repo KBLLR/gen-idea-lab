@@ -363,6 +363,7 @@ export default function PlannerCanvas() {
   const setActiveApp = useStore.use.actions().setActiveApp;
   const addCustomWorkflow = useStore.use.actions().addCustomWorkflow;
   const workflowAutoTitleModel = useStore.use.workflowAutoTitleModel();
+  const { screenToFlowPosition } = useReactFlow();
 
   const rfRef = useRef(null);
   const fileInputRef = useRef(null);
@@ -408,15 +409,11 @@ export default function PlannerCanvas() {
 
   const onDrop = useCallback((event) => {
     event.preventDefault();
-    const bounds = rfRef.current.getBoundingClientRect();
     const payload = event.dataTransfer.getData('application/x-planner');
     if (!payload) return;
     const item = JSON.parse(payload);
 
-    const position = {
-      x: event.clientX - bounds.left,
-      y: event.clientY - bounds.top,
-    };
+    const position = screenToFlowPosition({ x: event.clientX, y: event.clientY });
 
     const baseId = `${item.kind}:${item.id}`;
     const nid = `${baseId}:${Date.now()}`;
@@ -484,7 +481,7 @@ export default function PlannerCanvas() {
         setEdges((eds) => eds.concat(newEdges));
       }
     }
-  }, [setNodes, setEdges]);
+  }, [screenToFlowPosition, setNodes, setEdges]);
 
   const clear = useCallback(() => {
     setNodes([]);
