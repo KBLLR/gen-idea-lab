@@ -4,6 +4,7 @@
  */
 
 import React, { useCallback, useMemo, useRef, useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import useStore from '../lib/store';
 import { modules } from '../lib/modules';
 import { specializedTasks } from '../lib/assistant/tasks';
@@ -80,7 +81,7 @@ function ModelProviderNode({ data, id }) {
   const [availableModels, setAvailableModels] = useState([]);
   const connectedServices = useStore.use.connectedServices();
   const { updateNode, canvasRef } = React.useContext(NodeUpdateContext);
-  const { screenToFlowPosition } = useReactFlow();
+  const { screenToFlowPosition, flowToScreenPosition } = useReactFlow();
 
   const handleDoubleClick = useCallback(async (event) => {
     event.preventDefault();
@@ -126,20 +127,26 @@ function ModelProviderNode({ data, id }) {
     setAvailableModels(models);
 
     // Get the canvas container bounds to position relative to it
-    const canvasRect = canvasRef?.current?.getBoundingClientRect();
-    if (canvasRect) {
+    const canvasElement = canvasRef?.current;
+    if (canvasElement) {
+      const flowPosition = screenToFlowPosition({ x: event.clientX, y: event.clientY });
+      const screenPosition = flowToScreenPosition(flowPosition);
+      const canvasRect = canvasElement.getBoundingClientRect();
+
       setContextMenu({
-        x: event.clientX - canvasRect.left + 2,
-        y: event.clientY - canvasRect.top + 2,
+        x: screenPosition.x - canvasRect.left + 2,
+        y: screenPosition.y - canvasRect.top + 2,
+        positionType: 'absolute',
       });
     } else {
       setContextMenu({
         x: event.clientX + 2,
         y: event.clientY + 2,
+        positionType: 'fixed',
       });
     }
     } // Close the event.detail === 2 check
-  }, [data, connectedServices]);
+  }, [data, connectedServices, screenToFlowPosition, flowToScreenPosition, canvasRef]);
 
   const handleModelSelect = useCallback((model) => {
     if (updateNode) {
@@ -164,6 +171,44 @@ function ModelProviderNode({ data, id }) {
       return () => document.removeEventListener('click', handleClickOutside);
     }
   }, [contextMenu, handleClickOutside]);
+
+  const portalTarget = contextMenu?.positionType === 'absolute' ? canvasRef?.current : null;
+
+  const menuContent = contextMenu ? (
+    <div
+      className="context-menu"
+      style={{
+        position: contextMenu.positionType === 'absolute' ? 'absolute' : 'fixed',
+        left: contextMenu.x,
+        top: contextMenu.y,
+        zIndex: 1000,
+      }}
+    >
+      <div className="context-menu-header">Select Model</div>
+      {availableModels.length === 0 ? (
+        <div className="context-menu-item disabled">No models available</div>
+      ) : (
+        availableModels.map((model) => (
+          <div
+            key={model.id}
+            className="context-menu-item"
+            onClick={() => handleModelSelect(model)}
+          >
+            <div className="model-name">{model.name}</div>
+            {model.description && (
+              <div className="model-description">{model.description}</div>
+            )}
+          </div>
+        ))
+      )}
+    </div>
+  ) : null;
+
+  const renderedMenu = contextMenu
+    ? portalTarget
+      ? createPortal(menuContent, portalTarget)
+      : menuContent
+    : null;
 
   return (
     <div className={data.className} onDoubleClick={handleDoubleClick}>
@@ -193,36 +238,7 @@ function ModelProviderNode({ data, id }) {
           border: '2px solid #fff',
         }}
       />
-
-      {contextMenu && (
-        <div
-          className="context-menu"
-          style={{
-            position: 'fixed',
-            left: contextMenu.x,
-            top: contextMenu.y,
-            zIndex: 1000,
-          }}
-        >
-          <div className="context-menu-header">Select Model</div>
-          {availableModels.length === 0 ? (
-            <div className="context-menu-item disabled">No models available</div>
-          ) : (
-            availableModels.map((model) => (
-              <div
-                key={model.id}
-                className="context-menu-item"
-                onClick={() => handleModelSelect(model)}
-              >
-                <div className="model-name">{model.name}</div>
-                {model.description && (
-                  <div className="model-description">{model.description}</div>
-                )}
-              </div>
-            ))
-          )}
-        </div>
-      )}
+      {renderedMenu}
     </div>
   );
 }
