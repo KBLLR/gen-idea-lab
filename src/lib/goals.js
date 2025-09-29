@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
 */
 
-import goals from '../../docs/goals/goals.json';
+import goals from '../data/goals.json';
 
 export const buildGoalsSummary = (g) => {
   if (!g || !g.program) return 'Please remind me of my academic goals and requirements.';

@@ -1,0 +1,99 @@
+{
+  "program": {
+    "name": "B.A. Digital Design & Innovation",
+    "degree_awarded": "Bachelor of Arts (B.A.)",
+    "standard_semesters": 6,
+    "ects_per_semester": 30,
+    "total_ects_required": 180,
+    "structure": {
+      "orientation_semester": {
+        "semester_index": 1,
+        "modules_mandatory": [
+          { "code": "OS_01", "title": "Introduction to Software Engineering", "ects": 5 },
+          { "code": "OS_02", "title": "Introduction to Design", "ects": 5 },
+          { "code": "OS_03", "title": "Introduction to Business Management & Entrepreneurship", "ects": 5 },
+          { "code": "OS_05", "title": "Application of Project-Based Learning Methods", "ects": 9 },
+          { "code": "STS_01", "title": "STS Essentials", "ects": 6 }
+        ]
+      },
+      "core_semesters": {
+        "range": [2, 5],
+        "notes": "Mandatory modules can be taken in any order across Core semesters unless restricted by individual module descriptions.",
+        "modules_mandatory": [
+          { "code": "DS_05", "title": "Design History", "ects": 5 },
+          { "code": "DS_06", "title": "Design Methods I", "ects": 5, "graded": false },
+          { "code": "DS_09", "title": "Design Strategy", "ects": 5 },
+          { "code": "DS_13", "title": "Physical Interfaces I", "ects": 5 },
+          { "code": "DS_23", "title": "Visual Interface Design", "ects": 10 },
+          { "code": "DS_24", "title": "Experience Design Project", "ects": 10 },
+          { "code": "STS_02", "title": "Academic Reading", "ects": 5 },
+          { "code": "STS_03", "title": "Research", "ects": 5 },
+          { "code": "STS_04", "title": "Presentation", "ects": 5 },
+          { "code": "STS_05", "title": "Judging Technology", "ects": 5 }
+        ],
+        "modules_elective_pool_examples": [
+          "DS_01", "DS_02", "DS_03", "DS_10", "DS_12", "DS_17", "DS_19", "DS_20",
+          "DS_25", "DS_26", "DS_27", "DS_28", "DS_29", "DS_30",
+          "BM_11", "BM_21", "BM_22", "BM_24", "BM_25",
+          "SE_01", "SE_02", "SE_19", "SE_41", "SE_45", "SE_46",
+          "STS_06", "STS_07"
+        ]
+      },
+      "synthesis_semester": {
+        "semester_index": 6,
+        "modules_mandatory": [
+          { "code": "BA_01", "title": "Capstone Project", "ects": 15 },
+          { "code": "BA_02", "title": "Bachelor Thesis", "ects": 15 }
+        ]
+      }
+    }
+  },
+  "credit_requirements": {
+    "mandatory_modules_ects": "All listed mandatory modules must be passed.",
+    "elective_mandatory_ects_min": 5,
+    "elective_ects_min": 55,
+    "elective_sources": ["Own program elective list", "All BME & SE modules", "STS modules"],
+    "elective_coherence_rule": "Electives chosen from other programs must be coherent with DDI qualification objectives."
+  },
+  "module_types": {
+    "mandatory": { "key": "Pflichtmodul", "definition": "Module that must be completed to graduate." },
+    "elective_mandatory": { "key": "Wahlpflichtmodul", "definition": "Choose from a specified set until the minimum ECTS for ‘Wahlpflicht’ is met." },
+    "elective": { "key": "Wahlmodul", "definition": "Freely chosen module from allowed pools (own program, BME, SE, STS), subject to coherence rule." }
+  },
+  "progression_rules": {
+    "core_order_flexibility": "Mandatory Core modules (outside Orientation/Synthesis) may be taken in any order across semesters 2–5; exceptions may apply per Module Handbook.",
+    "specialization": {
+      "is_optional": true,
+      "must_decide_by": "Before registering Capstone Project or Bachelor Thesis",
+      "formed_by": [
+        "Choice of elective-mandatory and elective modules",
+        "Capstone Project topic",
+        "Bachelor Thesis topic"
+      ]
+    }
+  },
+  "grading": {
+    "program_grade_computation": {
+      "rule": "All graded modules contribute weighted by their ECTS.",
+      "capstone_and_thesis_weighting": "Both BA_01 and BA_02 are weighted at 3× their ECTS in the final grade.",
+      "note": "Pass/Fail modules do not contribute numeric grades."
+    },
+    "bachelor_thesis_breakdown": {
+      "written_component_weight": 0.8,
+      "colloquium_weight": 0.2,
+      "colloquium_duration_minutes": { "min": 20, "max": 30 },
+      "admission_rule": "Colloquium only after passing the written part."
+    },
+    "capstone_assessment_window_minutes": { "min": 15, "max": 50 }
+  },
+  "validation": {
+    "must_satisfy_all": [
+      "Total ECTS accrued >= 180",
+      "All mandatory modules passed",
+      "Elective-mandatory ECTS >= 5",
+      "Elective ECTS >= 55",
+      "Capstone Project (15 ECTS) completed",
+      "Bachelor Thesis (15 ECTS) passed (written + colloquium)"
+    ]
+  }
+}
