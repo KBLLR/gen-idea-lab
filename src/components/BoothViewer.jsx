@@ -43,6 +43,7 @@ export default function BoothViewer() {
     const setImageProvider = useStore((state) => state.actions.setImageProvider);
     const setImageModel = useStore((state) => state.actions.setImageModel);
     const modeDetails = getModeDetails(activeModeKey);
+    const fileInputRef = useRef(null);
 
     const providerOptions = useMemo(() => {
         const options = [
@@ -78,8 +79,6 @@ export default function BoothViewer() {
             </div>
         );
     }
-
-    const fileInputRef = useRef(null);
 
     const handleFileSelection = async (file) => {
         if (!file) return;
