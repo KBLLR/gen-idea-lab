@@ -1,0 +1,102 @@
+/**
+ * Planner styles (tokens-first)
+ */
+
+.planner-sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-6);
+  padding: var(--spacing-10);
+  background: var(--surface-secondary);
+  border-right: 1px solid var(--border-primary);
+}
+
+.accordion-section {
+  border: 1px solid var(--border-secondary);
+  border-radius: var(--radius-lg);
+  background: var(--surface-tertiary);
+}
+
+.accordion-header {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-6);
+  padding: var(--spacing-8) var(--spacing-10);
+  background: transparent;
+  color: var(--text-primary);
+  border: none;
+  border-bottom: 1px solid var(--border-secondary);
+  cursor: pointer;
+}
+
+.accordion-header .icon { font-family: var(--typography-font-family-icon); }
+.accordion-header .title { font-size: var(--typography-font-size-lg); font-weight: var(--typography-font-weight-semibold); }
+
+.accordion-body {
+  padding: var(--spacing-6) var(--spacing-8);
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--spacing-5);
+}
+
+.planner-item {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-6);
+  padding: var(--spacing-6) var(--spacing-8);
+  background: var(--surface-quaternary);
+  border: 1px solid var(--border-secondary);
+  border-radius: var(--radius-md);
+  color: var(--text-secondary);
+}
+
+.planner-item:hover {
+  background: var(--interactive-secondary-hover);
+  color: var(--text-primary);
+}
+
+.planner-item .icon { font-family: var(--typography-font-family-icon); font-size: var(--typography-font-size-icon-md); }
+
+.empty { color: var(--text-tertiary); font-size: var(--typography-font-size-sm); padding: var(--spacing-6); }
+
+/* Canvas */
+.planner-canvas-container {
+  position: relative;
+  height: 100%;
+  background: var(--surface-primary);
+}
+
+.planner-toolbar {
+  position: absolute;
+  top: var(--spacing-10);
+  right: var(--spacing-10);
+  z-index: var(--z-index-dropdown);
+  display: flex;
+  gap: var(--spacing-6);
+}
+
+.planner-canvas {
+  height: 100%;
+}
+
+/* Node cards styled with tokens */
+.node-card {
+  padding: var(--spacing-6) var(--spacing-8);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-md);
+  border: 1px solid var(--border-secondary);
+  background: var(--surface-tertiary);
+  min-width: 160px;
+}
+
+.node-title { color: var(--text-primary); font-weight: var(--typography-font-weight-semibold); }
+.node-sub { color: var(--text-tertiary); font-size: var(--typography-font-size-sm); margin-top: var(--spacing-2); }
+
+.node-module { border-color: var(--border-accent); }
+.node-assistant { border-color: var(--border-accent); }
+.node-task { }
+.node-tool { }
+.node-source { }
+.node-workflow { }
+.node-connector { border-style: dashed; border-color: var(--border-dashed); }

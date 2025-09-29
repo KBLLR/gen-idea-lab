@@ -1,0 +1,134 @@
+/* Floating Orchestrator styles using design tokens */
+
+.floating-orchestrator {
+  background: var(--surface-secondary);
+  border: 1px solid var(--border-primary);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-xl);
+  backdrop-filter: var(--backdrop-filter);
+  color: var(--text-primary);
+}
+
+.floating-orchestrator.dragging { cursor: grabbing; }
+
+.floating-orchestrator-header {
+  padding: var(--spacing-7);
+  border-bottom: 1px solid var(--border-primary);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: grab;
+}
+
+.floating-orchestrator-title {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-5);
+  font-size: var(--typography-font-size-normal);
+  font-weight: var(--typography-font-weight-medium);
+}
+
+.floating-orchestrator-title .icon { color: var(--text-accent); }
+
+.floating-orchestrator-header-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-3);
+}
+
+.floating-orchestrator-header-actions .icon {
+  color: var(--text-secondary);
+}
+
+.floating-orchestrator-content {
+  height: calc(100% - 120px);
+  padding: var(--spacing-5);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.floating-orchestrator-history {
+  flex: 1;
+  overflow-y: auto;
+  padding: var(--spacing-5);
+  font-size: var(--typography-font-size-base);
+  line-height: var(--typography-line-height-relaxed);
+}
+
+/* Messages */
+.floating-orchestrator .message.model {
+  margin-bottom: var(--spacing-5);
+  padding: var(--spacing-5) var(--spacing-6);
+  background: var(--surface-tertiary);
+  border-radius: var(--radius-lg);
+  border-left: 3px solid var(--border-accent);
+}
+
+.floating-orchestrator .message.user {
+  margin-bottom: var(--spacing-5);
+  padding: var(--spacing-5) var(--spacing-6);
+  background: var(--surface-tertiary);
+  border-radius: var(--radius-lg);
+  margin-left: var(--spacing-10);
+}
+
+.floating-orchestrator .message.system {
+  margin-bottom: var(--spacing-5);
+  padding: var(--spacing-4) var(--spacing-6);
+  font-size: var(--typography-font-size-sm);
+  font-style: italic;
+  color: var(--text-secondary);
+  text-align: center;
+}
+
+/* Input area */
+.floating-orchestrator form {
+  padding: var(--spacing-5);
+  border-top: 1px solid var(--border-primary);
+  display: flex;
+  gap: var(--spacing-3);
+}
+
+.floating-orchestrator input[type="text"] {
+  flex: 1;
+  padding: var(--spacing-5) var(--spacing-6);
+  border: 1px solid var(--border-primary);
+  border-radius: var(--radius-md);
+  background: var(--surface-input);
+  color: var(--text-primary);
+  font-size: var(--typography-font-size-base);
+}
+
+.floating-orchestrator .send-btn {
+  padding: var(--spacing-5) var(--spacing-6);
+  border: none;
+  border-radius: var(--radius-md);
+  background: var(--interactive-primary-default);
+  color: var(--text-on-primary);
+  font-size: var(--typography-font-size-base);
+  cursor: pointer;
+}
+
+/* Resize handle */
+.floating-orchestrator .resize-handle {
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  width: 16px;
+  height: 16px;
+  cursor: se-resize;
+  background: transparent;
+  border-bottom-right-radius: var(--radius-xl);
+}
+
+.floating-orchestrator .resize-handle .corner {
+  position: absolute;
+  bottom: 2px;
+  right: 2px;
+  width: 0;
+  height: 0;
+  border-left: 8px solid transparent;
+  border-bottom: 8px solid var(--text-tertiary);
+  opacity: 0.5;
+}
