@@ -213,7 +213,7 @@ export default function ArchivaDashboard() {
         {hasRenderer && (
           <div className="booth-actions">
             <button
-              className="upload-new-btn secondary"
+              className="secondary"
               onClick={handleTestRealWorkflow}
               disabled={isGenerating}
             >
