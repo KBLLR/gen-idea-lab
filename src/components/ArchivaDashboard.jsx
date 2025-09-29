@@ -177,7 +177,7 @@ export default function ArchivaDashboard() {
         <h2>Welcome to ArchivaAI</h2>
         <p>
           This is your space for structured, AI-powered documentation.
-          <br/>
+          <br />
           Select a template from the left to preview how your workflow results will be rendered.
         </p>
       </div>
