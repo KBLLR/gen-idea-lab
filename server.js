@@ -1593,9 +1593,19 @@ app.post('/api/workflow/generate-docs', requireAuth, async (req, res) => {
     // Import the workflow mapper (ES modules require dynamic import)
     const { mapWorkflowToTemplate, enhanceTemplateContent, canMapWorkflowToTemplate } =
       await import('./src/lib/archiva/workflow-mapper.js');
+    const { renderTemplateAllFormats, hasTemplateRenderer, normalizeTemplateId } =
+      await import('./src/lib/archiva/template-registry.js');
 
     // Validate workflow can be mapped to template
-    if (!canMapWorkflowToTemplate(workflowResult, templateId)) {
+    const normalizedTemplate = normalizeTemplateId(templateId);
+
+    if (!hasTemplateRenderer(normalizedTemplate)) {
+      return res.status(400).json({
+        error: `Template renderer not found: ${templateId}`
+      });
+    }
+
+    if (!canMapWorkflowToTemplate(workflowResult, normalizedTemplate)) {
       return res.status(400).json({
         error: `Workflow data is not compatible with template: ${templateId}`,
         required: 'Workflow must contain steps array'
@@ -1603,7 +1613,7 @@ app.post('/api/workflow/generate-docs', requireAuth, async (req, res) => {
     }
 
     // Map workflow data to template fields
-    let templateData = mapWorkflowToTemplate(workflowResult, templateId);
+    let templateData = mapWorkflowToTemplate(workflowResult, normalizedTemplate);
 
     // Enhance with AI if requested
     if (enhanceWithAI) {
@@ -1618,30 +1628,7 @@ app.post('/api/workflow/generate-docs', requireAuth, async (req, res) => {
     // Import and render the template
     let renderedContent;
     try {
-      if (templateId === 'process_journal') {
-        const { render } = await import('./src/lib/archiva/templates/process_journal.js');
-        renderedContent = {
-          markdown: render('md', templateData),
-          html: render('html', templateData)
-        };
-      } else if (templateId === 'experiment_report') {
-        const { render } = await import('./src/lib/archiva/templates/experiment_report.js');
-        renderedContent = {
-          markdown: render('md', templateData),
-          html: render('html', templateData)
-        };
-      } else if (templateId === 'prompt_card') {
-        const { render } = await import('./src/lib/archiva/templates/prompt_card.js');
-        renderedContent = {
-          markdown: render('md', templateData),
-          html: render('html', templateData)
-        };
-      } else {
-        return res.status(400).json({
-          error: `Template renderer not found: ${templateId}`,
-          available: ['process_journal', 'experiment_report', 'prompt_card']
-        });
-      }
+      renderedContent = renderTemplateAllFormats(normalizedTemplate, templateData);
     } catch (renderError) {
       logger.error('Template rendering failed:', renderError);
       return res.status(500).json({ error: 'Template rendering failed' });
@@ -1649,7 +1636,7 @@ app.post('/api/workflow/generate-docs', requireAuth, async (req, res) => {
 
     res.json({
       success: true,
-      templateId,
+      templateId: normalizedTemplate,
       templateData,
       renderedContent,
       enhanced: enhanceWithAI,

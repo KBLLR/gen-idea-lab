@@ -3,6 +3,12 @@
  * Client-side service for generating documentation from workflow results
  */
 
+import {
+  listTemplateRenderers,
+  hasTemplateRenderer,
+  normalizeTemplateId
+} from './template-registry.js';
+
 // Generate documentation from workflow results
 export async function generateWorkflowDocumentation(workflowResult, templateId, options = {}) {
   const {
@@ -12,6 +18,11 @@ export async function generateWorkflowDocumentation(workflowResult, templateId, 
   } = options;
 
   try {
+    const normalizedTemplate = normalizeTemplateId(templateId);
+    if (!hasTemplateRenderer(normalizedTemplate)) {
+      throw new Error(`Unsupported template: ${templateId}`);
+    }
+
     const response = await fetch('/api/workflow/generate-docs', {
       method: 'POST',
       headers: {
@@ -19,7 +30,7 @@ export async function generateWorkflowDocumentation(workflowResult, templateId, 
       },
       body: JSON.stringify({
         workflowResult,
-        templateId,
+        templateId: normalizedTemplate,
         enhanceWithAI,
         model
       })
@@ -113,17 +124,12 @@ export function validateWorkflowForTemplate(workflowResult, templateId) {
     return { valid: false, error: 'Missing workflow data or template ID' };
   }
 
-  const requiredFields = {
-    process_journal: ['steps'],
-    experiment_report: ['steps'],
-    prompt_card: ['steps']
-  };
-
-  const required = requiredFields[templateId];
-  if (!required) {
+  const normalizedTemplate = normalizeTemplateId(templateId);
+  if (!hasTemplateRenderer(normalizedTemplate)) {
     return { valid: false, error: `Unknown template: ${templateId}` };
   }
 
+  const required = ['steps'];
   const missing = required.filter(field => !workflowResult[field]);
   if (missing.length > 0) {
     return {
@@ -138,7 +144,7 @@ export function validateWorkflowForTemplate(workflowResult, templateId) {
 
 // Get available templates that can render the given workflow
 export function getCompatibleTemplates(workflowResult) {
-  const allTemplates = ['process_journal', 'experiment_report', 'prompt_card'];
+  const allTemplates = listTemplateRenderers();
 
   return allTemplates.filter(templateId => {
     const validation = validateWorkflowForTemplate(workflowResult, templateId);

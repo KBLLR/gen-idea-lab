@@ -9,9 +9,11 @@ import ReactMarkdown from 'react-markdown';
 import DOMPurify from 'dompurify';
 import useStore from '../lib/store.js';
 import { templates } from '../lib/archiva/templates.js';
-import { render as renderProcessJournal } from '../lib/archiva/templates/process_journal.js';
-import { render as renderExperimentReport } from '../lib/archiva/templates/experiment_report.js';
-import { render as renderPromptCard } from '../lib/archiva/templates/prompt_card.js';
+import {
+  hasTemplateRenderer,
+  renderTemplate as renderDocumentationTemplate,
+  normalizeTemplateId
+} from '../lib/archiva/template-registry.js';
 import {
   generateWorkflowDocumentation,
   downloadDocumentation,
@@ -19,13 +21,6 @@ import {
   createSampleWorkflow,
   formatWorkflowMetrics
 } from '../lib/archiva/workflow-service.js';
-
-// Template renderers mapping
-const templateRenderers = {
-  'process_journal': renderProcessJournal,
-  'experiment_report': renderExperimentReport,
-  'prompt_card': renderPromptCard
-};
 
 // Sample workflow data for preview
 const sampleWorkflowData = {
@@ -80,16 +75,16 @@ export default function ArchivaDashboard() {
 
   // Get template info
   const templateInfo = selectedTemplate ? templates[selectedTemplate] : null;
-  const hasRenderer = templateInfo && templateRenderers[selectedTemplate.toLowerCase()];
+  const normalizedTemplateId = selectedTemplate ? normalizeTemplateId(selectedTemplate) : null;
+  const hasRenderer = normalizedTemplateId ? hasTemplateRenderer(normalizedTemplateId) : false;
 
   useEffect(() => {
     if (hasRenderer) {
-      const renderer = templateRenderers[selectedTemplate.toLowerCase()];
-      const mdContent = renderer('md', currentWorkflowData);
-      const htmlContent = renderer('html', currentWorkflowData);
+      const mdContent = renderDocumentationTemplate(normalizedTemplateId, 'md', currentWorkflowData);
+      const htmlContent = renderDocumentationTemplate(normalizedTemplateId, 'html', currentWorkflowData);
       setRenderedContent({ md: mdContent, html: htmlContent });
     }
-  }, [selectedTemplate, hasRenderer, currentWorkflowData]);
+  }, [selectedTemplate, normalizedTemplateId, hasRenderer, currentWorkflowData]);
 
   // Generate documentation with AI enhancement
   const handleGenerateWithAI = async () => {
@@ -99,7 +94,7 @@ export default function ArchivaDashboard() {
     try {
       const result = await generateWorkflowDocumentation(
         currentWorkflowData,
-        selectedTemplate.toLowerCase(),
+        normalizedTemplateId,
         { enhanceWithAI: true, model: 'gemini-2.5-flash' }
       );
 
