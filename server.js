@@ -8,6 +8,7 @@ import path from 'path';
 import cookieParser from 'cookie-parser';
 import { GoogleGenAI } from '@google/genai';
 import { GoogleAuth } from 'google-auth-library';
+import { Ollama } from 'ollama';
 import crypto from 'crypto';
 import logger from './src/lib/logger.js';
 import { register, httpRequestDurationMicroseconds, httpRequestsTotal } from './src/lib/metrics.js';
@@ -19,15 +20,39 @@ const __dirname = path.resolve();
 const app = express();
 app.use(cookieParser());
 
+// Behind proxies (e.g., Vercel) trust X-Forwarded-* headers
+app.set('trust proxy', 1);
+
+// Helper to compute base URL for OAuth redirects
+function getBaseUrl(req) {
+  const envUrl = process.env.BACKEND_URL || process.env.DOMAIN || process.env.FRONTEND_URL;
+  if (envUrl) {
+    return envUrl.replace(/\/$/, '');
+  }
+  const proto = (req.headers['x-forwarded-proto'] || req.protocol || 'http').toString().split(',')[0];
+  const host = req.headers['x-forwarded-host'] || req.get('host');
+  return `${proto}://${host}`;
+}
+
 // CORS headers for development and production
 app.use((req, res, next) => {
   const origin = req.headers.origin;
-  const allowedOrigins = [
+
+  // Build allowed origins dynamically from env
+  const envAllowed = [
+    process.env.FRONTEND_URL,
+    process.env.BACKEND_URL,
+    process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : null,
+    process.env.DOMAIN
+      ? (process.env.DOMAIN.startsWith('http') ? process.env.DOMAIN : `https://${process.env.DOMAIN}`)
+      : null,
+  ].filter(Boolean);
+
+  const allowedOrigins = Array.from(new Set([
     'http://localhost:3000',
-    'http://localhost:3001', 
-    'https://www.kbllr.com',
-    'https://kbllr.com'
-  ];
+    'http://localhost:3001',
+    ...envAllowed,
+  ]));
   
   if (origin && allowedOrigins.includes(origin)) {
     res.header('Access-Control-Allow-Origin', origin);
@@ -237,17 +262,33 @@ app.post('/api/services/:service/connect', requireAuth, (req, res) => {
     return res.json({ success: true, message: `${service} connected successfully` });
   }
   
-  // Handle URL based services (Ollama)
-  if (url && service === 'ollama') {
+  // Handle Ollama connection (URL for local, API key for cloud)
+  if (service === 'ollama') {
     const connections = getUserConnections(req.user.email);
-    connections[service] = {
-      type: 'url',
-      name: 'Ollama',
-      url: url,
-      connectedAt: new Date().toISOString()
-    };
-    
-    return res.json({ success: true, message: 'Ollama connected successfully' });
+
+    if (url) {
+      // Local Ollama instance
+      connections[service] = {
+        type: 'url',
+        name: 'Ollama (Local)',
+        url: url,
+        connectedAt: new Date().toISOString()
+      };
+      return res.json({ success: true, message: 'Ollama (Local) connected successfully' });
+    } else if (apiKey) {
+      // Ollama Cloud API
+      connections[service] = {
+        type: 'api_key',
+        name: 'Ollama (Cloud)',
+        apiKey: apiKey,
+        apiUrl: 'https://ollama.com/api',
+        connectedAt: new Date().toISOString(),
+        features: ['web_search', 'web_fetch', 'cloud_models']
+      };
+      return res.json({ success: true, message: 'Ollama (Cloud) connected successfully' });
+    } else {
+      return res.status(400).json({ error: 'Either URL (for local) or API key (for cloud) is required for Ollama' });
+    }
   }
   
   // Handle OAuth services
@@ -256,11 +297,11 @@ app.post('/api/services/:service/connect', requireAuth, (req, res) => {
     return res.status(400).json({ error: `Service ${service} not configured or not supported` });
   }
   
-  const redirectUri = `${req.protocol}://${req.get('host')}/api/services/${service}/callback`;
+  const redirectUri = `${getBaseUrl(req)}/api/services/${service}/callback`;
   const state = `${req.user.email}:${Date.now()}`; // Simple state for CSRF protection
   
   let authUrl;
-  if (service.startsWith('google')) {
+  if (service.startsWith('google') || service === 'gmail') {
     authUrl = `${config.authUrl}?client_id=${config.clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=${encodeURIComponent(config.scope)}&response_type=code&state=${encodeURIComponent(state)}&access_type=offline`;
   } else if (service === 'github') {
     authUrl = `${config.authUrl}?client_id=${config.clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=${encodeURIComponent(config.scope)}&state=${encodeURIComponent(state)}`;
@@ -301,7 +342,7 @@ app.get('/api/services/:service/callback', async (req, res) => {
   try {
     // Exchange code for access token
     let tokenResponse;
-    const redirectUri = `${req.protocol}://${req.get('host')}/api/services/${service}/callback`;
+    const redirectUri = `${getBaseUrl(req)}/api/services/${service}/callback`;
     
     if (service === 'github') {
       const response = await fetch('https://github.com/login/oauth/access_token', {
@@ -348,7 +389,7 @@ app.get('/api/services/:service/callback', async (req, res) => {
         })
       });
       tokenResponse = await response.json();
-    } else if (service.startsWith('google')) {
+    } else if (service.startsWith('google') || service === 'gmail') {
       const response = await fetch('https://oauth2.googleapis.com/token', {
         method: 'POST',
         headers: {
@@ -434,10 +475,32 @@ app.post('/api/services/:service/test', requireAuth, async (req, res) => {
       });
       const userData = await response.json();
       testResult.info = { name: userData.name, type: userData.type };
-    } else if (service === 'ollama' && connection.type === 'url') {
-      const response = await fetch(`${connection.url}/api/tags`);
-      const models = await response.json();
-      testResult.info = { models: models.models?.length || 0, url: connection.url };
+    } else if (service === 'ollama') {
+      if (connection.type === 'url') {
+        // Test local Ollama instance
+        const response = await fetch(`${connection.url}/api/tags`);
+        const models = await response.json();
+        testResult.info = {
+          type: 'local',
+          models: models.models?.length || 0,
+          url: connection.url
+        };
+      } else if (connection.type === 'api_key') {
+        // Test Ollama Cloud API with the JavaScript library
+        const ollama = new Ollama({
+          host: 'https://ollama.com',
+          auth: connection.apiKey
+        });
+
+        // Test with a simple web search
+        const results = await ollama.webSearch({ query: 'test', max_results: 1 });
+        testResult.info = {
+          type: 'cloud',
+          features: connection.features || ['web_search', 'web_fetch'],
+          api_url: connection.apiUrl,
+          test_results: results.results?.length || 0
+        };
+      }
     }
     
     res.json(testResult);
@@ -514,6 +577,548 @@ app.post('/api/proxy', requireAuth, async (req, res) => {
     // Record metrics in the 'finally' block to ensure it runs even if there's an error.
     end({ route: '/api/proxy', code: res.statusCode, method: 'POST' });
     httpRequestsTotal.inc({ route: '/api/proxy', code: res.statusCode, method: 'POST' });
+  }
+});
+
+// Universal chat endpoint that routes to appropriate AI provider
+app.post('/api/chat', requireAuth, async (req, res) => {
+  const end = httpRequestDurationMicroseconds.startTimer();
+  try {
+    const { model, messages, systemPrompt, enableThinking = false, thinkingBudget = 'medium' } = req.body;
+    if (!model || !messages) {
+      logger.warn('Bad request to /api/chat', { body: req.body });
+      return res.status(400).json({ error: 'Missing "model" or "messages" in request body' });
+    }
+
+    const connections = getUserConnections(req.user.email);
+
+    // Determine which service to use based on model name
+    let service, response;
+
+    if (model.startsWith('gpt-') || model.includes('openai')) {
+      // OpenAI models
+      service = 'openai';
+      const connection = connections[service];
+      if (!connection?.apiKey) {
+        return res.status(400).json({ error: 'OpenAI not connected' });
+      }
+
+      const openaiMessages = messages.map(msg => ({
+        role: msg.role === 'model' ? 'assistant' : msg.role,
+        content: msg.content || (msg.parts && msg.parts[0]?.text) || ''
+      }));
+
+      if (systemPrompt) {
+        openaiMessages.unshift({ role: 'system', content: systemPrompt });
+      }
+
+      const openaiResponse = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${connection.apiKey}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          model: model,
+          messages: openaiMessages,
+          max_tokens: 2000,
+          temperature: 0.7
+        })
+      });
+
+      const openaiData = await openaiResponse.json();
+      if (!openaiResponse.ok) {
+        throw new Error(openaiData.error?.message || 'OpenAI API error');
+      }
+
+      response = openaiData.choices[0].message.content;
+
+    } else if (model.startsWith('claude-') || model.includes('anthropic')) {
+      // Claude models
+      service = 'claude';
+      const connection = connections[service];
+      if (!connection?.apiKey) {
+        return res.status(400).json({ error: 'Claude not connected' });
+      }
+
+      const claudeMessages = messages.map(msg => ({
+        role: msg.role === 'model' ? 'assistant' : msg.role,
+        content: msg.content || (msg.parts && msg.parts[0]?.text) || ''
+      }));
+
+      const claudeResponse = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: {
+          'x-api-key': connection.apiKey,
+          'anthropic-version': '2023-06-01',
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          model: model,
+          messages: claudeMessages,
+          max_tokens: 2000,
+          system: systemPrompt
+        })
+      });
+
+      const claudeData = await claudeResponse.json();
+      if (!claudeResponse.ok) {
+        throw new Error(claudeData.error?.message || 'Claude API error');
+      }
+
+      response = claudeData.content[0].text;
+
+    } else if (connections.ollama?.connected) {
+      // Check if this looks like an Ollama model or if Ollama is the only available service
+      service = 'ollama';
+      const connection = connections[service];
+
+      const ollamaMessages = messages.map(msg => ({
+        role: msg.role === 'model' ? 'assistant' : msg.role,
+        content: msg.content || (msg.parts && msg.parts[0]?.text) || ''
+      }));
+
+      if (systemPrompt) {
+        ollamaMessages.unshift({ role: 'system', content: systemPrompt });
+      }
+
+      let ollamaUrl, headers = { 'Content-Type': 'application/json' };
+
+      if (connection.apiKey) {
+        // Ollama Cloud
+        ollamaUrl = 'https://ollama.com/api/chat';
+        headers['Authorization'] = `Bearer ${connection.apiKey}`;
+      } else {
+        // Local Ollama
+        ollamaUrl = `${connection.url}/api/chat`;
+      }
+
+      const ollamaResponse = await fetch(ollamaUrl, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({
+          model: model,
+          messages: ollamaMessages,
+          stream: false
+        })
+      });
+
+      const ollamaData = await ollamaResponse.json();
+      if (!ollamaResponse.ok) {
+        throw new Error(ollamaData.error || 'Ollama API error');
+      }
+
+      response = ollamaData.message.content;
+
+    } else {
+      // Default to Gemini for built-in models
+      service = 'gemini';
+
+      // Convert messages to Gemini format
+      const geminiContents = messages.map(msg => ({
+        role: msg.role === 'model' ? 'model' : 'user',
+        parts: [{ text: msg.content || (msg.parts && msg.parts[0]?.text) || '' }]
+      }));
+
+      // Add system prompt as first user message if provided
+      if (systemPrompt) {
+        geminiContents.unshift({
+          role: 'user',
+          parts: [{ text: systemPrompt }]
+        });
+      }
+
+      const geminiResponse = await ai.models.generateContent({
+        model: model,
+        contents: geminiContents
+      });
+
+      response = geminiResponse.candidates[0].content.parts[0].text;
+    }
+
+    res.json({ response, service });
+
+  } catch (error) {
+    logger.error('Error in universal chat endpoint:', { errorMessage: error.message, stack: error.stack });
+    if (!res.headersSent) {
+      res.status(500).json({ error: error.message });
+    }
+  } finally {
+    end({ route: '/api/chat', code: res.statusCode, method: 'POST' });
+    httpRequestsTotal.inc({ route: '/api/chat', code: res.statusCode, method: 'POST' });
+  }
+});
+
+// Ollama: list available models (local or cloud)
+app.get('/api/ollama/models', requireAuth, async (req, res) => {
+  try {
+    const connections = getUserConnections(req.user.email);
+    const connection = connections.ollama;
+    if (!connection) {
+      return res.status(400).json({ error: 'Ollama is not connected. Please connect in Settings.' });
+    }
+
+    let models = [];
+
+    if (connection.type === 'url') {
+      // Local Ollama instance
+      const resp = await fetch(`${connection.url}/api/tags`);
+      if (!resp.ok) {
+        const text = await resp.text();
+        return res.status(502).json({ error: 'Failed to fetch models from local Ollama', details: text });
+      }
+      const data = await resp.json();
+      models = (data.models || []).map(m => ({
+        name: m.name,
+        modified_at: m.modified_at,
+        size: m.size,
+        digest: m.digest,
+        details: m.details || {},
+        source: 'local'
+      }));
+    } else if (connection.type === 'api_key') {
+      // Ollama Cloud API - for now return some standard cloud models
+      // Note: Ollama's cloud API doesn't have a public models endpoint yet
+      models = [
+        {
+          name: 'qwen3:480b-cloud',
+          description: 'Qwen 3 480B Cloud Model',
+          source: 'cloud',
+          features: ['web_search', 'large_context']
+        },
+        {
+          name: 'gpt-oss',
+          description: 'GPT Open Source Model',
+          source: 'cloud',
+          features: ['web_search', 'reasoning']
+        }
+      ];
+    }
+
+    res.json({ models, connection_type: connection.type });
+  } catch (error) {
+    logger.error('Error fetching Ollama models:', { errorMessage: error.message });
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Embeddings via Ollama
+app.post('/api/embeddings/ollama', requireAuth, async (req, res) => {
+  try {
+    const { texts, model } = req.body;
+    if (!Array.isArray(texts) || texts.length === 0) {
+      return res.status(400).json({ error: 'texts must be a non-empty array' });
+    }
+
+    const connections = getUserConnections(req.user.email);
+    const connection = connections.ollama;
+    if (!connection || !connection.url) {
+      return res.status(400).json({ error: 'Ollama is not connected. Please connect in Settings.' });
+    }
+
+    // If model not provided, attempt to auto-select from known embedding models present
+    let embeddingModel = model;
+    if (!embeddingModel) {
+      const tagsResp = await fetch(`${connection.url}/api/tags`);
+      const tags = await tagsResp.json();
+      const available = (tags.models || []).map(m => m.name);
+      const candidates = ['nomic-embed-text', 'all-minilm', 'mxbai-embed-large'];
+      embeddingModel = candidates.find(c => available.some(a => a.startsWith(c)));
+      if (!embeddingModel) {
+        return res.status(400).json({ error: 'No embedding model found in Ollama. Please `ollama pull nomic-embed-text` or similar and retry.' });
+      }
+    }
+
+    // Ollama embeddings endpoint supports one prompt per call. Batch loop.
+    const vectors = [];
+    for (const t of texts) {
+      const r = await fetch(`${connection.url}/api/embeddings`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ model: embeddingModel, prompt: t })
+      });
+      if (!r.ok) {
+        const detail = await r.text();
+        return res.status(502).json({ error: 'Embedding generation failed', details: detail });
+      }
+      const j = await r.json();
+      if (!j || !j.embedding) {
+        return res.status(502).json({ error: 'Invalid embedding response from Ollama' });
+      }
+      vectors.push(j.embedding);
+    }
+
+    res.json({ model: embeddingModel, vectors });
+  } catch (error) {
+    logger.error('Embeddings error (Ollama):', { errorMessage: error.message });
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Simple per-user, per-module RAG store with file persistence
+import fs from 'fs';
+import fsp from 'fs/promises';
+const RAG_PATH = path.join(__dirname, 'data', 'rag-store.json');
+async function ensureRagFile() {
+  try {
+    await fsp.mkdir(path.join(__dirname, 'data'), { recursive: true });
+    await fsp.access(RAG_PATH).catch(async () => {
+      await fsp.writeFile(RAG_PATH, JSON.stringify({}), 'utf-8');
+    });
+  } catch (e) {
+    logger.error('Failed to ensure rag-store file:', e.message);
+  }
+}
+function cosineSim(a, b) {
+  let dot = 0, na = 0, nb = 0;
+  const len = Math.min(a.length, b.length);
+  for (let i = 0; i < len; i++) { dot += a[i]*b[i]; na += a[i]*a[i]; nb += b[i]*b[i]; }
+  if (na === 0 || nb === 0) return 0;
+  return dot / (Math.sqrt(na) * Math.sqrt(nb));
+}
+async function loadRag() {
+  await ensureRagFile();
+  const buf = await fsp.readFile(RAG_PATH, 'utf-8');
+  return JSON.parse(buf || '{}');
+}
+async function saveRag(db) {
+  await ensureRagFile();
+  await fsp.writeFile(RAG_PATH, JSON.stringify(db, null, 2), 'utf-8');
+}
+
+// Upsert chunks into RAG
+app.post('/api/rag/upsert', requireAuth, async (req, res) => {
+  try {
+    const { moduleId, chunks, embeddingModel } = req.body;
+    if (!moduleId || !Array.isArray(chunks) || chunks.length === 0) {
+      return res.status(400).json({ error: 'moduleId and non-empty chunks are required' });
+    }
+
+    // Compute embeddings with Ollama (server decides model if not provided)
+    const texts = chunks.map(c => c.text);
+    const embResp = await fetch(`${req.protocol}://${req.get('host')}/api/embeddings/ollama`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Cookie': req.headers.cookie || '' },
+      body: JSON.stringify({ texts, model: embeddingModel })
+    });
+    const embJson = await embResp.json();
+    if (!embResp.ok) return res.status(embResp.status).json(embJson);
+
+    const db = await loadRag();
+    const userKey = req.user.email;
+    db[userKey] = db[userKey] || {};
+    db[userKey][moduleId] = db[userKey][moduleId] || [];
+
+    const now = new Date().toISOString();
+    embJson.vectors.forEach((vec, i) => {
+      const item = {
+        id: chunks[i].id || crypto.randomUUID(),
+        text: chunks[i].text,
+        metadata: chunks[i].metadata || {},
+        embedding: vec,
+        ts: now
+      };
+      db[userKey][moduleId].push(item);
+    });
+
+    await saveRag(db);
+    res.json({ success: true, count: embJson.vectors.length });
+  } catch (error) {
+    logger.error('RAG upsert error:', { errorMessage: error.message });
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Query RAG
+app.post('/api/rag/query', requireAuth, async (req, res) => {
+  try {
+    const { moduleId, query, topK = 4, embeddingModel } = req.body;
+    if (!moduleId || !query) {
+      return res.status(400).json({ error: 'moduleId and query are required' });
+    }
+
+    // Embed query
+    const embResp = await fetch(`${req.protocol}://${req.get('host')}/api/embeddings/ollama`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Cookie': req.headers.cookie || '' },
+      body: JSON.stringify({ texts: [query], model: embeddingModel })
+    });
+    const embJson = await embResp.json();
+    if (!embResp.ok) return res.status(embResp.status).json(embJson);
+
+    const qvec = embJson.vectors[0];
+    const db = await loadRag();
+    const userKey = req.user.email;
+    const items = (db[userKey]?.[moduleId]) || [];
+
+    const scored = items.map(it => ({ ...it, score: cosineSim(qvec, it.embedding) }));
+    scored.sort((a, b) => b.score - a.score);
+    res.json({ results: scored.slice(0, topK) });
+  } catch (error) {
+    logger.error('RAG query error:', { errorMessage: error.message });
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Ollama official web search API (2025) - using JavaScript library
+app.post('/api/ollama/web_search', requireAuth, async (req, res) => {
+  try {
+    const { query, max_results = 5 } = req.body;
+    if (!query) {
+      return res.status(400).json({ error: 'Missing "query" in request body' });
+    }
+
+    const connections = getUserConnections(req.user.email);
+    const connection = connections.ollama;
+
+    if (!connection || connection.type !== 'api_key' || !connection.apiKey) {
+      return res.status(400).json({ error: 'Ollama Cloud API key is required for web search. Please connect Ollama Cloud in Settings.' });
+    }
+
+    // Initialize Ollama client with API key
+    const ollama = new Ollama({
+      host: 'https://ollama.com',
+      auth: connection.apiKey
+    });
+
+    // Use the official JavaScript library method
+    const results = await ollama.webSearch({
+      query,
+      max_results: Math.min(max_results, 10)
+    });
+
+    logger.info('Ollama web search successful', {
+      query,
+      results_count: results.results?.length || 0
+    });
+
+    res.json(results);
+
+  } catch (error) {
+    logger.error('Ollama web search error:', { errorMessage: error.message });
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Ollama official web fetch API (2025) - using JavaScript library
+app.post('/api/ollama/web_fetch', requireAuth, async (req, res) => {
+  try {
+    const { url } = req.body;
+    if (!url) {
+      return res.status(400).json({ error: 'Missing "url" in request body' });
+    }
+
+    const connections = getUserConnections(req.user.email);
+    const connection = connections.ollama;
+
+    if (!connection || connection.type !== 'api_key' || !connection.apiKey) {
+      return res.status(400).json({ error: 'Ollama Cloud API key is required for web fetch. Please connect Ollama Cloud in Settings.' });
+    }
+
+    // Initialize Ollama client with API key
+    const ollama = new Ollama({
+      host: 'https://ollama.com',
+      auth: connection.apiKey
+    });
+
+    // Use the official JavaScript library method
+    const results = await ollama.webFetch({ url });
+
+    logger.info('Ollama web fetch successful', {
+      url,
+      title: results.title || 'No title',
+      content_length: results.content?.length || 0,
+      links_count: results.links?.length || 0
+    });
+
+    res.json(results);
+
+  } catch (error) {
+    logger.error('Ollama web fetch error:', { errorMessage: error.message });
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Ollama-aware web search endpoint (legacy with fallback providers)
+app.post('/api/ollama/search', requireAuth, async (req, res) => {
+  const end = httpRequestDurationMicroseconds.startTimer();
+  try {
+    const { query, maxResults = 5 } = req.body;
+    if (!query) {
+      return res.status(400).json({ error: 'Missing "query" in request body' });
+    }
+
+    const connections = getUserConnections(req.user.email);
+    const connection = connections.ollama;
+    const provider = connection?.searchProvider;
+    const apiKey = connection?.searchApiKey;
+
+    let results;
+    if (provider === 'tavily' && apiKey) {
+      // Tavily web search API
+      const tavResp = await fetch('https://api.tavily.com/search', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          api_key: apiKey,
+          query,
+          include_answer: true,
+          search_depth: 'advanced',
+          max_results: Math.min(maxResults, 10)
+        })
+      });
+      const tav = await tavResp.json();
+      if (!tavResp.ok) {
+        return res.status(502).json({ error: 'Tavily search failed', details: tav });
+      }
+      results = {
+        query,
+        instant_answer: tav.answer || null,
+        related_topics: (tav.results || []).map(r => ({ title: r.title, url: r.url, text: r.content }))
+      };
+    } else if (provider === 'brave' && apiKey) {
+      // Brave Search API
+      const url = `https://api.search.brave.com/res/v1/web/search?q=${encodeURIComponent(query)}&count=${Math.min(maxResults, 10)}`;
+      const braveResp = await fetch(url, {
+        headers: {
+          'X-Subscription-Token': apiKey
+        }
+      });
+      const brave = await braveResp.json();
+      if (!braveResp.ok) {
+        return res.status(502).json({ error: 'Brave search failed', details: brave });
+      }
+      const items = (brave.web?.results || []).map(r => ({ title: r.title, url: r.url, text: r.description || r.snippet || '' }));
+      results = {
+        query,
+        related_topics: items
+      };
+    } else {
+      // Fallback to DuckDuckGo instant answer
+      const searchUrl = `https://api.duckduckgo.com/?q=${encodeURIComponent(query)}&format=json&no_html=1&skip_disambig=1`;
+      const response = await fetch(searchUrl);
+      const data = await response.json();
+      results = {
+        query,
+        instant_answer: data.AbstractText || data.Answer || null,
+        abstract_url: data.AbstractURL || null,
+        definition: data.Definition || null,
+        related_topics: (data.RelatedTopics || []).slice(0, maxResults).map(topic => ({
+          title: topic.Text || '',
+          url: topic.FirstURL || ''
+        }))
+      };
+    }
+
+    res.json(results);
+  } catch (error) {
+    logger.error('Ollama web search failed:', { errorMessage: error.message, stack: error.stack });
+    if (!res.headersSent) {
+      res.status(500).json({ error: 'Search failed: ' + error.message });
+    }
+  } finally {
+    end({ route: '/api/ollama/search', code: res.statusCode, method: 'POST' });
+    httpRequestsTotal.inc({ route: '/api/ollama/search', code: res.statusCode, method: 'POST' });
   }
 });
 
