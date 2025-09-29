@@ -21,7 +21,7 @@ GenBooth Idea Lab is a comprehensive educational platform designed for CODE Univ
 - State: Zustand with persistence
 - Services: GitHub, Notion, Figma, Google APIs integration
 - Observability: Prometheus metrics, Winston logging
-- Deployment: Vercel, Docker, Cloud Run
+- Deployment: Vercel
 
 ## Contents
 - [Vision](#vision)
@@ -198,34 +198,19 @@ npm run dev
 
 ## Deployment
 
-### Vercel (Recommended)
+| Target | Command | Notes |
+| --- | --- | --- |
+| **Vercel** | `vercel` | Builds with `npm run vercel-build`; configure environment variables in the Vercel dashboard. |
+
+### Detailed steps
+
+#### Vercel
 ```bash
 # Deploy to Vercel
 vercel
 
-# Set environment variables in Vercel dashboard
-# Uses npm run vercel-build automatically
-```
-
-### Docker
-```bash
-# Build container
-docker build -t genbooth:latest .
-
-# Run locally
-docker run --rm -p 8081:8081 \
-  -e API_KEY=your-gemini-key \
-  -e GOOGLE_CLIENT_ID=your-client-id \
-  genbooth:latest
-```
-
-### Google Cloud Run
-```bash
-gcloud run deploy genbooth-idea-lab \
-  --source . \
-  --region us-central1 \
-  --allow-unauthenticated \
-  --set-env-vars API_KEY=your-gemini-key
+# Configure environment variables in the Vercel dashboard
+# Build command defaults to npm run vercel-build
 ```
 
 ## Service Integrations
