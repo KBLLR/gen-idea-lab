@@ -8,7 +8,7 @@ import { createPortal } from 'react-dom';
 import useStore from '../lib/store';
 import { modules } from '../lib/modules';
 import { specializedTasks } from '../lib/assistant/tasks';
-import ReactFlow, { Background, Controls, MiniMap, addEdge, useEdgesState, useNodesState, useReactFlow, Handle, Position } from 'reactflow';
+import ReactFlow, { Background, Controls, MiniMap, ReactFlowProvider, addEdge, useEdgesState, useNodesState, useReactFlow, Handle, Position } from 'reactflow';
 import NodeConfigModal from './NodeConfigModal';
 import 'reactflow/dist/style.css';
 import '../styles/components/planner.css';
@@ -70,6 +70,14 @@ function LabelNode({ data }) {
         }}
       />
     </div>
+  );
+}
+
+export default function PlannerCanvas(props) {
+  return (
+    <ReactFlowProvider>
+      <PlannerCanvasInner {...props} />
+    </ReactFlowProvider>
   );
 }
 
@@ -367,7 +375,7 @@ const nodeTypes = {
 
 // Note: nodeStyles now include source and model-provider
 
-export default function PlannerCanvas() {
+function PlannerCanvasInner() {
   const persisted = useStore.use.plannerGraph?.() || { nodes: [], edges: [] };
   const [nodes, setNodes, onNodesChange] = useNodesState(persisted.nodes || []);
   const [edges, setEdges, onEdgesChange] = useEdgesState(persisted.edges || []);

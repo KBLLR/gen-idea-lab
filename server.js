@@ -10,6 +10,7 @@ import { GoogleGenAI } from '@google/genai';
 import { GoogleAuth } from 'google-auth-library';
 import { Ollama } from 'ollama';
 import crypto from 'crypto';
+import net from 'net';
 import logger from './src/lib/logger.js';
 import { register, httpRequestDurationMicroseconds, httpRequestsTotal } from './src/lib/metrics.js';
 import { verifyGoogleToken, generateJWT, requireAuth, optionalAuth } from './src/lib/auth.js';
@@ -115,7 +116,46 @@ app.use((req, res, next) => {
   next();
 });
 
-const port = process.env.PORT || 8081;
+const CUSTOM_PORT = Number(process.env.PORT);
+const hasCustomPort = Number.isInteger(CUSTOM_PORT) && CUSTOM_PORT > 0;
+const DEFAULT_PORT = 8081;
+let serverPort = hasCustomPort ? CUSTOM_PORT : DEFAULT_PORT;
+
+function isPortAvailable(port) {
+  return new Promise((resolve, reject) => {
+    const tester = net.createServer();
+
+    tester.once('error', (err) => {
+      if (err.code === 'EADDRINUSE') {
+        resolve(false);
+      } else {
+        reject(err);
+      }
+    });
+
+    tester.once('listening', () => {
+      tester.close(() => resolve(true));
+    });
+
+    tester.listen({ port });
+  });
+}
+
+async function findAvailablePort(startPort, maxAttempts = 10) {
+  let attempt = 0;
+  let candidate = startPort;
+
+  while (attempt < maxAttempts) {
+    const available = await isPortAvailable(candidate);
+    if (available) {
+      return candidate;
+    }
+    candidate += 1;
+    attempt += 1;
+  }
+
+  throw new Error(`No available port found starting from ${startPort}`);
+}
 
 // Initialize Google Auth for Gemini API with OAuth2
 let ai;
@@ -1913,9 +1953,23 @@ async function startServer() {
     // Initialize the Gemini API first
     await initializeGeminiAPI();
 
+    if (hasCustomPort) {
+      const available = await isPortAvailable(CUSTOM_PORT);
+      if (!available) {
+        throw new Error(`Configured port ${CUSTOM_PORT} is already in use. Stop the process using it or set PORT to a different value.`);
+      }
+      serverPort = CUSTOM_PORT;
+    } else {
+      const resolvedPort = await findAvailablePort(DEFAULT_PORT);
+      if (resolvedPort !== DEFAULT_PORT) {
+        logger.warn(`Port ${DEFAULT_PORT} is in use. Falling back to ${resolvedPort}.`);
+      }
+      serverPort = resolvedPort;
+    }
+
     // Start the server
-    app.listen(port, () => {
-      logger.info(`Server listening at http://localhost:${port}`);
+    app.listen(serverPort, () => {
+      logger.info(`Server listening at http://localhost:${serverPort}`);
     });
   } catch (error) {
     logger.error('Failed to start server:', error.message);
