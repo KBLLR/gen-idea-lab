@@ -147,6 +147,8 @@
   gap: var(--spacing-3);
   align-items: center;
   flex-wrap: nowrap;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .floating-orchestrator input[type="text"] {

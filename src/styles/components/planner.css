@@ -792,3 +792,101 @@
   font-weight: var(--typography-font-weight-medium);
   text-transform: uppercase;
 }
+
+/* App State Snapshot Node Styles */
+.node-app-state-snapshot {
+  border-color: var(--status-info);
+  background: linear-gradient(135deg, var(--surface-tertiary), var(--surface-quaternary));
+  position: relative;
+}
+
+.node-app-state-snapshot .node-title {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-3);
+  color: var(--text-primary);
+  font-weight: var(--typography-font-weight-semibold);
+}
+
+.node-app-state-snapshot .node-title .icon {
+  color: var(--status-info);
+  font-family: var(--typography-font-family-icon);
+}
+
+.node-app-state-snapshot .node-sub {
+  color: var(--text-secondary);
+  font-size: var(--typography-font-size-sm);
+  margin-top: var(--spacing-2);
+}
+
+.node-action-button {
+  margin-top: var(--spacing-4);
+  padding-top: var(--spacing-3);
+  border-top: 1px solid var(--border-secondary);
+}
+
+.btn-capture {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--spacing-2);
+  width: 100%;
+  padding: var(--spacing-3) var(--spacing-4);
+  border: 1px solid var(--status-info);
+  border-radius: var(--radius-md);
+  background: var(--status-info);
+  color: var(--text-on-primary);
+  font-size: var(--typography-font-size-sm);
+  font-weight: var(--typography-font-weight-medium);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-capture:hover:not(:disabled) {
+  background: var(--status-info-hover);
+  border-color: var(--status-info-hover);
+  transform: scale(1.02);
+}
+
+.btn-capture:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.btn-capture .icon {
+  font-family: var(--typography-font-family-icon);
+}
+
+.snapshot-preview {
+  margin-top: var(--spacing-4);
+  padding: var(--spacing-4);
+  background: var(--surface-quaternary);
+  border: 1px solid var(--border-tertiary);
+  border-radius: var(--radius-md);
+}
+
+.snapshot-info {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-2);
+}
+
+.info-line {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: var(--typography-font-size-xs);
+}
+
+.info-label {
+  color: var(--text-secondary);
+  font-weight: var(--typography-font-weight-medium);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.info-value {
+  color: var(--text-primary);
+  font-weight: var(--typography-font-weight-medium);
+  font-family: var(--typography-font-family-mono);
+}

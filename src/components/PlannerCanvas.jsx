@@ -8,6 +8,7 @@ import { createPortal } from 'react-dom';
 import useStore from '../lib/store';
 import { modules } from '../lib/modules';
 import { specializedTasks } from '../lib/assistant/tasks';
+import { extractCompleteContext } from '../lib/contextExtraction';
 import ReactFlow, { Background, Controls, MiniMap, ReactFlowProvider, addEdge, useEdgesState, useNodesState, useReactFlow, Handle, Position } from 'reactflow';
 import NodeConfigModal from './NodeConfigModal';
 import 'reactflow/dist/style.css';
@@ -22,6 +23,11 @@ const nodeStyles = {
   connector: { className: 'node-card node-connector' },
   source: { className: 'node-card node-source' },
   'model-provider': { className: 'node-card node-model-provider' },
+  'app-state-snapshot': { className: 'node-card node-app-state-snapshot' },
+  'image-canvas': { className: 'node-card node-image-canvas' },
+  'audio-player': { className: 'node-card node-audio-player' },
+  'text-renderer': { className: 'node-card node-text-renderer' },
+  'file-uploader': { className: 'node-card node-file-uploader' },
 };
 
 const normalizeNodesForComparison = (nodes = []) =>
@@ -113,35 +119,22 @@ function ModelProviderNode({ data, id }) {
     // Ensure the node is not in selected state for double-click to work
     if (event.detail === 2) { // Verify it's actually a double-click
 
-    // Fetch available models for this provider
+    // Fetch available models from the unified endpoint
     let models = [];
     try {
-      if (data.providerId === 'gemini') {
-        models = [
-          { id: 'gemini-2.0-flash-exp', name: 'Gemini 2.0 Flash', description: 'Experimental' },
-          { id: 'gemini-1.5-pro', name: 'Gemini 1.5 Pro', description: 'Balanced' },
-          { id: 'gemini-1.5-flash', name: 'Gemini 1.5 Flash', description: 'Fast' },
-        ];
-      } else if (data.providerId === 'openai' && connectedServices?.openai?.connected) {
-        models = [
-          { id: 'gpt-4o', name: 'GPT-4o', description: 'Advanced' },
-          { id: 'gpt-4o-mini', name: 'GPT-4o Mini', description: 'Efficient' },
-        ];
-      } else if (data.providerId === 'claude' && connectedServices?.claude?.connected) {
-        models = [
-          { id: 'claude-3-5-sonnet-20241022', name: 'Claude 3.5 Sonnet', description: 'Smart' },
-          { id: 'claude-3-5-haiku-20241022', name: 'Claude 3.5 Haiku', description: 'Quick' },
-        ];
-      } else if (data.providerId === 'ollama' && connectedServices?.ollama?.connected) {
-        const response = await fetch('/api/ollama/models', { credentials: 'include' });
-        if (response.ok) {
-          const modelData = await response.json();
-          models = (modelData.models || []).map(m => ({
-            id: m.name,
-            name: m.name,
-            description: 'Local'
-          }));
-        }
+      const response = await fetch('/api/models', { credentials: 'include' });
+      if (response.ok) {
+        const responseData = await response.json();
+        const allModels = responseData.models || [];
+        // Filter models by this provider
+        const providerModels = allModels.filter(m =>
+          m.provider.toLowerCase() === data.providerId.toLowerCase()
+        );
+        models = providerModels.map(m => ({
+          id: m.id,
+          name: m.name,
+          description: `${m.provider} - ${m.category}`
+        }));
       }
     } catch (error) {
       console.error('Failed to fetch models:', error);
@@ -382,10 +375,624 @@ function ArchivAITemplateNode({ data, id }) {
   );
 }
 
+// App State Snapshot Node Component
+function AppStateSnapshotNode({ data, id }) {
+  const [snapshotData, setSnapshotData] = useState(null);
+  const [isCapturing, setIsCapturing] = useState(false);
+  const { updateNode } = React.useContext(NodeUpdateContext);
+
+  const captureAppState = useCallback(async () => {
+    setIsCapturing(true);
+
+    try {
+      // Use the comprehensive context extraction utility
+      const snapshot = extractCompleteContext();
+
+      setSnapshotData(snapshot);
+
+      // Update node with snapshot preview
+      updateNode(id, {
+        ...data,
+        captured: true,
+        snapshotData: snapshot,
+        sub: `Captured ${new Date().toLocaleTimeString()} • ${snapshot.workflow.activeApp || 'No active app'}`
+      });
+
+    } catch (error) {
+      console.error('Failed to capture app state:', error);
+      updateNode(id, {
+        ...data,
+        sub: 'Capture failed - please try again'
+      });
+    } finally {
+      setIsCapturing(false);
+    }
+  }, [id, data, updateNode]);
+
+  return (
+    <div className={`${data.className} node-app-state-snapshot`}>
+      {/* Input handle on the left */}
+      <Handle
+        type="target"
+        position={Position.Left}
+        style={{
+          background: '#555',
+          width: 8,
+          height: 8,
+          border: '2px solid #fff',
+        }}
+      />
+
+      <div className="node-title">
+        <span className="icon">save</span>
+        {data.label}
+      </div>
+
+      {data.sub && <div className="node-sub">{data.sub}</div>}
+
+      {!data.captured && (
+        <div className="node-action-button">
+          <button
+            onClick={captureAppState}
+            className="btn-capture"
+            disabled={isCapturing}
+          >
+            <span className="icon">{isCapturing ? 'hourglass_empty' : 'photo_camera'}</span>
+            {isCapturing ? 'Capturing...' : 'Capture State'}
+          </button>
+        </div>
+      )}
+
+      {data.captured && snapshotData && (
+        <div className="snapshot-preview">
+          <div className="snapshot-info">
+            <div className="info-line">
+              <span className="info-label">App:</span>
+              <span className="info-value">{snapshotData.workflow?.activeApp || 'None'}</span>
+            </div>
+            {snapshotData.module?.module && (
+              <div className="info-line">
+                <span className="info-label">Module:</span>
+                <span className="info-value">{snapshotData.module.module.code}</span>
+              </div>
+            )}
+            <div className="info-line">
+              <span className="info-label">Services:</span>
+              <span className="info-value">{snapshotData.workflow?.connectedServices?.length || 0}</span>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Output handle on the right */}
+      <Handle
+        type="source"
+        position={Position.Right}
+        style={{
+          background: '#555',
+          width: 8,
+          height: 8,
+          border: '2px solid #fff',
+        }}
+      />
+    </div>
+  );
+}
+
+// Image Canvas Node Component
+function ImageCanvasNode({ data, id }) {
+  const [imageData, setImageData] = useState(null);
+  const [isZoomed, setIsZoomed] = useState(false);
+  const [scale, setScale] = useState(1);
+  const { updateNode } = React.useContext(NodeUpdateContext);
+
+  const handleImageUpload = useCallback((event) => {
+    const file = event.target.files[0];
+    if (file && file.type.startsWith('image/')) {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const imageDataUrl = e.target.result;
+        setImageData(imageDataUrl);
+        updateNode(id, {
+          ...data,
+          hasImage: true,
+          imageData: imageDataUrl,
+          sub: `Image loaded • ${file.name}`
+        });
+      };
+      reader.readAsDataURL(file);
+    }
+  }, [id, data, updateNode]);
+
+  const handleZoomToggle = useCallback(() => {
+    setIsZoomed(!isZoomed);
+    setScale(isZoomed ? 1 : 2);
+  }, [isZoomed]);
+
+  const handleDownload = useCallback(() => {
+    if (imageData) {
+      const link = document.createElement('a');
+      link.href = imageData;
+      link.download = 'canvas-image.png';
+      link.click();
+    }
+  }, [imageData]);
+
+  return (
+    <div className={`${data.className} node-image-canvas`}>
+      <Handle
+        type="target"
+        position={Position.Left}
+        style={{
+          background: '#555',
+          width: 8,
+          height: 8,
+          border: '2px solid #fff',
+        }}
+      />
+
+      <div className="node-title">
+        <span className="icon">image</span>
+        {data.label}
+      </div>
+
+      {data.sub && <div className="node-sub">{data.sub}</div>}
+
+      <div className="image-canvas-content">
+        {!imageData && (
+          <div className="image-upload-area">
+            <input
+              type="file"
+              accept="image/*"
+              onChange={handleImageUpload}
+              style={{ display: 'none' }}
+              id={`image-upload-${id}`}
+            />
+            <label htmlFor={`image-upload-${id}`} className="upload-label">
+              <span className="icon">cloud_upload</span>
+              <span>Upload Image</span>
+            </label>
+          </div>
+        )}
+
+        {imageData && (
+          <div className="image-display">
+            <div className="image-controls">
+              <button onClick={handleZoomToggle} className="btn-icon" title="Toggle Zoom">
+                <span className="icon">{isZoomed ? 'zoom_out' : 'zoom_in'}</span>
+              </button>
+              <button onClick={handleDownload} className="btn-icon" title="Download">
+                <span className="icon">download</span>
+              </button>
+            </div>
+            <div className="image-container" style={{ transform: `scale(${scale})` }}>
+              <img src={imageData} alt="Canvas content" />
+            </div>
+          </div>
+        )}
+      </div>
+
+      <Handle
+        type="source"
+        position={Position.Right}
+        style={{
+          background: '#555',
+          width: 8,
+          height: 8,
+          border: '2px solid #fff',
+        }}
+      />
+    </div>
+  );
+}
+
+// Audio Player Node Component
+function AudioPlayerNode({ data, id }) {
+  const [audioUrl, setAudioUrl] = useState(null);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [duration, setDuration] = useState(0);
+  const [currentTime, setCurrentTime] = useState(0);
+  const audioRef = useRef(null);
+  const { updateNode } = React.useContext(NodeUpdateContext);
+
+  const handleAudioUpload = useCallback((event) => {
+    const file = event.target.files[0];
+    if (file && file.type.startsWith('audio/')) {
+      const url = URL.createObjectURL(file);
+      setAudioUrl(url);
+      updateNode(id, {
+        ...data,
+        hasAudio: true,
+        audioUrl: url,
+        sub: `Audio loaded • ${file.name}`
+      });
+    }
+  }, [id, data, updateNode]);
+
+  const togglePlayback = useCallback(() => {
+    if (audioRef.current) {
+      if (isPlaying) {
+        audioRef.current.pause();
+      } else {
+        audioRef.current.play();
+      }
+      setIsPlaying(!isPlaying);
+    }
+  }, [isPlaying]);
+
+  const handleTimeUpdate = useCallback(() => {
+    if (audioRef.current) {
+      setCurrentTime(audioRef.current.currentTime);
+    }
+  }, []);
+
+  const handleLoadedMetadata = useCallback(() => {
+    if (audioRef.current) {
+      setDuration(audioRef.current.duration);
+    }
+  }, []);
+
+  const formatTime = useCallback((time) => {
+    const minutes = Math.floor(time / 60);
+    const seconds = Math.floor(time % 60);
+    return `${minutes}:${seconds.toString().padStart(2, '0')}`;
+  }, []);
+
+  return (
+    <div className={`${data.className} node-audio-player`}>
+      <Handle
+        type="target"
+        position={Position.Left}
+        style={{
+          background: '#555',
+          width: 8,
+          height: 8,
+          border: '2px solid #fff',
+        }}
+      />
+
+      <div className="node-title">
+        <span className="icon">volume_up</span>
+        {data.label}
+      </div>
+
+      {data.sub && <div className="node-sub">{data.sub}</div>}
+
+      <div className="audio-player-content">
+        {!audioUrl && (
+          <div className="audio-upload-area">
+            <input
+              type="file"
+              accept="audio/*"
+              onChange={handleAudioUpload}
+              style={{ display: 'none' }}
+              id={`audio-upload-${id}`}
+            />
+            <label htmlFor={`audio-upload-${id}`} className="upload-label">
+              <span className="icon">audiotrack</span>
+              <span>Upload Audio</span>
+            </label>
+          </div>
+        )}
+
+        {audioUrl && (
+          <div className="audio-player">
+            <audio
+              ref={audioRef}
+              src={audioUrl}
+              onTimeUpdate={handleTimeUpdate}
+              onLoadedMetadata={handleLoadedMetadata}
+              onEnded={() => setIsPlaying(false)}
+            />
+
+            <div className="audio-controls">
+              <button onClick={togglePlayback} className="btn-play">
+                <span className="icon">{isPlaying ? 'pause' : 'play_arrow'}</span>
+              </button>
+
+              <div className="audio-info">
+                <div className="time-display">
+                  {formatTime(currentTime)} / {formatTime(duration)}
+                </div>
+                <div className="progress-bar">
+                  <div
+                    className="progress-fill"
+                    style={{ width: `${(currentTime / duration) * 100 || 0}%` }}
+                  ></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+
+      <Handle
+        type="source"
+        position={Position.Right}
+        style={{
+          background: '#555',
+          width: 8,
+          height: 8,
+          border: '2px solid #fff',
+        }}
+      />
+    </div>
+  );
+}
+
+// Text Renderer Node Component
+function TextRendererNode({ data, id }) {
+  const [textContent, setTextContent] = useState('');
+  const [renderMode, setRenderMode] = useState('markdown');
+  const [isEditing, setIsEditing] = useState(false);
+  const { updateNode } = React.useContext(NodeUpdateContext);
+
+  const handleTextChange = useCallback((e) => {
+    const newText = e.target.value;
+    setTextContent(newText);
+    updateNode(id, {
+      ...data,
+      textContent: newText,
+      sub: `${renderMode} • ${newText.length} chars`
+    });
+  }, [id, data, updateNode, renderMode]);
+
+  const handleModeChange = useCallback((mode) => {
+    setRenderMode(mode);
+    updateNode(id, {
+      ...data,
+      renderMode: mode,
+      sub: `${mode} • ${textContent.length} chars`
+    });
+  }, [id, data, updateNode, textContent]);
+
+  const renderContent = useCallback(() => {
+    if (!textContent) return <div className="placeholder">Enter text content...</div>;
+
+    switch (renderMode) {
+      case 'markdown':
+        // Simple markdown rendering for demo
+        return (
+          <div
+            className="markdown-content"
+            dangerouslySetInnerHTML={{
+              __html: textContent
+                .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                .replace(/\*(.*?)\*/g, '<em>$1</em>')
+                .replace(/\n/g, '<br>')
+            }}
+          />
+        );
+      case 'code':
+        return <pre className="code-content"><code>{textContent}</code></pre>;
+      case 'plain':
+      default:
+        return <div className="plain-content">{textContent}</div>;
+    }
+  }, [textContent, renderMode]);
+
+  return (
+    <div className={`${data.className} node-text-renderer`}>
+      <Handle
+        type="target"
+        position={Position.Left}
+        style={{
+          background: '#555',
+          width: 8,
+          height: 8,
+          border: '2px solid #fff',
+        }}
+      />
+
+      <div className="node-title">
+        <span className="icon">article</span>
+        {data.label}
+      </div>
+
+      {data.sub && <div className="node-sub">{data.sub}</div>}
+
+      <div className="text-renderer-content">
+        <div className="text-controls">
+          <div className="render-mode-tabs">
+            {['plain', 'markdown', 'code'].map((mode) => (
+              <button
+                key={mode}
+                onClick={() => handleModeChange(mode)}
+                className={`mode-tab ${renderMode === mode ? 'active' : ''}`}
+              >
+                {mode}
+              </button>
+            ))}
+          </div>
+          <button
+            onClick={() => setIsEditing(!isEditing)}
+            className="btn-icon"
+            title="Toggle Edit"
+          >
+            <span className="icon">{isEditing ? 'visibility' : 'edit'}</span>
+          </button>
+        </div>
+
+        {isEditing ? (
+          <textarea
+            value={textContent}
+            onChange={handleTextChange}
+            placeholder="Enter your text content here..."
+            className="text-input"
+            rows={4}
+          />
+        ) : (
+          <div className="text-display">
+            {renderContent()}
+          </div>
+        )}
+      </div>
+
+      <Handle
+        type="source"
+        position={Position.Right}
+        style={{
+          background: '#555',
+          width: 8,
+          height: 8,
+          border: '2px solid #fff',
+        }}
+      />
+    </div>
+  );
+}
+
+// File Uploader Node Component
+function FileUploaderNode({ data, id }) {
+  const [uploadedFiles, setUploadedFiles] = useState([]);
+  const [isDragging, setIsDragging] = useState(false);
+  const { updateNode } = React.useContext(NodeUpdateContext);
+
+  const handleFileUpload = useCallback((files) => {
+    const fileArray = Array.from(files);
+    const newFiles = fileArray.map(file => ({
+      name: file.name,
+      size: file.size,
+      type: file.type,
+      lastModified: file.lastModified,
+      url: URL.createObjectURL(file)
+    }));
+
+    const updatedFiles = [...uploadedFiles, ...newFiles];
+    setUploadedFiles(updatedFiles);
+    updateNode(id, {
+      ...data,
+      files: updatedFiles,
+      sub: `${updatedFiles.length} files uploaded`
+    });
+  }, [uploadedFiles, id, data, updateNode]);
+
+  const handleDragOver = useCallback((e) => {
+    e.preventDefault();
+    setIsDragging(true);
+  }, []);
+
+  const handleDragLeave = useCallback((e) => {
+    e.preventDefault();
+    setIsDragging(false);
+  }, []);
+
+  const handleDrop = useCallback((e) => {
+    e.preventDefault();
+    setIsDragging(false);
+    const files = e.dataTransfer.files;
+    handleFileUpload(files);
+  }, [handleFileUpload]);
+
+  const handleInputChange = useCallback((e) => {
+    const files = e.target.files;
+    if (files.length > 0) {
+      handleFileUpload(files);
+    }
+  }, [handleFileUpload]);
+
+  const handleRemoveFile = useCallback((index) => {
+    const updatedFiles = uploadedFiles.filter((_, i) => i !== index);
+    setUploadedFiles(updatedFiles);
+    updateNode(id, {
+      ...data,
+      files: updatedFiles,
+      sub: `${updatedFiles.length} files uploaded`
+    });
+  }, [uploadedFiles, id, data, updateNode]);
+
+  const formatFileSize = useCallback((bytes) => {
+    if (bytes === 0) return '0 Bytes';
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+  }, []);
+
+  return (
+    <div className={`${data.className} node-file-uploader`}>
+      <Handle
+        type="target"
+        position={Position.Left}
+        style={{
+          background: '#555',
+          width: 8,
+          height: 8,
+          border: '2px solid #fff',
+        }}
+      />
+
+      <div className="node-title">
+        <span className="icon">cloud_upload</span>
+        {data.label}
+      </div>
+
+      {data.sub && <div className="node-sub">{data.sub}</div>}
+
+      <div className="file-uploader-content">
+        <div
+          className={`drop-zone ${isDragging ? 'dragging' : ''}`}
+          onDragOver={handleDragOver}
+          onDragLeave={handleDragLeave}
+          onDrop={handleDrop}
+        >
+          <input
+            type="file"
+            multiple
+            onChange={handleInputChange}
+            style={{ display: 'none' }}
+            id={`file-upload-${id}`}
+          />
+          <label htmlFor={`file-upload-${id}`} className="upload-label">
+            <span className="icon">add_circle</span>
+            <span>Drop files or click to upload</span>
+          </label>
+        </div>
+
+        {uploadedFiles.length > 0 && (
+          <div className="file-list">
+            {uploadedFiles.map((file, index) => (
+              <div key={index} className="file-item">
+                <div className="file-info">
+                  <span className="file-name">{file.name}</span>
+                  <span className="file-size">{formatFileSize(file.size)}</span>
+                </div>
+                <button
+                  onClick={() => handleRemoveFile(index)}
+                  className="btn-remove"
+                  title="Remove file"
+                >
+                  <span className="icon">close</span>
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      <Handle
+        type="source"
+        position={Position.Right}
+        style={{
+          background: '#555',
+          width: 8,
+          height: 8,
+          border: '2px solid #fff',
+        }}
+      />
+    </div>
+  );
+}
+
 const nodeTypes = {
   default: LabelNode,
   'model-provider': ModelProviderNode,
   'archiva-template': ArchivAITemplateNode,
+  'app-state-snapshot': AppStateSnapshotNode,
+  'image-canvas': ImageCanvasNode,
+  'audio-player': AudioPlayerNode,
+  'text-renderer': TextRendererNode,
+  'file-uploader': FileUploaderNode,
 };
 
 // Note: nodeStyles now include source and model-provider
@@ -461,14 +1068,9 @@ function PlannerCanvasInner() {
     setEdges(persistedEdges.map((edge) => ({ ...edge })));
     setWorkflowTitle(persistedTitle);
   }, [
-    hasHydrated,
-    currentGraphSignature,
-    persistedGraphSignature,
-    persistedNodes,
-    persistedEdges,
-    persistedTitle,
-    // Removed setNodes, setEdges, setWorkflowTitle from dependencies
-    // These are stable functions from useNodesState/useEdgesState/useState
+    hasHydrated
+    // Only depend on hasHydrated to prevent infinite loops
+    // The signature comparison already handles changes
   ]);
 
   const onConnect = useCallback((params) => setEdges((eds) => addEdge(params, eds)), []);
@@ -546,7 +1148,12 @@ function PlannerCanvasInner() {
 
     // Add the dropped node
     const nodeType = item.kind === 'model-provider' ? 'model-provider' :
-                     item.kind === 'archiva-template' ? 'archiva-template' : 'default';
+                     item.kind === 'archiva-template' ? 'archiva-template' :
+                     (item.kind === 'tool' && item.id === 'app_state_snapshot') ? 'app-state-snapshot' :
+                     item.kind === 'image-canvas' ? 'image-canvas' :
+                     item.kind === 'audio-player' ? 'audio-player' :
+                     item.kind === 'text-renderer' ? 'text-renderer' :
+                     item.kind === 'file-uploader' ? 'file-uploader' : 'default';
     setNodes((nds) => nds.concat({
       id: nid,
       type: nodeType,

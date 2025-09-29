@@ -8,6 +8,7 @@ import useStore from '../lib/store';
 import { sendMessageToOrchestrator } from '../lib/actions';
 import { personalities } from '../lib/assistant/personalities';
 import { modulesBySemester } from '../lib/modules';
+import { extractWorkflowContext } from '../lib/contextExtraction';
 import '../styles/components/floating-orchestrator.css';
 
 const AgentTask = ({ message }) => (
@@ -48,6 +49,7 @@ export default function FloatingOrchestrator() {
 
     const [input, setInput] = useState('');
     const [isMinimized, setIsMinimized] = useState(false);
+    const [autoMinimize, setAutoMinimize] = useState(true);
     const [isDragging, setIsDragging] = useState(false);
     const [isResizing, setIsResizing] = useState(false);
     const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
@@ -178,6 +180,70 @@ User Message: ${message}`;
         sendMessageToOrchestrator(enhancedMessage, { enableThinking, thinkingBudget });
     }, [isContextAware, gatherAppContext, enableThinking, thinkingBudget]);
 
+    // Generate workflow from current application context
+    const generateWorkflowFromContext = useCallback(async () => {
+        try {
+            // Use the new context extraction utility
+            const context = extractWorkflowContext();
+
+            // Add to chat history to show user what's happening
+            useStore.setState(state => {
+                state.orchestratorHistory.push({
+                    role: 'user',
+                    parts: [{ text: '/generate_workflow' }]
+                }, {
+                    role: 'assistant',
+                    parts: [{ text: '🔄 Generating workflow from current application context...' }]
+                });
+            });
+
+            // Call the backend to generate workflow
+            const response = await fetch('/api/planner/generate-from-context', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json'
+                },
+                credentials: 'include',
+                body: JSON.stringify({ context })
+            });
+
+            if (response.ok) {
+                const { nodes, edges, title } = await response.json();
+
+                // Set the generated workflow in the planner
+                const actions = useStore.getState().actions;
+                if (actions?.setPlannerGraph) {
+                    actions.setPlannerGraph({ nodes, edges, title: title || 'AI Generated Workflow' });
+                }
+
+                // Switch to planner view
+                if (actions?.setActiveApp) {
+                    actions.setActiveApp('planner');
+                }
+
+                // Update chat history with success
+                useStore.setState(state => {
+                    state.orchestratorHistory.push({
+                        role: 'assistant',
+                        parts: [{ text: `✅ Generated workflow: "${title || 'AI Generated Workflow'}" with ${nodes.length} nodes and ${edges.length} connections. Switching to Planner view.` }]
+                    });
+                });
+            } else {
+                const error = await response.text();
+                throw new Error(error);
+            }
+        } catch (error) {
+            console.error('Failed to generate workflow:', error);
+            useStore.setState(state => {
+                state.orchestratorHistory.push({
+                    role: 'assistant',
+                    parts: [{ text: `❌ Failed to generate workflow: ${error.message}` }]
+                });
+            });
+        }
+    }, []);
+
     // Function to start a new chat
     const handleNewChat = useCallback(() => {
         if (window.confirm('Start a new chat? This will clear the current conversation.')) {
@@ -202,6 +268,17 @@ User Message: ${message}`;
             historyRef.current.scrollTop = historyRef.current.scrollHeight;
         }
     }, [history, isLoading, isMinimized]);
+
+    // Auto-minimize after inactivity
+    useEffect(() => {
+        if (!autoMinimize || isMinimized || isDragging) return;
+
+        const timer = setTimeout(() => {
+            setIsMinimized(true);
+        }, 30000); // 30 seconds of inactivity
+
+        return () => clearTimeout(timer);
+    }, [autoMinimize, isMinimized, isDragging, history, input]); // Reset timer on any activity
 
     // Close dropdowns when clicking outside
     useEffect(() => {
@@ -338,6 +415,14 @@ User Message: ${message}`;
     const handleSubmit = (e) => {
         e.preventDefault();
         if (!input.trim()) return;
+
+        // Handle special commands
+        if (input.startsWith('/generate_workflow')) {
+            generateWorkflowFromContext();
+            setInput('');
+            return;
+        }
+
         sendContextualMessage(input);
         setInput('');
     };

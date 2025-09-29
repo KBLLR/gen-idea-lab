@@ -1210,6 +1210,99 @@ app.post('/api/chat', requireAuth, async (req, res) => {
   }
 });
 
+// Planner workflow generation endpoint
+app.post('/api/planner/generate-from-context', requireAuth, async (req, res) => {
+  try {
+    const { context } = req.body;
+    if (!context) {
+      return res.status(400).json({ error: 'Context is required' });
+    }
+
+    const connections = getUserConnections(req.user.email);
+
+    // Create a workflow generation prompt
+    const systemPrompt = `You are a workflow generation assistant. Based on the provided application context, generate a workflow graph with nodes and connections that would be useful for the user's current situation.
+
+Return a JSON object with:
+- title: A descriptive title for the workflow
+- nodes: Array of node objects with id, type, position {x, y}, and data {label, description}
+- edges: Array of edge objects with id, source, target
+
+Available node types: module, assistant, task, tool, workflow, connector, source, model-provider
+
+Focus on creating practical, actionable workflows that relate to the user's current context.`;
+
+    const userPrompt = `Current Application Context:
+- Active App: ${context.activeApp}
+- Active Module: ${context.activeModule ? `${context.activeModule.id} (${context.activeModule['Module Title']})` : 'None'}
+- Connected Services: ${context.connectedServices?.join(', ') || 'None'}
+- Recent Chat History: ${context.orchestratorHistory?.map(h => `${h.role}: ${h.parts[0]?.text}`).slice(-3).join('\n') || 'No recent messages'}
+
+Generate a workflow that would be helpful for this context.`;
+
+    // Use the chat endpoint internally to generate the workflow
+    const chatResponse = await fetch(`${req.protocol}://${req.get('host')}/api/chat`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Cookie': req.headers.cookie || ''
+      },
+      body: JSON.stringify({
+        model: 'gemini-2.5-flash',
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: userPrompt }
+        ]
+      })
+    });
+
+    if (!chatResponse.ok) {
+      throw new Error('Failed to generate workflow via AI');
+    }
+
+    const aiResponse = await chatResponse.text();
+
+    // Try to extract JSON from the response
+    let workflowData;
+    try {
+      const jsonMatch = aiResponse.match(/```json\n([\s\S]*?)\n```/) || aiResponse.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        workflowData = JSON.parse(jsonMatch[1] || jsonMatch[0]);
+      } else {
+        throw new Error('No JSON found in AI response');
+      }
+    } catch (parseError) {
+      // Fallback: create a simple default workflow
+      workflowData = {
+        title: `Workflow for ${context.activeApp || 'Current Context'}`,
+        nodes: [
+          {
+            id: 'start-1',
+            type: 'default',
+            position: { x: 100, y: 100 },
+            data: { label: 'Start', description: 'Generated workflow starting point' }
+          },
+          {
+            id: 'context-1',
+            type: 'default',
+            position: { x: 300, y: 100 },
+            data: { label: 'Current Context', description: `Working with ${context.activeApp}` }
+          }
+        ],
+        edges: [
+          { id: 'e1-2', source: 'start-1', target: 'context-1' }
+        ]
+      };
+    }
+
+    res.json(workflowData);
+
+  } catch (error) {
+    logger.error('Workflow generation failed:', error);
+    res.status(500).json({ error: 'Failed to generate workflow' });
+  }
+});
+
 // Universal endpoint to get available models from all connected services
 app.get('/api/models', requireAuth, async (req, res) => {
   try {
@@ -1275,6 +1368,87 @@ app.get('/api/models', requireAuth, async (req, res) => {
         logger.warn('Failed to fetch Ollama models:', ollamaError.message);
         // Don't fail the entire request if Ollama is unreachable
       }
+    }
+
+    // Hugging Face models (if connected)
+    if (connections.huggingface?.apiKey) {
+      availableModels.push(
+        { id: 'microsoft/DialoGPT-medium', name: 'DialoGPT Medium', provider: 'Hugging Face', category: 'text', available: true },
+        { id: 'facebook/blenderbot-400M-distill', name: 'BlenderBot 400M', provider: 'Hugging Face', category: 'text', available: true },
+        { id: 'microsoft/CodeBERT-base', name: 'CodeBERT Base', provider: 'Hugging Face', category: 'code', available: true }
+      );
+    }
+
+    // Replicate models (if connected)
+    if (connections.replicate?.apiKey) {
+      availableModels.push(
+        { id: 'meta/llama-2-70b-chat', name: 'Llama 2 70B Chat', provider: 'Replicate', category: 'text', available: true },
+        { id: 'stability-ai/stable-diffusion', name: 'Stable Diffusion', provider: 'Replicate', category: 'image', available: true },
+        { id: 'replicate/musicgen', name: 'MusicGen', provider: 'Replicate', category: 'audio', available: true }
+      );
+    }
+
+    // Together AI models (if connected)
+    if (connections.together?.apiKey) {
+      availableModels.push(
+        { id: 'togethercomputer/llama-2-70b-chat', name: 'Llama 2 70B Chat', provider: 'Together AI', category: 'text', available: true },
+        { id: 'togethercomputer/falcon-40b-instruct', name: 'Falcon 40B Instruct', provider: 'Together AI', category: 'text', available: true },
+        { id: 'togethercomputer/RedPajama-INCITE-7B-Chat', name: 'RedPajama 7B Chat', provider: 'Together AI', category: 'text', available: true }
+      );
+    }
+
+    // Mistral AI models (if connected)
+    if (connections.mistral?.apiKey) {
+      availableModels.push(
+        { id: 'mistral-large-latest', name: 'Mistral Large', provider: 'Mistral AI', category: 'text', available: true },
+        { id: 'mistral-medium-latest', name: 'Mistral Medium', provider: 'Mistral AI', category: 'text', available: true },
+        { id: 'mistral-small-latest', name: 'Mistral Small', provider: 'Mistral AI', category: 'text', available: true }
+      );
+    }
+
+    // Cohere models (if connected)
+    if (connections.cohere?.apiKey) {
+      availableModels.push(
+        { id: 'command', name: 'Command', provider: 'Cohere', category: 'text', available: true },
+        { id: 'command-light', name: 'Command Light', provider: 'Cohere', category: 'text', available: true },
+        { id: 'summarize-xlarge', name: 'Summarize XLarge', provider: 'Cohere', category: 'text', available: true }
+      );
+    }
+
+    // vLLM models (if connected)
+    if (connections.vllm?.url) {
+      availableModels.push(
+        { id: 'vllm-hosted-model', name: 'vLLM Hosted Model', provider: 'vLLM', category: 'text', available: true }
+      );
+    }
+
+    // LocalAI models (if connected)
+    if (connections.localai?.url) {
+      availableModels.push(
+        { id: 'localai-model', name: 'LocalAI Model', provider: 'LocalAI', category: 'text', available: true }
+      );
+    }
+
+    // Stability AI models (if connected)
+    if (connections.stability?.apiKey) {
+      availableModels.push(
+        { id: 'stable-diffusion-xl-1024-v1-0', name: 'SDXL 1.0', provider: 'Stability AI', category: 'image', available: true },
+        { id: 'stable-diffusion-v1-6', name: 'Stable Diffusion 1.6', provider: 'Stability AI', category: 'image', available: true }
+      );
+    }
+
+    // Midjourney models (if connected)
+    if (connections.midjourney?.apiKey) {
+      availableModels.push(
+        { id: 'midjourney-v6', name: 'Midjourney v6', provider: 'Midjourney', category: 'image', available: true }
+      );
+    }
+
+    // Runway models (if connected)
+    if (connections.runway?.apiKey) {
+      availableModels.push(
+        { id: 'runway-gen3', name: 'Runway Gen-3', provider: 'Runway ML', category: 'video', available: true }
+      );
     }
 
     res.json({ models: availableModels });

@@ -934,6 +934,39 @@ main.workflows-layout .right-column {
   box-shadow: 0 2px 8px rgba(30, 136, 229, 0.25);
 }
 
+/* Module info row with icons */
+.module-info-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 24px;
+  flex-wrap: nowrap;
+}
+
+.module-info-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: 1;
+  min-width: 0;
+}
+
+.module-info-item .icon {
+  font-size: 16px;
+  color: var(--text-accent);
+  flex-shrink: 0;
+}
+
+.module-info-item strong {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 .reflection-section ul {
   list-style-type: disc;
   list-style-position: inside;

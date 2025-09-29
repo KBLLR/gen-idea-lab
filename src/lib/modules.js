@@ -20,7 +20,7 @@ const rawModules = moduleData.map(module => ({
 // Clean the data by removing citation marks
 const cleanString = (str) => {
     if (typeof str !== 'string') return str;
-    return str.replace(/:contentReference\[.*?\]\{index=\d+\}/g, '').trim();
+    return str.replace(/:contentReference\[oaicite:\d+\]\{index=\d+\}/g, '').trim();
 }
 
 const cleanedModules = rawModules.map(module => {

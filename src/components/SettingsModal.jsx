@@ -7,7 +7,7 @@ import { useState, useEffect } from 'react';
 import useStore from '../lib/store';
 import { useAvailableModels } from '../hooks/useAvailableModels';
 import { SiFigma, SiGithub, SiNotion, SiGoogledrive, SiOpenai, SiGoogle, SiGmail } from 'react-icons/si';
-import { RiRobot2Line, RiBrainLine, RiSearchLine, RiImageLine, RiCalendarLine } from 'react-icons/ri';
+import { RiRobot2Line, RiBrainLine, RiSearchLine, RiImageLine, RiCalendarLine, RiCloudLine, RiServerLine, RiCpuLine, RiMovieLine } from 'react-icons/ri';
 
 const serviceCategories = {
     productivity: {
@@ -171,6 +171,136 @@ const serviceCategories = {
                     '2. Generate API key at ollama.com/settings/keys',
                     '3. Add key to enable web search for local models'
                 ]
+            },
+            {
+                id: 'huggingface',
+                name: 'Hugging Face',
+                description: 'Access thousands of open-source models through the Hugging Face Hub API',
+                icon: RiCloudLine,
+                color: '#FF6B35',
+                scopes: [],
+                requiresApiKey: true,
+                setupUrl: 'https://huggingface.co/settings/tokens',
+                helpText: 'Get your API key from Hugging Face settings',
+                placeholder: 'hf_...'
+            },
+            {
+                id: 'replicate',
+                name: 'Replicate',
+                description: 'Run machine learning models in the cloud via Replicate API',
+                icon: RiServerLine,
+                color: '#000000',
+                scopes: [],
+                requiresApiKey: true,
+                setupUrl: 'https://replicate.com/account/api-tokens',
+                helpText: 'Create an API token in your Replicate account',
+                placeholder: 'r8_...'
+            },
+            {
+                id: 'together',
+                name: 'Together AI',
+                description: 'High-performance inference for open-source language models',
+                icon: RiCpuLine,
+                color: '#6366F1',
+                scopes: [],
+                requiresApiKey: true,
+                setupUrl: 'https://api.together.xyz/settings/api-keys',
+                helpText: 'Get your API key from Together AI dashboard',
+                placeholder: 'together_...'
+            },
+            {
+                id: 'mistral',
+                name: 'Mistral AI',
+                description: 'Connect to Mistral AI models for efficient language processing',
+                icon: RiBrainLine,
+                color: '#FF7000',
+                scopes: [],
+                requiresApiKey: true,
+                setupUrl: 'https://console.mistral.ai/api-keys/',
+                helpText: 'Generate an API key from Mistral AI console',
+                placeholder: 'mistral_...'
+            },
+            {
+                id: 'cohere',
+                name: 'Cohere',
+                description: 'Enterprise-grade language AI platform for text generation and understanding',
+                icon: RiCloudLine,
+                color: '#39594C',
+                scopes: [],
+                requiresApiKey: true,
+                setupUrl: 'https://dashboard.cohere.ai/api-keys',
+                helpText: 'Create an API key in the Cohere dashboard',
+                placeholder: 'co_...'
+            },
+            {
+                id: 'vllm',
+                name: 'vLLM',
+                description: 'Connect to your self-hosted vLLM server for high-throughput LLM inference',
+                icon: RiServerLine,
+                color: '#2563EB',
+                scopes: [],
+                requiresUrl: true,
+                setupUrl: 'https://docs.vllm.ai/en/latest/getting_started/quickstart.html',
+                helpText: 'Set up vLLM server and provide the API endpoint',
+                placeholder: 'http://localhost:8000',
+                instructions: [
+                    '1. Install vLLM: pip install vllm',
+                    '2. Start server: python -m vllm.entrypoints.openai.api_server --model meta-llama/Llama-2-7b-hf',
+                    '3. Connect using the server URL'
+                ]
+            },
+            {
+                id: 'localai',
+                name: 'LocalAI',
+                description: 'Self-hosted OpenAI-compatible API for running models locally',
+                icon: RiCpuLine,
+                color: '#10B981',
+                scopes: [],
+                requiresUrl: true,
+                setupUrl: 'https://localai.io/basics/getting_started/',
+                helpText: 'Set up LocalAI server and provide the API endpoint',
+                placeholder: 'http://localhost:8080',
+                instructions: [
+                    '1. Install LocalAI using Docker or binary',
+                    '2. Start the server with your model configuration',
+                    '3. Connect using the LocalAI server URL'
+                ]
+            },
+            {
+                id: 'stability',
+                name: 'Stability AI',
+                description: 'Access Stable Diffusion and other generative AI models',
+                icon: RiImageLine,
+                color: '#8B5CF6',
+                scopes: [],
+                requiresApiKey: true,
+                setupUrl: 'https://platform.stability.ai/account/keys',
+                helpText: 'Generate an API key from Stability AI platform',
+                placeholder: 'sk-...'
+            },
+            {
+                id: 'midjourney',
+                name: 'Midjourney',
+                description: 'Connect to Midjourney for AI image generation (via unofficial API)',
+                icon: RiImageLine,
+                color: '#FF6B9D',
+                scopes: [],
+                requiresApiKey: true,
+                setupUrl: 'https://docs.midjourney.com/',
+                helpText: 'Requires third-party API service for Midjourney access',
+                placeholder: 'mj_...'
+            },
+            {
+                id: 'runway',
+                name: 'Runway ML',
+                description: 'Creative AI tools for video, image, and audio generation',
+                icon: RiMovieLine,
+                color: '#00D4AA',
+                scopes: [],
+                requiresApiKey: true,
+                setupUrl: 'https://runwayml.com/account/',
+                helpText: 'Get API access from your Runway ML account',
+                placeholder: 'runway_...'
             }
         ]
     }

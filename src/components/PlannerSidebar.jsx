@@ -52,6 +52,7 @@ function AgentToolsList() {
     { id: 'create_document', label: 'Create Document (Archiva)', kind: 'tool', meta: { description: 'Create an Archiva entry' } },
     { id: 'image_generation', label: 'Image Generation', kind: 'tool', meta: { description: 'Use Image Booth to generate visuals' } },
     { id: 'invite_agent', label: 'Invite Assistant', kind: 'tool', meta: { description: 'Bring a module assistant into the chat' } },
+    { id: 'app_state_snapshot', label: 'App State Snapshot', kind: 'tool', icon: 'save', meta: { description: 'Capture current application state for workflow context' } },
   ];
 }
 
@@ -71,10 +72,27 @@ function SourcesList(connectedServices) {
 function ModelProvidersList(connectedServices) {
   // AI model providers
   return [
+    // Major commercial providers
     { id: 'openai', label: 'OpenAI', kind: 'model-provider', icon: 'smart_toy', connected: connectedServices?.openai?.connected || false },
     { id: 'claude', label: 'Claude', kind: 'model-provider', icon: 'psychology', connected: connectedServices?.claude?.connected || false },
     { id: 'gemini', label: 'Gemini', kind: 'model-provider', icon: 'auto_awesome', connected: true }, // Built-in, always connected
+
+    // Open source and specialized providers
+    { id: 'huggingface', label: 'Hugging Face', kind: 'model-provider', icon: 'hub', connected: connectedServices?.huggingface?.connected || false },
+    { id: 'replicate', label: 'Replicate', kind: 'model-provider', icon: 'replay', connected: connectedServices?.replicate?.connected || false },
+    { id: 'together', label: 'Together AI', kind: 'model-provider', icon: 'group_work', connected: connectedServices?.together?.connected || false },
+    { id: 'mistral', label: 'Mistral AI', kind: 'model-provider', icon: 'air', connected: connectedServices?.mistral?.connected || false },
+    { id: 'cohere', label: 'Cohere', kind: 'model-provider', icon: 'hub', connected: connectedServices?.cohere?.connected || false },
+
+    // Self-hosted and local providers
     { id: 'ollama', label: 'Ollama', kind: 'model-provider', icon: 'computer', connected: connectedServices?.ollama?.connected || false },
+    { id: 'vllm', label: 'vLLM', kind: 'model-provider', icon: 'dns', connected: connectedServices?.vllm?.connected || false },
+    { id: 'localai', label: 'LocalAI', kind: 'model-provider', icon: 'home', connected: connectedServices?.localai?.connected || false },
+
+    // Specialized providers
+    { id: 'stability', label: 'Stability AI', kind: 'model-provider', icon: 'image', connected: connectedServices?.stability?.connected || false },
+    { id: 'midjourney', label: 'Midjourney', kind: 'model-provider', icon: 'palette', connected: connectedServices?.midjourney?.connected || false },
+    { id: 'runway', label: 'Runway ML', kind: 'model-provider', icon: 'movie', connected: connectedServices?.runway?.connected || false },
   ];
 }
 
@@ -108,11 +126,22 @@ function getTemplateIcon(type) {
   }
 }
 
+function MediaComponentsList() {
+  // Interactive media and data handling components
+  return [
+    { id: 'image-canvas', label: 'Image Canvas', kind: 'image-canvas', icon: 'image', meta: { description: 'Display and interact with images - zoom, pan, download' } },
+    { id: 'audio-player', label: 'Audio Player', kind: 'audio-player', icon: 'volume_up', meta: { description: 'Play audio files with controls and progress tracking' } },
+    { id: 'text-renderer', label: 'Text Renderer', kind: 'text-renderer', icon: 'article', meta: { description: 'Display and edit text in multiple formats (markdown, code, plain)' } },
+    { id: 'file-uploader', label: 'File Uploader', kind: 'file-uploader', icon: 'cloud_upload', meta: { description: 'Upload and manage multiple files with drag-and-drop support' } },
+  ];
+}
+
 const ACCORDION_SECTIONS = [
   { id: 'modules', title: 'Modules' },
   { id: 'assistants', title: 'Assistants' },
   { id: 'tasks', title: 'Tasks' },
   { id: 'tools', title: 'Tools (Agent)' },
+  { id: 'media-components', title: 'Media Components' },
   { id: 'sources', title: 'Sources' },
   { id: 'model-providers', title: 'Model Providers' },
   { id: 'workflows', title: 'Workflows' },
@@ -142,7 +171,17 @@ function DraggableItem({ item }) {
 }
 
 export default function PlannerSidebar() {
-  const [open, setOpen] = useState({ modules: true, assistants: true, tasks: false, tools: false, sources: false, 'model-providers': false, workflows: false, connectors: false });
+  const [open, setOpen] = useState({
+    modules: true,
+    assistants: true,
+    tasks: false,
+    tools: false,
+    'media-components': true,
+    sources: false,
+    'model-providers': false,
+    workflows: false,
+    connectors: false
+  });
   const connectedServices = useStore.use.connectedServices();
   const customWorkflows = useStore.use.customWorkflows?.() || {};
 
@@ -150,6 +189,7 @@ export default function PlannerSidebar() {
   const assistants = useAssistants();
   const tasks = useTasksList();
   const tools = AgentToolsList();
+  const mediaComponents = MediaComponentsList();
   const sources = SourcesList(connectedServices);
   const modelProviders = ModelProvidersList(connectedServices);
   const workflows = WorkflowsList(customWorkflows);
@@ -168,6 +208,7 @@ export default function PlannerSidebar() {
     assistants,
     tasks,
     tools,
+    'media-components': mediaComponents,
     sources,
     'model-providers': modelProviders,
     workflows,

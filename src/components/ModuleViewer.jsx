@@ -24,11 +24,9 @@ const disciplineContent = {
         title: 'Human-Computer Design (DS)',
         description: 'Focuses on visual communication, user experience, and the intersection of human needs with technological possibilities.',
         keyTopics: [
-            'Visual Interface Design & Prototyping',
-            'Design Research & User Experience Methods',
-            'Creative Technology & Physical Computing',
-            'Brand Identity & Editorial Design',
-            'Animation & Storytelling through Media'
+            'UI', 'UX', 'AR/VR', 'HCI', 'Prototyping', 'Design Research',
+            'Creative Tech', 'Brand Design', 'Animation', 'Video Production',
+            'Physical Interfaces', 'Generative Design', 'Typography', 'Photography'
         ],
         applications: [
             'UI/UX Design for Digital Products',
@@ -42,11 +40,9 @@ const disciplineContent = {
         title: 'Software Engineering (SE)',
         description: 'Covers programming fundamentals, web technologies, and technical implementation of digital solutions.',
         keyTopics: [
-            'Programming Fundamentals & Algorithms',
-            'Web Frontend & Backend Technologies',
-            'Database Design & API Development',
-            'Digital Fabrication & Prototyping',
-            'Software Architecture & Best Practices'
+            'JavaScript', 'Python', 'React', 'Node.js', 'APIs', 'Databases',
+            'HTML/CSS', 'Git', 'Algorithms', 'Data Structures', 'Testing',
+            'DevOps', 'Cloud', '3D Printing', 'Arduino', 'Web Dev'
         ],
         applications: [
             'Full-Stack Web Application Development',
@@ -60,11 +56,9 @@ const disciplineContent = {
         title: 'Science, Technology and Society (STS)',
         description: 'Examines the social, ethical, and cultural implications of technology in contemporary society.',
         keyTopics: [
-            'Ethics of Technology & AI',
-            'Critical Analysis of Digital Society',
-            'Research Methods & Academic Writing',
-            'Sustainability & Regenerative Design',
-            'Technology Philosophy & Policy'
+            'AI Ethics', 'Tech Policy', 'Digital Society', 'Sustainability',
+            'Research Methods', 'Academic Writing', 'Philosophy', 'Critical Thinking',
+            'Public Speaking', 'Tech Criticism', 'Social Impact', 'Future Studies'
         ],
         applications: [
             'Technology Ethics & Policy Research',
@@ -78,11 +72,9 @@ const disciplineContent = {
         title: 'Synthesis (BA)',
         description: 'Integrates knowledge from all disciplines in capstone projects and independent research.',
         keyTopics: [
-            'Interdisciplinary Project Management',
-            'Independent Research & Thesis Writing',
-            'Cross-Domain Problem Solving',
-            'Professional Portfolio Development',
-            'Academic & Industry Integration'
+            'Capstone Project', 'Thesis Writing', 'Research', 'Project Management',
+            'Portfolio', 'Team Leadership', 'Interdisciplinary', 'Innovation',
+            'Industry Integration', 'Problem Solving', 'Academic Writing'
         ],
         applications: [
             'Capstone Project Leadership',
@@ -165,9 +157,23 @@ export default function ModuleViewer() {
                 </div>
             </div>
             <div className="module-viewer-content">
-                <div>
-                    <h3>{disciplineInfo.title}</h3>
-                    <p>{disciplineInfo.description}</p>
+                <div className="module-info-row">
+                    <div className="module-info-item">
+                        <span className="icon">school</span>
+                        <strong>{module['ECTS Credits']}</strong>
+                    </div>
+                    <div className="module-info-item">
+                        <span className="icon">schedule</span>
+                        <strong>{module['Contact Time (hours)']}</strong>
+                    </div>
+                    <div className="module-info-item">
+                        <span className="icon">label</span>
+                        <strong>{module['Module Type']}</strong>
+                    </div>
+                    <div className="module-info-item">
+                        <span className="icon">person</span>
+                        <strong>{module['Module Coordinator']}</strong>
+                    </div>
                 </div>
                 <div>
                     <h3>Key Focus Areas</h3>
@@ -186,7 +192,9 @@ export default function ModuleViewer() {
                 <div>
                     <h3>This Module: {module['Module Title']}</h3>
                     <p><strong>Key Contents:</strong> {module['Key Contents / Topics']}</p>
-                    <p><strong>Learning Objectives:</strong></p>
+                </div>
+                <div>
+                    <h3>Learning Objectives</h3>
                     <ul>
                         {module['Qualification Objectives'].map((obj, i) => <li key={i}>{obj}</li>)}
                     </ul>
