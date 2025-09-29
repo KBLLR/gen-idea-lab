@@ -103,12 +103,15 @@ app.use((req, res, next) => {
   }
 });
 
-// Relax COOP/COEP for OAuth popups and Google One Tap
+// Relax COOP/COEP for OAuth popups, Google One Tap, and third-party embeds
 app.use((req, res, next) => {
-  // Allow popups to communicate back to opener
-  res.setHeader('Cross-Origin-Opener-Policy', 'same-origin-allow-popups');
-  // Avoid strict COEP that can break third-party iframes; credentialless is a safer default
-  res.setHeader('Cross-Origin-Embedder-Policy', 'credentialless');
+  // Use the most permissive COOP value so OAuth popups and third-party iframes can
+  // communicate via postMessage. Browsers log a console error and block communication
+  // when COOP is "same-origin" or "same-origin-allow-popups".
+  res.setHeader('Cross-Origin-Opener-Policy', 'unsafe-none');
+  // Do not opt-in to COEP so third-party embeds (e.g. YouTube) retain access to
+  // postMessage even when loaded without cross-origin isolation headers.
+  res.removeHeader('Cross-Origin-Embedder-Policy');
   next();
 });
 
