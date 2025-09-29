@@ -8,7 +8,13 @@ import { OAuth2Client } from 'google-auth-library';
 import logger from './logger.js';
 
 const JWT_SECRET = process.env.AUTH_SECRET || 'your-dev-secret-change-in-production';
-const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
+// Support environments where only the Vite-prefixed variable is defined.
+// Vercel projects sometimes expose the client ID as VITE_GOOGLE_CLIENT_ID
+// (for the frontend) without duplicating it for the backend runtime. When
+// that happens the authentication route fails with "Google OAuth not
+// configured" because we never instantiate the OAuth client. By checking both
+// env vars we gracefully support either configuration.
+const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID || process.env.VITE_GOOGLE_CLIENT_ID;
 const ALLOWED_DOMAIN = 'code.berlin';
 
 // Initialize Google OAuth client
