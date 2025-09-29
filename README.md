@@ -6,14 +6,17 @@
 
 GenBooth Idea Lab is a comprehensive educational platform designed for CODE University of Applied Sciences students, integrating AI-powered learning assistance with project management and creative tools.
 
-**Three-Application Suite:**
-- **Idea Lab** - AI-assisted academic module exploration with specialized agents
-- **Image Booth** - Creative AI image transformation tool powered by Google Gemini
-- **Archiva** - Documentation and project archive system with templates
+**Application Suite:**
+- **Idea Lab** — AI-assisted academic module exploration with specialized agents and Orchestrator Chat
+- **Image Booth** — Creative AI image transformation powered by Google Gemini
+- **Archiva** — Documentation and project archive system with templates
+- **Workflows** — Guided, multi-step processes for design, engineering, and orchestration
+- **Planner** — Graph-based planning board to map goals, milestones, and dependencies
 
 **Tech Stack:**
 - Frontend: React 19 + Vite 5
-- Backend: Express 4 (ESM) with Google Gemini integration
+- Backend: Express 4 (ESM) with unified chat endpoint
+- Provider Abstraction: Gemini, OpenAI, Anthropic (Claude), Ollama (local)
 - Authentication: Google OAuth with JWT tokens
 - State: Zustand with persistence
 - Services: GitHub, Notion, Figma, Google APIs integration
@@ -21,6 +24,7 @@ GenBooth Idea Lab is a comprehensive educational platform designed for CODE Univ
 - Deployment: Vercel, Docker, Cloud Run
 
 ## Contents
+- [Vision](#vision)
 - [Purpose & Features](#purpose--features)
 - [Architecture](#architecture)
 - [Prerequisites](#prerequisites)
@@ -33,13 +37,25 @@ GenBooth Idea Lab is a comprehensive educational platform designed for CODE Univ
 
 ---
 
+## Vision
+
+GenBooth Idea Lab empowers CODE University students with an Orchestrator-led multi-agent system that coordinates specialized module assistants (Design, Software Engineering, STS) and unifies multiple AI model providers behind a single interface. The vision is to:
+
+- Orchestrate multi-agent collaboration for planning, research, design, and engineering tasks
+- Unify providers (Gemini, OpenAI, Claude, Ollama) via a normalized chat interface with tool-calling parity
+- Ground conversations with shared memory (RAG) and workflows for repeatable, auditable execution
+- Provide a seamless experience across Idea Lab (learning), Image Booth (making), Archiva (documenting), Workflows (guidance), and Planner (strategy)
+
+See also: reports/multi-agent-systems.md for an in-depth architecture and provider strategy.
+
 ## Purpose & Features
 
 ### 🎓 Idea Lab (Academic Focus)
-- **Module System**: Organized by CODE University semester structure (Orientation, Core 2-5, Synthesis)
-- **AI Agents**: Each academic module (Design, Software Engineering, STS) has specialized AI personalities
+- **Module System**: Organized by CODE University semester structure (Orientation, Core 2–5, Synthesis)
+- **AI Agents**: Each academic module (Design, SE, STS) has specialized AI personalities
 - **Orchestrator Chat**: Central AI coordinator that invites module-specific agents to conversations
-- **Three-Column Layout**: Module selector → Module viewer → AI-powered chat interface
+- **Orchestrator Enhancements**: New Chat sessions, Sessions dropdown (save/restore/clear), Goals quick-start (academic goals reminder), model selector with graceful fallback
+- **Three-Column Layout**: Module selector → Module viewer → AI-powered chat
 - **Academic Integration**: Real university module data with learning objectives and resources
 
 ### 🎨 Image Booth (Creative Tools)
@@ -53,6 +69,16 @@ GenBooth Idea Lab is a comprehensive educational platform designed for CODE Univ
 - **Template System**: Pre-built templates for different types of coursework
 - **Category Organization**: Structured workflows for academic documentation
 - **Version Control**: Track document iterations and changes
+
+### 🧭 Workflows (Guided Processes)
+- **Templates**: Orchestrator and module workflows (e.g., project kickoff, design thinking, algorithm design)
+- **Step Types**: Prompt chains, interactive prompts, structured guidance, and completion artifacts
+- **Outcome**: Repeatable, auditable paths for learning and project delivery
+
+### 🗺️ Planner (Graph)
+- **Graph Model**: Nodes/edges representing goals, milestones, tasks, dependencies
+- **Workflow Integration**: Link workflow steps and Archiva artifacts to planner nodes
+- **Use Cases**: Semester planning, project roadmaps, cross-module coordination
 
 ## Architecture
 
