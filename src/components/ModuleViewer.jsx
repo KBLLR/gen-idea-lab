@@ -5,6 +5,7 @@
 import useStore from '../lib/store';
 import { personalities } from '../lib/assistant/personalities';
 import { toggleAssistant, updateModuleResourceUrl } from '../lib/actions';
+import ModuleKnowledgeSection from './ModuleKnowledgeSection';
 import c from 'clsx';
 
 // Official brand icons via react-icons (Simple Icons set)
@@ -20,6 +21,8 @@ const resourceIcons = {
 export default function ModuleViewer() {
     const activeModuleId = useStore.use.activeModuleId();
     const modules = useStore.use.modules();
+    const showKnowledgeSection = useStore.use.showKnowledgeSection();
+    const actions = useStore.use.actions();
 
     if (!activeModuleId) {
         return null;
@@ -59,9 +62,17 @@ export default function ModuleViewer() {
                         );
                     })}
                     <button className="icon-btn" title="Documentation" aria-label="Documentation"><span className="icon">description</span></button>
-                    <button 
-                        className="icon-btn assistant-chat-icon" 
-                        onClick={toggleAssistant} 
+                    <button
+                        className={c('icon-btn', { 'active': showKnowledgeSection })}
+                        onClick={() => actions.toggleKnowledgeSection()}
+                        title="Module Knowledge Base"
+                        aria-label="Module Knowledge Base"
+                    >
+                        <span className="icon">library_books</span>
+                    </button>
+                    <button
+                        className="icon-btn assistant-chat-icon"
+                        onClick={toggleAssistant}
                         title={`Chat with ${personality.name}`}
                         aria-label={`Chat with ${personality.name}`}
                     >
@@ -81,6 +92,13 @@ export default function ModuleViewer() {
                     </ul>
                 </div>
             </div>
+
+            {/* Knowledge Section */}
+            {showKnowledgeSection && (
+                <div className="module-knowledge-wrapper">
+                    <ModuleKnowledgeSection moduleId={activeModuleId} />
+                </div>
+            )}
         </div>
     );
 }

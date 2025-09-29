@@ -46,6 +46,14 @@ app.use(cookieParser());
 // Behind proxies (e.g., Vercel) trust X-Forwarded-* headers
 app.set('trust proxy', 1);
 
+// Helper function to identify Ollama models
+function isOllamaModelId(model = '') {
+  const m = (model || '').toLowerCase().trim();
+  // Common Ollama model prefixes and patterns
+  const prefixes = ['gemma','llama','qwen','mistral','mixtral','phi','yi','deepseek','gpt-oss','neural','starling','command'];
+  return m.includes(':') || prefixes.some(p => m.startsWith(p));
+}
+
 // Helper to compute base URL for OAuth redirects
 function normalizeUrl(u) {
   if (!u) return null;
@@ -138,7 +146,7 @@ async function initializeGeminiAPI() {
     logger.warn('OAuth2 initialization failed, trying API key fallback:', oauthError.message);
 
     // Fallback to API key method (deprecated but may still work)
-    const apiKey = process.env.API_KEY || process.env.GEMINI_API_KEY;
+    const apiKey = process.env.GOOGLE_API_KEY || process.env.GEMINI_API_KEY;
     if (apiKey) {
       try {
         ai = new GoogleGenAI({ apiKey });
@@ -716,13 +724,14 @@ app.post('/api/chat', requireAuth, async (req, res) => {
 
       response = claudeData.content[0].text;
 
-    } else if (model.includes('gpt-oss') || model.includes('deepseek') || model.includes('llama') || model.includes('qwen') || model.includes('gemma')) {
-      // Ollama models (including gpt-oss and gemma)
+    } else if (isOllamaModelId(model)) {
+      // Ollama models
       service = 'ollama';
       const connection = connections[service];
 
+      // Accept either local URL or cloud key, but don't deref null
       if (!connection) {
-        return res.status(400).json({ error: 'Ollama is not connected. Please connect Ollama in Settings first.' });
+        return res.status(400).json({ error: 'Ollama is not connected. Provide http://localhost:11434 in Settings.' });
       }
 
       const ollamaMessages = messages.map(msg => ({
@@ -734,15 +743,42 @@ app.post('/api/chat', requireAuth, async (req, res) => {
         ollamaMessages.unshift({ role: 'system', content: systemPrompt });
       }
 
+      // For local URL, no apiKey required
+      const isLocal = connection?.type === 'url' && /^https?:\/\//i.test(connection.url || '');
+      const ollamaBase = isLocal ? connection.url : (process.env.OLLAMA_API_BASE || connection.url);
+
       let ollamaUrl, headers = { 'Content-Type': 'application/json' };
 
-      if (connection.apiKey) {
+      // Safe null checking for apiKey
+      const apiKey = connection && connection.type === 'api_key' ? connection.apiKey : null;
+
+      if (apiKey) {
         // Ollama Cloud
         ollamaUrl = 'https://ollama.com/api/chat';
-        headers['Authorization'] = `Bearer ${connection.apiKey}`;
+        headers['Authorization'] = `Bearer ${apiKey}`;
       } else {
         // Local Ollama
-        ollamaUrl = `${connection.url}/api/chat`;
+        ollamaUrl = `${ollamaBase}/api/chat`;
+      }
+
+      // Validate the requested model exists; fail with a helpful 400 (not a 500)
+      try {
+        if (ollamaBase) {
+          const tagsResp = await fetch(`${ollamaBase}/api/tags`);
+          if (tagsResp.ok) {
+            const { models: installed = [] } = await tagsResp.json();
+            const names = new Set(installed.map(m => (m?.name || '').toLowerCase()));
+            if (!names.has((model || '').toLowerCase())) {
+              return res.status(400).json({
+                error: `Model '${model}' is not installed on Ollama.`,
+                available: [...names].sort(),
+                hint: `Run: ollama pull ${model.split(':')[0]}`
+              });
+            }
+          }
+        }
+      } catch (e) {
+        // don't explode on tags failure—let the normal request still try
       }
 
       const requestBody = {
@@ -867,15 +903,21 @@ app.get('/api/models', requireAuth, async (req, res) => {
           const resp = await fetch(`${connections.ollama.url}/api/tags`);
           if (resp.ok) {
             const data = await resp.json();
-            const ollamaModels = (data.models || []).map(m => ({
-              id: m.name,
-              name: m.name.split(':')[0] || m.name, // Remove tag for display
-              provider: 'Ollama',
-              category: 'text',
-              available: true,
-              size: m.size,
-              modified_at: m.modified_at
-            }));
+            const TEXT_EXCLUDES = [
+              'embed','embedding','nomic','bge','e5','gte','gte-','all-minilm','text-embed',
+              'llava','moondream','whisper','audiodec','sd-','flux','llm-vision'
+            ];
+            const isTextish = (n) => !TEXT_EXCLUDES.some(x => n.includes(x));
+            const ollamaModels = (data.models || [])
+              .map(m => (m?.name || '').toLowerCase())
+              .filter(n => isTextish(n))
+              .map(n => ({
+                id: n,
+                name: n.split(':')[0] || n,
+                provider: 'Ollama',
+                category: 'text',
+                available: true
+              }));
             availableModels.push(...ollamaModels);
           }
         } else if (connections.ollama.type === 'api_key') {
@@ -1482,6 +1524,374 @@ app.get('/404', (req, res) => {
 });
 
 // Serve all static files from the project root directory (after API routes)
+// Workflow to Documentation API
+app.post('/api/workflow/generate-docs', requireAuth, async (req, res) => {
+  const timer = httpRequestDurationMicroseconds.startTimer({ route: '/api/workflow/generate-docs' });
+
+  try {
+    const { workflowResult, templateId, enhanceWithAI = false, model = 'gemini-2.5-flash' } = req.body;
+
+    if (!workflowResult || !templateId) {
+      return res.status(400).json({
+        error: 'Missing required fields: workflowResult and templateId'
+      });
+    }
+
+    // Import the workflow mapper (ES modules require dynamic import)
+    const { mapWorkflowToTemplate, enhanceTemplateContent, canMapWorkflowToTemplate } =
+      await import('./src/lib/archiva/workflow-mapper.js');
+
+    // Validate workflow can be mapped to template
+    if (!canMapWorkflowToTemplate(workflowResult, templateId)) {
+      return res.status(400).json({
+        error: `Workflow data is not compatible with template: ${templateId}`,
+        required: 'Workflow must contain steps array'
+      });
+    }
+
+    // Map workflow data to template fields
+    let templateData = mapWorkflowToTemplate(workflowResult, templateId);
+
+    // Enhance with AI if requested
+    if (enhanceWithAI) {
+      try {
+        templateData = await enhanceTemplateContent(templateData, model);
+      } catch (enhanceError) {
+        logger.warn('AI enhancement failed:', enhanceError.message);
+        // Continue without enhancement
+      }
+    }
+
+    // Import and render the template
+    let renderedContent;
+    try {
+      if (templateId === 'process_journal') {
+        const { render } = await import('./src/lib/archiva/templates/process_journal.js');
+        renderedContent = {
+          markdown: render('md', templateData),
+          html: render('html', templateData)
+        };
+      } else if (templateId === 'experiment_report') {
+        const { render } = await import('./src/lib/archiva/templates/experiment_report.js');
+        renderedContent = {
+          markdown: render('md', templateData),
+          html: render('html', templateData)
+        };
+      } else if (templateId === 'prompt_card') {
+        const { render } = await import('./src/lib/archiva/templates/prompt_card.js');
+        renderedContent = {
+          markdown: render('md', templateData),
+          html: render('html', templateData)
+        };
+      } else {
+        return res.status(400).json({
+          error: `Template renderer not found: ${templateId}`,
+          available: ['process_journal', 'experiment_report', 'prompt_card']
+        });
+      }
+    } catch (renderError) {
+      logger.error('Template rendering failed:', renderError);
+      return res.status(500).json({ error: 'Template rendering failed' });
+    }
+
+    res.json({
+      success: true,
+      templateId,
+      templateData,
+      renderedContent,
+      enhanced: enhanceWithAI,
+      timestamp: new Date().toISOString()
+    });
+
+  } catch (error) {
+    logger.error('Workflow documentation generation failed:', error);
+    res.status(500).json({ error: 'Documentation generation failed' });
+  } finally {
+    timer({ code: res.statusCode });
+    httpRequestsTotal.inc({ route: '/api/workflow/generate-docs', code: res.statusCode, method: 'POST' });
+  }
+});
+
+// ===================================
+// MODULE RESOURCE MANAGEMENT API
+// ===================================
+
+// In-memory storage for module resources (replace with database in production)
+const moduleResources = {
+  // Structure: moduleId -> { chats: [], workflows: [], documentation: [] }
+};
+
+// Helper to get or create module resource store
+function getModuleStore(moduleId) {
+  if (!moduleResources[moduleId]) {
+    moduleResources[moduleId] = {
+      chats: [],
+      workflows: [],
+      documentation: []
+    };
+  }
+  return moduleResources[moduleId];
+}
+
+// Helper to generate resource ID
+function generateResourceId(type) {
+  return `${type}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+}
+
+// Get resource index (lightweight metadata) for a module resource type
+app.get('/api/modules/:moduleId/resources/:resourceType/index', requireAuth, (req, res) => {
+  const timer = httpRequestDurationMicroseconds.startTimer();
+
+  try {
+    const { moduleId, resourceType } = req.params;
+
+    if (!['chats', 'workflows', 'documentation'].includes(resourceType)) {
+      return res.status(400).json({ error: 'Invalid resource type' });
+    }
+
+    const store = getModuleStore(moduleId);
+    const resources = store[resourceType] || [];
+
+    // Create lightweight index with metadata only
+    const recent = resources
+      .sort((a, b) => new Date(b.updatedAt || b.createdAt) - new Date(a.updatedAt || a.createdAt))
+      .slice(0, 20) // Return 20 most recent
+      .map(resource => ({
+        id: resource.id,
+        title: resource.title,
+        timestamp: resource.updatedAt || resource.createdAt,
+        preview: resource.preview || resource.description?.substring(0, 100),
+        status: resource.status,
+        progress: resource.progress,
+        source: resource.source
+      }));
+
+    const items = resources.map(resource => ({
+      id: resource.id,
+      title: resource.title,
+      timestamp: resource.updatedAt || resource.createdAt,
+      preview: resource.preview || resource.description?.substring(0, 100),
+      status: resource.status,
+      progress: resource.progress,
+      source: resource.source
+    }));
+
+    res.json({
+      recent,
+      items,
+      total: resources.length
+    });
+
+  } catch (error) {
+    logger.error('Resource index fetch failed:', error);
+    res.status(500).json({ error: 'Failed to fetch resource index' });
+  } finally {
+    timer({ code: res.statusCode });
+    httpRequestsTotal.inc({ route: '/api/modules/resources/index', code: res.statusCode, method: 'GET' });
+  }
+});
+
+// Get full resource data
+app.get('/api/modules/:moduleId/resources/:resourceType/:resourceId', requireAuth, (req, res) => {
+  const timer = httpRequestDurationMicroseconds.startTimer();
+
+  try {
+    const { moduleId, resourceType, resourceId } = req.params;
+
+    if (!['chats', 'workflows', 'documentation'].includes(resourceType)) {
+      return res.status(400).json({ error: 'Invalid resource type' });
+    }
+
+    const store = getModuleStore(moduleId);
+    const resource = store[resourceType]?.find(r => r.id === resourceId);
+
+    if (!resource) {
+      return res.status(404).json({ error: 'Resource not found' });
+    }
+
+    res.json(resource);
+
+  } catch (error) {
+    logger.error('Resource fetch failed:', error);
+    res.status(500).json({ error: 'Failed to fetch resource' });
+  } finally {
+    timer({ code: res.statusCode });
+    httpRequestsTotal.inc({ route: '/api/modules/resources/item', code: res.statusCode, method: 'GET' });
+  }
+});
+
+// Search resources
+app.get('/api/modules/:moduleId/resources/:resourceType/search', requireAuth, (req, res) => {
+  const timer = httpRequestDurationMicroseconds.startTimer();
+
+  try {
+    const { moduleId, resourceType } = req.params;
+    const { q: query } = req.query;
+
+    if (!query) {
+      return res.status(400).json({ error: 'Missing query parameter' });
+    }
+
+    if (!['chats', 'workflows', 'documentation'].includes(resourceType)) {
+      return res.status(400).json({ error: 'Invalid resource type' });
+    }
+
+    const store = getModuleStore(moduleId);
+    const resources = store[resourceType] || [];
+
+    // Simple text search (replace with full-text search in production)
+    const searchTerm = query.toLowerCase();
+    const results = resources
+      .filter(resource =>
+        resource.title?.toLowerCase().includes(searchTerm) ||
+        resource.description?.toLowerCase().includes(searchTerm) ||
+        resource.content?.toLowerCase().includes(searchTerm) ||
+        (resource.messages && resource.messages.some(msg =>
+          msg.content?.toLowerCase().includes(searchTerm)
+        ))
+      )
+      .map(resource => ({
+        id: resource.id,
+        title: resource.title,
+        timestamp: resource.updatedAt || resource.createdAt,
+        preview: resource.preview || resource.description?.substring(0, 100),
+        status: resource.status,
+        progress: resource.progress,
+        source: resource.source,
+        relevance: 1 // Could implement proper relevance scoring
+      }))
+      .sort((a, b) => b.relevance - a.relevance || new Date(b.timestamp) - new Date(a.timestamp))
+      .slice(0, 50); // Limit search results
+
+    res.json(results);
+
+  } catch (error) {
+    logger.error('Resource search failed:', error);
+    res.status(500).json({ error: 'Failed to search resources' });
+  } finally {
+    timer({ code: res.statusCode });
+    httpRequestsTotal.inc({ route: '/api/modules/resources/search', code: res.statusCode, method: 'GET' });
+  }
+});
+
+// Add new resource
+app.post('/api/modules/:moduleId/resources/:resourceType', requireAuth, (req, res) => {
+  const timer = httpRequestDurationMicroseconds.startTimer();
+
+  try {
+    const { moduleId, resourceType } = req.params;
+    const resourceData = req.body;
+
+    if (!['chats', 'workflows', 'documentation'].includes(resourceType)) {
+      return res.status(400).json({ error: 'Invalid resource type' });
+    }
+
+    const store = getModuleStore(moduleId);
+    const newResource = {
+      id: generateResourceId(resourceType),
+      ...resourceData,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      createdBy: req.user?.email || 'system'
+    };
+
+    store[resourceType].push(newResource);
+
+    logger.info(`Added ${resourceType} resource to module ${moduleId}`, {
+      resourceId: newResource.id,
+      title: newResource.title
+    });
+
+    res.status(201).json(newResource);
+
+  } catch (error) {
+    logger.error('Resource creation failed:', error);
+    res.status(500).json({ error: 'Failed to create resource' });
+  } finally {
+    timer({ code: res.statusCode });
+    httpRequestsTotal.inc({ route: '/api/modules/resources/create', code: res.statusCode, method: 'POST' });
+  }
+});
+
+// Update resource
+app.put('/api/modules/:moduleId/resources/:resourceType/:resourceId', requireAuth, (req, res) => {
+  const timer = httpRequestDurationMicroseconds.startTimer();
+
+  try {
+    const { moduleId, resourceType, resourceId } = req.params;
+    const updates = req.body;
+
+    if (!['chats', 'workflows', 'documentation'].includes(resourceType)) {
+      return res.status(400).json({ error: 'Invalid resource type' });
+    }
+
+    const store = getModuleStore(moduleId);
+    const resourceIndex = store[resourceType]?.findIndex(r => r.id === resourceId);
+
+    if (resourceIndex === -1) {
+      return res.status(404).json({ error: 'Resource not found' });
+    }
+
+    const updatedResource = {
+      ...store[resourceType][resourceIndex],
+      ...updates,
+      updatedAt: new Date().toISOString()
+    };
+
+    store[resourceType][resourceIndex] = updatedResource;
+
+    logger.info(`Updated ${resourceType} resource in module ${moduleId}`, {
+      resourceId,
+      title: updatedResource.title
+    });
+
+    res.json(updatedResource);
+
+  } catch (error) {
+    logger.error('Resource update failed:', error);
+    res.status(500).json({ error: 'Failed to update resource' });
+  } finally {
+    timer({ code: res.statusCode });
+    httpRequestsTotal.inc({ route: '/api/modules/resources/update', code: res.statusCode, method: 'PUT' });
+  }
+});
+
+// Delete resource
+app.delete('/api/modules/:moduleId/resources/:resourceType/:resourceId', requireAuth, (req, res) => {
+  const timer = httpRequestDurationMicroseconds.startTimer();
+
+  try {
+    const { moduleId, resourceType, resourceId } = req.params;
+
+    if (!['chats', 'workflows', 'documentation'].includes(resourceType)) {
+      return res.status(400).json({ error: 'Invalid resource type' });
+    }
+
+    const store = getModuleStore(moduleId);
+    const resourceIndex = store[resourceType]?.findIndex(r => r.id === resourceId);
+
+    if (resourceIndex === -1) {
+      return res.status(404).json({ error: 'Resource not found' });
+    }
+
+    const deletedResource = store[resourceType].splice(resourceIndex, 1)[0];
+
+    logger.info(`Deleted ${resourceType} resource from module ${moduleId}`, {
+      resourceId,
+      title: deletedResource.title
+    });
+
+    res.json({ success: true, deletedResource });
+
+  } catch (error) {
+    logger.error('Resource deletion failed:', error);
+    res.status(500).json({ error: 'Failed to delete resource' });
+  } finally {
+    timer({ code: res.statusCode });
+    httpRequestsTotal.inc({ route: '/api/modules/resources/delete', code: res.statusCode, method: 'DELETE' });
+  }
+});
+
 app.use(express.static(path.join(__dirname, 'dist')));
 
 // Serve the main app for known routes (you might want to customize this list)

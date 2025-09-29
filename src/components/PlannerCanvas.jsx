@@ -8,6 +8,7 @@ import useStore from '../lib/store';
 import { modules } from '../lib/modules';
 import { specializedTasks } from '../lib/assistant/tasks';
 import ReactFlow, { Background, Controls, MiniMap, addEdge, useEdgesState, useNodesState, useReactFlow, Handle, Position } from 'reactflow';
+import NodeConfigModal from './NodeConfigModal';
 import 'reactflow/dist/style.css';
 import '../styles/components/planner.css';
 
@@ -23,8 +24,18 @@ const nodeStyles = {
 };
 
 function LabelNode({ data }) {
+  // Apply connector-specific styling
+  const getConnectorClass = () => {
+    if (data.connectorType === 'loop') return 'loop-connector';
+    if (data.connectorType === 'trigger') return 'trigger-connector';
+    return '';
+  };
+
+  const connectorClass = getConnectorClass();
+  const nodeClass = `${data.className} ${connectorClass}`.trim();
+
   return (
-    <div className={data.className}>
+    <div className={nodeClass}>
       {/* Input handle on the left */}
       <Handle
         type="target"
@@ -39,6 +50,12 @@ function LabelNode({ data }) {
 
       <div className="node-title">{data.label}</div>
       {data.sub && <div className="node-sub">{data.sub}</div>}
+      {data.description && <div className="node-description">{data.description}</div>}
+
+      {/* Connector badge */}
+      {data.connectorType && data.connectorType !== 'none' && (
+        <div className="connector-badge">{data.connectorType}</div>
+      )}
 
       {/* Output handle on the right */}
       <Handle
@@ -341,6 +358,8 @@ export default function PlannerCanvas() {
   const [workflowTitle, setWorkflowTitle] = useState(persisted.title || '');
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [isGeneratingTitle, setIsGeneratingTitle] = useState(false);
+  const [configModalNode, setConfigModalNode] = useState(null);
+  const [isConfigModalOpen, setIsConfigModalOpen] = useState(false);
   const setActiveApp = useStore.use.actions().setActiveApp;
   const addCustomWorkflow = useStore.use.actions().addCustomWorkflow;
   const workflowAutoTitleModel = useStore.use.workflowAutoTitleModel();
@@ -353,6 +372,28 @@ export default function PlannerCanvas() {
   // Handle node clicks to manage selection state
   const onNodeClick = useCallback((event, node) => {
     // Allow normal selection behavior, but ensure double-click works
+  }, []);
+
+  // Handle double-click for node configuration
+  const onNodeDoubleClick = useCallback((event, node) => {
+    // Don't open config for model-provider or archiva-template nodes (they have their own config)
+    if (node.type === 'model-provider' || node.type === 'archiva-template') return;
+
+    setConfigModalNode(node);
+    setIsConfigModalOpen(true);
+  }, []);
+
+  // Handle configuration save
+  const handleConfigSave = useCallback((updatedNode) => {
+    setNodes(nds => nds.map(n => n.id === updatedNode.id ? updatedNode : n));
+    setConfigModalNode(null);
+    setIsConfigModalOpen(false);
+  }, [setNodes]);
+
+  // Handle configuration modal close
+  const handleConfigClose = useCallback(() => {
+    setConfigModalNode(null);
+    setIsConfigModalOpen(false);
   }, []);
 
   // Add a canvas click handler to deselect nodes
@@ -854,6 +895,7 @@ export default function PlannerCanvas() {
             onDrop={onDrop}
             onDragOver={onDragOver}
             onNodeClick={onNodeClick}
+            onNodeDoubleClick={onNodeDoubleClick}
             onPaneClick={onPaneClick}
             nodeTypes={nodeTypes}
             fitView
@@ -862,6 +904,14 @@ export default function PlannerCanvas() {
             <Controls />
             <Background gap={16} />
           </ReactFlow>
+
+          {/* Node Configuration Modal */}
+          <NodeConfigModal
+            node={configModalNode}
+            isOpen={isConfigModalOpen}
+            onSave={handleConfigSave}
+            onClose={handleConfigClose}
+          />
         </NodeUpdateContext.Provider>
       </div>
     </div>

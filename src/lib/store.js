@@ -11,6 +11,7 @@ import { persist } from 'zustand/middleware'
 import { createSelectorFunctions } from 'auto-zustand-selectors-hook'
 import { modules } from './modules'
 import { personalities } from './assistant/personalities'
+import { getResourceManager } from './services/ResourceManager.js'
 
 const store = immer((set, get) => ({
   didInit: false,
@@ -38,7 +39,7 @@ const store = immer((set, get) => ({
   // Assistant state (for individual module floating chat)
   isAssistantOpen: false,
   isAssistantLoading: false,
-  assistantHistories: {},
+  assistantHistories: {}, // Keep lightweight for now, migrate gradually
 
   // Orchestrator Chat State
   isOrchestratorLoading: false,
@@ -80,9 +81,16 @@ const store = immer((set, get) => ({
   // Archiva State
   archivaEntries: {}, // Store entries by ID
   activeEntryId: null,
-  
+  selectedTemplateForPreview: null, // For ArchivAI template preview
+
   // Orchestrator Saved Sessions
   orchestratorSavedSessions: [], // Array of { id, title, createdAt, model, history }
+
+  // Resource Management State (for scalable knowledge base)
+  resourceManager: getResourceManager(),
+  loadedResourceIds: new Set(), // Track what resources are currently loaded in UI
+  moduleKnowledgeCache: {}, // Lightweight cache for module knowledge indexes
+  showKnowledgeSection: false, // Toggle for knowledge section visibility
   
   // Actions
   actions: {
@@ -358,7 +366,117 @@ const store = immer((set, get) => ({
         }
       ];
       state.orchestratorHasConversation = false;
-    })
+    }),
+
+    // Resource Management Actions
+    toggleKnowledgeSection: () => set((state) => {
+      state.showKnowledgeSection = !state.showKnowledgeSection;
+    }),
+
+    setShowKnowledgeSection: (show) => set((state) => {
+      state.showKnowledgeSection = show;
+    }),
+
+    // Module lifecycle - preload and cleanup resources
+    setActiveModuleId: (moduleId) => set((state) => {
+      // Cleanup previous module resources
+      if (state.activeModuleId && state.activeModuleId !== moduleId) {
+        state.resourceManager.evictModuleResources(state.activeModuleId);
+        state.loadedResourceIds.clear();
+      }
+
+      state.activeModuleId = moduleId;
+
+      // Preload resources for new module in background
+      if (moduleId) {
+        state.resourceManager.preloadRecentResources(moduleId).catch(error => {
+          console.warn('Failed to preload resources:', error);
+        });
+      }
+    }),
+
+    // Add documentation entry to knowledge base
+    addDocumentationEntry: async (moduleId, entry) => {
+      try {
+        const response = await fetch(`/api/modules/${moduleId}/resources/documentation`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(entry),
+          credentials: 'include'
+        });
+
+        if (response.ok) {
+          // Invalidate cache to force refresh
+          const indexKey = `index:${moduleId}:documentation`;
+          get().resourceManager.indexes.delete(indexKey);
+        }
+
+        return response.ok;
+      } catch (error) {
+        console.error('Failed to add documentation entry:', error);
+        return false;
+      }
+    },
+
+    // Add workflow entry to knowledge base
+    addWorkflowEntry: async (moduleId, workflow) => {
+      try {
+        const response = await fetch(`/api/modules/${moduleId}/resources/workflows`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(workflow),
+          credentials: 'include'
+        });
+
+        if (response.ok) {
+          // Invalidate cache to force refresh
+          const indexKey = `index:${moduleId}:workflows`;
+          get().resourceManager.indexes.delete(indexKey);
+        }
+
+        return response.ok;
+      } catch (error) {
+        console.error('Failed to add workflow entry:', error);
+        return false;
+      }
+    },
+
+    // Add chat session to knowledge base
+    addChatEntry: async (moduleId, chatSession) => {
+      try {
+        const response = await fetch(`/api/modules/${moduleId}/resources/chats`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(chatSession),
+          credentials: 'include'
+        });
+
+        if (response.ok) {
+          // Invalidate cache to force refresh
+          const indexKey = `index:${moduleId}:chats`;
+          get().resourceManager.indexes.delete(indexKey);
+        }
+
+        return response.ok;
+      } catch (error) {
+        console.error('Failed to add chat entry:', error);
+        return false;
+      }
+    },
+
+    // Get memory statistics for debugging/monitoring
+    getResourceManagerStats: () => {
+      return get().resourceManager.getMemoryStats();
+    },
+
+    // Force cleanup of resource manager (for debugging or memory pressure)
+    cleanupResourceManager: () => {
+      get().resourceManager.cleanup();
+      set((state) => {
+        state.loadedResourceIds.clear();
+        state.moduleKnowledgeCache = {};
+      });
+    }
   }
 }));
 
@@ -385,6 +503,8 @@ export default createSelectorFunctions(
         leftColumnWidth: state.leftColumnWidth,
         plannerGraph: state.plannerGraph,
         customWorkflows: state.customWorkflows,
+        showKnowledgeSection: state.showKnowledgeSection,
+        // Don't persist: resourceManager (recreated fresh), loadedResourceIds (Set), moduleKnowledgeCache (managed)
         // Don't persist authentication state for security
       })
     })

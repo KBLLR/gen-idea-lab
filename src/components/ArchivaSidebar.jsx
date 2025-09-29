@@ -44,13 +44,24 @@ export default function ArchivaSidebar() {
                                     .map(({ key, name }) => (
                                         <button
                                             key={key}
-                                            onClick={() => createNewArchivaEntry(key)}
-                                            title={`Create a new ${name}`}
+                                            onClick={() => useStore.setState({ selectedTemplateForPreview: key, activeEntryId: null })}
+                                            className={c({ active: useStore.getState().selectedTemplateForPreview === key })}
+                                            title={`Preview ${name} template`}
                                         >
                                             <div className="module-info">
-                                                <span className="icon">note_add</span>
+                                                <span className="icon">preview</span>
                                                 <p>{name}</p>
                                             </div>
+                                            <button
+                                                className="create-btn"
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    createNewArchivaEntry(key);
+                                                }}
+                                                title={`Create new ${name}`}
+                                            >
+                                                <span className="icon">add</span>
+                                            </button>
                                         </button>
                                     ))}
                             </div>
