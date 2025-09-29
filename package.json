@@ -17,7 +17,8 @@
     "tokens:watch": "cd tokens && npx style-dictionary build --watch",
     "tokens:clean": "rm -rf src/styles/tokens/tokens-*.css src/styles/tokens/tokens.js tokens/build",
     "tokens:audit": "node scripts/audit-css.js",
-    "tokens:validate": "node scripts/validate-tokens.js"
+    "tokens:validate": "node scripts/validate-tokens.js",
+    "test:auth": "NODE_ENV=test NODE_OPTIONS=--experimental-vm-modules jest tests/auth.routes.test.js"
   },
   "dependencies": {
     "@google/genai": "^1.21.0",
@@ -47,8 +48,10 @@
   "devDependencies": {
     "@vitejs/plugin-react": "^4.3.0",
     "concurrently": "^8.2.2",
+    "jest": "^29.7.0",
     "nodemon": "^3.1.0",
     "style-dictionary": "^5.0.4",
+    "supertest": "^6.3.4",
     "vite": "^5.4.0"
   }
 }

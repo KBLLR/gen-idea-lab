@@ -209,6 +209,16 @@ async function initializeGeminiAPI() {
   }
 }
 
+const geminiBootstrap = {
+  initializeGeminiAPI,
+  setClient(client) {
+    ai = client;
+  },
+  getClient() {
+    return ai;
+  }
+};
+
 // Increase payload limit for base64 image data
 app.use(express.json({ limit: '10mb' })); 
 
@@ -1951,7 +1961,7 @@ app.get('*', (req, res) => {
 async function startServer() {
   try {
     // Initialize the Gemini API first
-    await initializeGeminiAPI();
+    await geminiBootstrap.initializeGeminiAPI();
 
     if (hasCustomPort) {
       const available = await isPortAvailable(CUSTOM_PORT);
@@ -1977,5 +1987,10 @@ async function startServer() {
   }
 }
 
-// Start the server
-startServer();
+// Start the server unless running in a test environment
+if (process.env.NODE_ENV !== 'test') {
+  startServer();
+}
+
+export { app, initializeGeminiAPI, startServer, geminiBootstrap };
+export default app;
