@@ -3,6 +3,8 @@
  * Maps workflow execution results to ArchivAI template fields
  */
 
+import { getGenericTemplateConfig, isGenericTemplate, getTemplateIds } from './templates/library.js';
+
 // Map workflow JSON to template fields
 export function mapWorkflowToTemplate(workflowResult, templateId) {
   const mappers = {
@@ -39,21 +41,24 @@ export function mapWorkflowToTemplate(workflowResult, templateId) {
   };
 
   const mapper = mappers[templateId];
-  if (!mapper) {
-    throw new Error(`No mapper found for template: ${templateId}`);
-  }
-
-  const mappedData = {};
-  for (const [field, mapperFn] of Object.entries(mapper)) {
-    try {
-      mappedData[field] = mapperFn(workflowResult);
-    } catch (error) {
-      console.warn(`Error mapping field ${field}:`, error);
-      mappedData[field] = null;
+  if (mapper) {
+    const mappedData = {};
+    for (const [field, mapperFn] of Object.entries(mapper)) {
+      try {
+        mappedData[field] = mapperFn(workflowResult);
+      } catch (error) {
+        console.warn(`Error mapping field ${field}:`, error);
+        mappedData[field] = null;
+      }
     }
+    return mappedData;
   }
 
-  return mappedData;
+  if (isGenericTemplate(templateId)) {
+    return createGenericTemplateData(workflowResult, templateId);
+  }
+
+  throw new Error(`No mapper found for template: ${templateId}`);
 }
 
 // Helper functions for generating content from workflow data
@@ -171,6 +176,340 @@ function generateLimitations(workflow) {
   return limitations.join('. ') + '.';
 }
 
+function createGenericTemplateData(workflowResult, templateId) {
+  const config = getGenericTemplateConfig(templateId);
+  if (!config) {
+    throw new Error(`Generic template configuration missing for: ${templateId}`);
+  }
+
+  const summary = buildWorkflowSummary(workflowResult);
+  const defaultDate = workflowResult.ended_at || workflowResult.started_at || new Date().toISOString();
+
+  const data = {
+    workflow_id: workflowResult.workflow_id,
+    run_id: workflowResult.run_id,
+    date: defaultDate,
+    tags_keywords: summary.tags.join(', '),
+    __summary: summary.overview
+  };
+
+  if (config.titleField && !data[config.titleField]) {
+    data[config.titleField] = workflowResult.title || summary.focus;
+  }
+
+  if (config.subtitleField && !data[config.subtitleField]) {
+    data[config.subtitleField] = summary.objective;
+  }
+
+  const assignValue = (key, type) => {
+    if (!key || Object.prototype.hasOwnProperty.call(data, key)) return;
+    const value = generateContentForField(key, type, summary, workflowResult);
+    if (value != null) {
+      data[key] = value;
+    }
+  };
+
+  (config.metadata || []).forEach(({ key, type }) => {
+    if (key === 'date' || key === 'tags_keywords') return;
+    assignValue(key, type);
+  });
+
+  (config.sections || []).forEach(({ key, type }) => assignValue(key, type));
+
+  return data;
+}
+
+function buildWorkflowSummary(workflow) {
+  const steps = workflow.steps || [];
+  const models = [...new Set(steps.map((step) => step.model).filter(Boolean))];
+  const overview = generateContext(workflow);
+  const method = generateMethodDescription(steps);
+  const findings = extractFindings(steps);
+  const nextSteps = generateNextSteps(steps);
+  const discussion = generateDiscussion(steps);
+  const limitations = generateLimitations(workflow);
+  const objective = workflow.meta?.objective || workflow.meta?.goal || `Document the workflow "${workflow.title || workflow.workflow_id}".`;
+  const hypothesis = generateHypothesis(workflow);
+  const status = workflow.status || workflow.meta?.status || 'completed';
+  const duration = computeDuration(workflow.started_at, workflow.ended_at);
+  const observationsList = steps.length ? steps.map((step, index) => formatObservation(step, index)) : ['Workflow executed without detailed step records.'];
+  const analysisList = findings;
+  const artifactsList = collectArtifacts(steps);
+  const feedbackList = collectFeedback(steps);
+  const promptsList = collectPrompts(steps);
+  const codeSnippet = collectCode(steps);
+  const attachmentsList = collectLinks(steps);
+  const metricsList = collectMetrics(steps);
+  const tags = buildTags(workflow, models);
+
+  const reflectionsList = [
+    overview,
+    discussion,
+    limitations,
+    metricsList.length ? `Captured metrics for ${metricsList.length} step(s).` : null
+  ].filter(Boolean);
+
+  return {
+    overview,
+    method,
+    findings,
+    nextSteps,
+    discussion,
+    limitations,
+    objective,
+    hypothesis,
+    status,
+    duration,
+    modelsUsed: models,
+    observationsList,
+    analysisList,
+    artifactsList,
+    reflectionsList,
+    feedbackList,
+    promptsList,
+    codeSnippet,
+    attachmentsList,
+    metricsList,
+    tags,
+    focus: workflow.meta?.focus || workflow.meta?.description || workflow.title || 'Workflow exploration'
+  };
+}
+
+function generateContentForField(key, type, summary, workflow) {
+  if (!key) return null;
+  const lower = key.toLowerCase();
+
+  if (lower === 'date') {
+    return workflow.ended_at || workflow.started_at || null;
+  }
+
+  if (lower.includes('objective') || lower.includes('goal')) {
+    return summary.objective;
+  }
+
+  if (lower.includes('hypothesis')) {
+    return summary.hypothesis;
+  }
+
+  if (lower.includes('setup') || lower.includes('method')) {
+    return summary.method;
+  }
+
+  if (lower.includes('observation') || lower.includes('outcome') || lower.includes('result') || lower.includes('output')) {
+    return summary.observationsList;
+  }
+
+  if (lower.includes('analysis') || lower.includes('insight')) {
+    return summary.analysisList;
+  }
+
+  if (lower.includes('conclusion') || lower.includes('lesson')) {
+    return summary.findings.join('\n');
+  }
+
+  if (lower.includes('next') || lower.includes('future') || lower.includes('milestone') || lower.includes('iteration')) {
+    return summary.nextSteps;
+  }
+
+  if (lower.includes('artifact') || lower.includes('reference') || lower.includes('link') || lower.includes('attachment') || lower.includes('file')) {
+    return summary.artifactsList.length ? summary.artifactsList : summary.attachmentsList;
+  }
+
+  if (lower.includes('reflection') || lower.includes('note') || lower.includes('learning')) {
+    return summary.reflectionsList;
+  }
+
+  if (lower.includes('feedback')) {
+    return summary.feedbackList.length ? summary.feedbackList : summary.reflectionsList;
+  }
+
+  if (lower.includes('prompt') || lower.includes('inspiration') || lower.includes('moodboard')) {
+    return summary.promptsList;
+  }
+
+  if (lower.includes('code') || type === 'code') {
+    return summary.codeSnippet;
+  }
+
+  if (lower.includes('status')) {
+    return summary.status;
+  }
+
+  if (lower.includes('duration') || lower.includes('time')) {
+    return summary.duration;
+  }
+
+  if (lower.includes('concept') || lower.includes('focus') || lower.includes('context') || lower.includes('project') || lower.includes('feature')) {
+    return summary.focus;
+  }
+
+  if (lower.includes('sprint') || lower.includes('week')) {
+    return workflow.meta?.sprint || 'Current Sprint';
+  }
+
+  if (lower.includes('difficulty')) {
+    return workflow.meta?.difficulty || 'Medium';
+  }
+
+  if (lower.includes('challenge')) {
+    return workflow.meta?.challenge || summary.focus;
+  }
+
+  if (lower.includes('location')) {
+    return workflow.meta?.location || 'Virtual';
+  }
+
+  if (lower.includes('tools') || lower.includes('tool')) {
+    return summary.modelsUsed.join(', ');
+  }
+
+  if (lower.includes('theme') || lower.includes('tags_keywords')) {
+    return summary.tags.join(', ');
+  }
+
+  if (lower.includes('overview')) {
+    return summary.overview;
+  }
+
+  return summary.overview;
+}
+
+function computeDuration(start, end) {
+  if (!start || !end) return '';
+  try {
+    const s = new Date(start);
+    const e = new Date(end);
+    const minutes = Math.max(0, Math.round((e.getTime() - s.getTime()) / 60000));
+    return `${s.toISOString()} → ${e.toISOString()} (${minutes} min)`;
+  } catch (error) {
+    console.warn('Failed to compute duration:', error);
+    return `${start} → ${end}`;
+  }
+}
+
+function formatObservation(step, index) {
+  const name = step.name || `Step ${index + 1}`;
+  const response = step.response || step.output || step.notes || '';
+  return response ? `${name}: ${truncate(response)}` : `${name}: No response recorded.`;
+}
+
+function collectArtifacts(steps) {
+  const items = [];
+  steps?.forEach((step, index) => {
+    if (Array.isArray(step.artifacts)) {
+      step.artifacts.forEach((artifact, idx) => {
+        items.push(`${step.name || `Step ${index + 1}`}: ${describeArtifact(artifact, idx)}`);
+      });
+    }
+    if (step.response) {
+      items.push(`${step.name || `Step ${index + 1}`}: ${truncate(step.response)}`);
+    }
+    if (step.output && typeof step.output === 'string') {
+      items.push(`${step.name || `Step ${index + 1}`}: ${truncate(step.output)}`);
+    }
+  });
+  return items.length ? items : ['Outputs captured during workflow execution.'];
+}
+
+function collectFeedback(steps) {
+  const items = [];
+  steps?.forEach((step, index) => {
+    const feedback = step.feedback || step.notes;
+    if (feedback) {
+      items.push(`${step.name || `Step ${index + 1}`}: ${truncate(feedback)}`);
+    }
+  });
+  return items;
+}
+
+function collectPrompts(steps) {
+  const prompts = [];
+  steps?.forEach((step, index) => {
+    const prompt = step.request?.prompt;
+    if (prompt) {
+      prompts.push(`${step.name || `Step ${index + 1}`}: ${truncate(prompt)}`);
+    }
+  });
+  return prompts;
+}
+
+function collectCode(steps) {
+  const blocks = [];
+  steps?.forEach((step, index) => {
+    const prompt = step.request?.prompt;
+    const response = step.response;
+    if (!prompt && !response) return;
+    const header = `// ${step.name || `Step ${index + 1}`}`;
+    const body = [header];
+    if (prompt) body.push(prompt);
+    if (response && response !== prompt) body.push(response);
+    blocks.push(body.join('\n'));
+  });
+  return blocks.join('\n\n');
+}
+
+function collectLinks(steps) {
+  const links = [];
+  steps?.forEach((step) => {
+    const attachments = step.attachments || step.links || step.resources;
+    if (Array.isArray(attachments)) {
+      attachments.forEach((attachment, index) => {
+        links.push(describeArtifact(attachment, index));
+      });
+    } else if (attachments) {
+      links.push(String(attachments));
+    }
+  });
+  return links;
+}
+
+function collectMetrics(steps) {
+  const metrics = [];
+  steps?.forEach((step, index) => {
+    if (!step.metrics) return;
+    const latency = step.metrics.latency_ms != null ? `${step.metrics.latency_ms} ms` : 'latency n/a';
+    const tokensIn = step.metrics.tokens_in != null ? `${step.metrics.tokens_in} tokens in` : null;
+    const tokensOut = step.metrics.tokens_out != null ? `${step.metrics.tokens_out} tokens out` : null;
+    const parts = [latency, tokensIn, tokensOut].filter(Boolean).join(', ');
+    metrics.push(`${step.name || `Step ${index + 1}`}: ${parts || 'No metrics recorded'}`);
+  });
+  return metrics;
+}
+
+function describeArtifact(artifact, index = 0) {
+  if (typeof artifact === 'string') return artifact;
+  if (!artifact || typeof artifact !== 'object') return `Artifact ${index + 1}`;
+  if (artifact.name && artifact.url) return `${artifact.name} (${artifact.url})`;
+  if (artifact.name) return artifact.name;
+  if (artifact.url) return artifact.url;
+  return `Artifact ${index + 1}`;
+}
+
+function buildTags(workflow, models) {
+  const tagSet = new Set();
+  const addTag = (tag) => {
+    if (!tag) return;
+    String(tag)
+      .split(/[\n,]/)
+      .map((part) => part.trim())
+      .filter(Boolean)
+      .forEach((part) => tagSet.add(part));
+  };
+
+  (workflow.tags || []).forEach(addTag);
+  addTag(workflow.meta?.tags);
+  addTag(workflow.meta?.category);
+  models.forEach(addTag);
+  addTag('workflow');
+  return Array.from(tagSet);
+}
+
+function truncate(value, length = 160) {
+  const text = String(value ?? '').replace(/\s+/g, ' ').trim();
+  if (text.length <= length) return text;
+  return `${text.slice(0, length - 1)}…`;
+}
+
 // AI Enhancement function for intelligent content population
 export async function enhanceTemplateContent(templateData, model, aiServiceUrl = '/api/chat') {
   const prompt = `
@@ -226,7 +565,7 @@ Format your response as a JSON object with these keys: findings, improvements, n
 
 // Utility to get available template renderers
 export function getAvailableRenderers() {
-  return ['process_journal', 'experiment_report', 'prompt_card'];
+  return getTemplateIds();
 }
 
 // Validate if a workflow can be mapped to a specific template
@@ -238,6 +577,10 @@ export function canMapWorkflowToTemplate(workflowResult, templateId) {
     experiment_report: ['steps'],
     prompt_card: ['steps']
   };
+
+  if (isGenericTemplate(templateId)) {
+    return Array.isArray(workflowResult.steps) && workflowResult.steps.length > 0;
+  }
 
   const required = requiredFields[templateId] || [];
   return required.every(field => workflowResult[field]);
