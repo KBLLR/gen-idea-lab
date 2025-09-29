@@ -24,10 +24,16 @@ app.use(cookieParser());
 app.set('trust proxy', 1);
 
 // Helper to compute base URL for OAuth redirects
+function normalizeUrl(u) {
+  if (!u) return null;
+  const s = String(u).trim();
+  const withScheme = /^https?:\/\//i.test(s) ? s : `https://${s}`;
+  return withScheme.replace(/\/$/, '');
+}
 function getBaseUrl(req) {
   const envUrl = process.env.BACKEND_URL || process.env.DOMAIN || process.env.FRONTEND_URL;
   if (envUrl) {
-    return envUrl.replace(/\/$/, '');
+    return normalizeUrl(envUrl);
   }
   const proto = (req.headers['x-forwarded-proto'] || req.protocol || 'http').toString().split(',')[0];
   const host = req.headers['x-forwarded-host'] || req.get('host');
@@ -40,12 +46,10 @@ app.use((req, res, next) => {
 
   // Build allowed origins dynamically from env
   const envAllowed = [
-    process.env.FRONTEND_URL,
-    process.env.BACKEND_URL,
-    process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : null,
-    process.env.DOMAIN
-      ? (process.env.DOMAIN.startsWith('http') ? process.env.DOMAIN : `https://${process.env.DOMAIN}`)
-      : null,
+    normalizeUrl(process.env.FRONTEND_URL),
+    normalizeUrl(process.env.BACKEND_URL),
+    process.env.VERCEL_URL ? normalizeUrl(`https://${process.env.VERCEL_URL}`) : null,
+    normalizeUrl(process.env.DOMAIN),
   ].filter(Boolean);
 
   const allowedOrigins = Array.from(new Set([
