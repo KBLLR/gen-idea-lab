@@ -4149,7 +4149,8 @@ main.workflows-layout .right-column {
 }
 
 /* ArchivAI Sidebar Template Selection */
-.module-list button {
+.module-list button,
+.module-list .template-item {
   position: relative;
   width: 100%;
   display: flex;
@@ -4165,30 +4166,35 @@ main.workflows-layout .right-column {
   margin-bottom: var(--spacing-2);
 }
 
-.module-list button:hover {
+.module-list button:hover,
+.module-list .template-item:hover {
   background: var(--bg-item-hover);
   border-color: var(--border-accent);
   color: var(--text-primary);
 }
 
-.module-list button.active {
+.module-list button.active,
+.module-list .template-item.active {
   background: var(--bg-item-active);
   border-color: var(--border-accent);
   color: var(--text-inverse);
 }
 
-.module-list button .module-info {
+.module-list button .module-info,
+.module-list .template-item .module-info {
   flex: 1;
   display: flex;
   align-items: center;
   gap: var(--spacing-3);
 }
 
-.module-list button .module-info .icon {
+.module-list button .module-info .icon,
+.module-list .template-item .module-info .icon {
   font-size: var(--typography-font-size-icon-md);
 }
 
-.module-list button .module-info p {
+.module-list button .module-info p,
+.module-list .template-item .module-info p {
   margin: 0;
   font-size: var(--typography-font-size-sm);
   font-weight: var(--typography-font-weight-medium);
