@@ -343,6 +343,16 @@ const store = immer((set, get) => ({
 
     setOrchestratorHasConversation: (hasConversation) => set((state) => {
       state.orchestratorHasConversation = hasConversation;
+    }),
+
+    clearOrchestratorHistory: () => set((state) => {
+      state.orchestratorHistory = [
+        {
+          role: 'model',
+          parts: [{ text: "I am the Orchestrator. How can we start building your next project? You can select a module on the left and I can invite its agent to help us." }]
+        }
+      ];
+      state.orchestratorHasConversation = false;
     })
   }
 }));

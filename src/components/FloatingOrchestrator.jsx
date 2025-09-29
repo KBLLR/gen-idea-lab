@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import useStore from '../lib/store';
 import { sendMessageToOrchestrator } from '../lib/actions';
 import { personalities } from '../lib/assistant/personalities';
@@ -39,10 +39,12 @@ export default function FloatingOrchestrator() {
     const orchestratorModel = useStore.use.orchestratorModel();
     const connectedServices = useStore.use.connectedServices();
     const activeModuleId = useStore.use.activeModuleId();
+    const activeApp = useStore.use.activeApp();
 
     const toggleFloatingOrchestrator = useStore.use.actions().toggleFloatingOrchestrator;
     const setFloatingOrchestratorPosition = useStore.use.actions().setFloatingOrchestratorPosition;
     const setOrchestratorModel = useStore.use.actions().setOrchestratorModel;
+    const clearOrchestratorHistory = useStore.use.actions().clearOrchestratorHistory;
 
     const [input, setInput] = useState('');
     const [isMinimized, setIsMinimized] = useState(false);
@@ -55,9 +57,145 @@ export default function FloatingOrchestrator() {
     const [showToolsMenu, setShowToolsMenu] = useState(false);
     const [showModelSelector, setShowModelSelector] = useState(false);
     const [ollamaModels, setOllamaModels] = useState([]);
+    const [enableThinking, setEnableThinking] = useState(false);
+    const [thinkingBudget, setThinkingBudget] = useState('medium');
+    const [isContextAware, setIsContextAware] = useState(false);
 
     const historyRef = useRef(null);
     const windowRef = useRef(null);
+
+    // Function to gather context based on current app
+    const gatherAppContext = useCallback(async () => {
+        let context = '';
+
+        switch (activeApp) {
+            case 'planner':
+                try {
+                    const plannerGraph = useStore.getState().plannerGraph;
+                    if (plannerGraph) {
+                        context = `I'm currently in the Planner app. Here's the current workflow canvas:
+Title: ${plannerGraph.title || 'Untitled Flow'}
+Nodes: ${plannerGraph.nodes?.length || 0} blocks
+Edges: ${plannerGraph.edges?.length || 0} connections
+
+Workflow structure:
+${JSON.stringify(plannerGraph, null, 2)}
+
+I can help you:
+- Analyze and improve your workflow design
+- Suggest connections between blocks
+- Add missing components
+- Generate workflow titles
+- Convert to executable workflow
+`;
+                    } else {
+                        context = `I'm currently in the Planner app. The canvas is empty. I can help you:
+- Start building a workflow from scratch
+- Suggest workflow structures for common tasks
+- Explain how to connect different components
+- Add modules, assistants, tools, and model providers
+`;
+                    }
+                } catch (error) {
+                    context = `I'm currently in the Planner app. I can help you design and build workflows.`;
+                }
+                break;
+
+            case 'imageBooth':
+                context = `I'm currently in the Image Booth app. I can help you:
+- Generate images using AI models
+- Improve prompts for better results
+- Suggest creative ideas and concepts
+- Explain different image generation techniques
+- Work with style transfers and modifications
+`;
+                break;
+
+            case 'workflows':
+                context = `I'm currently in the Workflows app. I can help you:
+- Review and edit existing workflows
+- Create new workflow templates
+- Explain workflow steps and logic
+- Optimize workflow performance
+- Debug workflow issues
+`;
+                break;
+
+            case 'archiva':
+                context = `I'm currently in the Archiva app (documentation system). I can help you:
+- Create and organize documentation
+- Generate content based on templates
+- Structure information effectively
+- Review and improve existing documents
+- Search and retrieve information
+`;
+                break;
+
+            case 'ideaLab':
+            default:
+                const activeModule = activeModuleId ? useStore.getState().modules[activeModuleId] : null;
+                if (activeModule) {
+                    context = `I'm currently in the Idea Lab app, focused on the "${activeModule['Module Title']}" module.
+
+Module Details:
+- Code: ${activeModule['Module Code']}
+- Credits: ${activeModule['Credits']}
+- Prerequisites: ${activeModule['Prerequisites'] || 'None'}
+- Key Topics: ${activeModule['Key Contents / Topics'] || 'Not specified'}
+- Objectives: ${activeModule['Qualification Objectives']?.join(', ') || 'Not specified'}
+
+I can help you:
+- Understand this module's concepts
+- Work on assignments and projects
+- Connect ideas across different topics
+- Find relevant resources and tools
+`;
+                } else {
+                    context = `I'm currently in the Idea Lab app. I can help you:
+- Explore available modules and learning paths
+- Choose the right module for your goals
+- Understand prerequisites and requirements
+- Plan your learning journey
+`;
+                }
+                break;
+        }
+
+        return context;
+    }, [activeApp, activeModuleId]);
+
+    // Enhanced send message function with context awareness
+    const sendContextualMessage = useCallback(async (message) => {
+        let enhancedMessage = message;
+
+        if (isContextAware) {
+            const context = await gatherAppContext();
+            enhancedMessage = `${context}
+
+User Message: ${message}`;
+        }
+
+        sendMessageToOrchestrator(enhancedMessage, { enableThinking, thinkingBudget });
+    }, [isContextAware, gatherAppContext, enableThinking, thinkingBudget]);
+
+    // Function to start a new chat
+    const handleNewChat = useCallback(() => {
+        if (window.confirm('Start a new chat? This will clear the current conversation.')) {
+            clearOrchestratorHistory();
+        }
+    }, [clearOrchestratorHistory]);
+
+    // Function to invite a module assistant
+    const handleInviteAssistant = useCallback(async (moduleCode) => {
+        const module = useStore.getState().modules[moduleCode];
+        if (!module) return;
+
+        const personality = personalities[moduleCode];
+        const inviteMessage = `Please invite the ${personality?.name || moduleCode} assistant to join our conversation. They specialize in ${module['Module Title']} and can help with: ${module['Key Contents / Topics'] || 'module-specific topics'}.`;
+
+        sendContextualMessage(inviteMessage);
+        setShowInviteMenu(false);
+    }, [sendContextualMessage]);
 
     useEffect(() => {
         if (historyRef.current && !isMinimized) {
@@ -200,7 +338,7 @@ export default function FloatingOrchestrator() {
     const handleSubmit = (e) => {
         e.preventDefault();
         if (!input.trim()) return;
-        sendMessageToOrchestrator(input);
+        sendContextualMessage(input);
         setInput('');
     };
 
@@ -351,6 +489,20 @@ style={{
                         </div>
                         <div className="floating-orchestrator-header-actions">
                             <button
+                                onClick={() => setIsContextAware(!isContextAware)}
+                                className={`btn-icon ${isContextAware ? 'active' : ''}`}
+                                title={`App Awareness: ${isContextAware ? 'ON' : 'OFF'} - ${activeApp} context`}
+                            >
+                                <span className="icon">{isContextAware ? 'visibility' : 'visibility_off'}</span>
+                            </button>
+                            <button
+                                onClick={handleNewChat}
+                                className="btn-icon"
+                                title="New Chat"
+                            >
+                                <span className="icon">add_comment</span>
+                            </button>
+                            <button
                                 onClick={() => setIsMinimized(true)}
                                 className="btn-icon"
                                 title="Minimize"
@@ -428,21 +580,86 @@ style={{
                         </div>
                     </div>
 
+                    {/* Thinking Model Controls */}
+                    <div className="floating-orchestrator-controls">
+                        <div className="thinking-controls">
+                            <label className="thinking-toggle">
+                                <input
+                                    type="checkbox"
+                                    checked={enableThinking}
+                                    onChange={(e) => setEnableThinking(e.target.checked)}
+                                    disabled={isLoading}
+                                />
+                                <span className="icon">psychology</span>
+                                <span>Thinking Mode</span>
+                            </label>
+                            {enableThinking && (
+                                <select
+                                    value={thinkingBudget}
+                                    onChange={(e) => setThinkingBudget(e.target.value)}
+                                    disabled={isLoading}
+                                    className="thinking-budget"
+                                    title="Thinking effort level"
+                                >
+                                    <option value="low">Low effort</option>
+                                    <option value="medium">Medium effort</option>
+                                    <option value="high">High effort</option>
+                                </select>
+                            )}
+                        </div>
+                    </div>
+
                     <form onSubmit={handleSubmit}>
-                        <input
-                            type="text"
-                            value={input}
-                            onChange={(e) => setInput(e.target.value)}
-                            placeholder="Message orchestrator..."
-                            disabled={isLoading}
-                        />
-                        <button
-                            type="submit"
-                            disabled={isLoading || !input.trim()}
-                            className="send-btn"
-                        >
-                            <span className="icon">send</span>
-                        </button>
+                        <div className="input-container">
+                            <input
+                                type="text"
+                                value={input}
+                                onChange={(e) => setInput(e.target.value)}
+                                placeholder="Message orchestrator..."
+                                disabled={isLoading}
+                            />
+                            <div className="input-actions">
+                                <button
+                                    type="button"
+                                    onClick={() => setShowInviteMenu(!showInviteMenu)}
+                                    className="btn-invite"
+                                    title="Invite Module Assistant"
+                                >
+                                    <span className="icon">person_add</span>
+                                </button>
+                                <button
+                                    type="submit"
+                                    disabled={isLoading || !input.trim()}
+                                    className="send-btn"
+                                >
+                                    <span className="icon">send</span>
+                                </button>
+                            </div>
+                        </div>
+
+                        {showInviteMenu && (
+                            <div className="invite-menu">
+                                <div className="invite-menu-header">Invite Module Assistant</div>
+                                <div className="invite-menu-items">
+                                    {Object.values(useStore.getState().modules)
+                                        .filter(m => personalities[m['Module Code']])
+                                        .map(module => (
+                                            <button
+                                                key={module['Module Code']}
+                                                onClick={() => handleInviteAssistant(module['Module Code'])}
+                                                className="invite-menu-item"
+                                            >
+                                                <span className="icon">{personalities[module['Module Code']]?.icon || 'smart_toy'}</span>
+                                                <div>
+                                                    <div className="assistant-name">{personalities[module['Module Code']]?.name || module['Module Code']}</div>
+                                                    <div className="assistant-module">{module['Module Title']}</div>
+                                                </div>
+                                            </button>
+                                        ))
+                                    }
+                                </div>
+                            </div>
+                        )}
                     </form>
 
                     {/* Resize handle */}

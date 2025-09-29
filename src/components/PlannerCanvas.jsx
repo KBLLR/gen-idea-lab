@@ -3,11 +3,11 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { useCallback, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useMemo, useRef, useState, useEffect } from 'react';
 import useStore from '../lib/store';
 import { modules } from '../lib/modules';
 import { specializedTasks } from '../lib/assistant/tasks';
-import ReactFlow, { Background, Controls, MiniMap, addEdge, useEdgesState, useNodesState } from 'reactflow';
+import ReactFlow, { Background, Controls, MiniMap, addEdge, useEdgesState, useNodesState, useReactFlow, Handle, Position } from 'reactflow';
 import 'reactflow/dist/style.css';
 import '../styles/components/planner.css';
 
@@ -18,27 +18,212 @@ const nodeStyles = {
   tool: { className: 'node-card node-tool' },
   workflow: { className: 'node-card node-workflow' },
   connector: { className: 'node-card node-connector' },
+  source: { className: 'node-card node-source' },
+  'model-provider': { className: 'node-card node-model-provider' },
 };
 
 function LabelNode({ data }) {
   return (
     <div className={data.className}>
+      {/* Input handle on the left */}
+      <Handle
+        type="target"
+        position={Position.Left}
+        style={{
+          background: '#555',
+          width: 8,
+          height: 8,
+          border: '2px solid #fff',
+        }}
+      />
+
       <div className="node-title">{data.label}</div>
       {data.sub && <div className="node-sub">{data.sub}</div>}
+
+      {/* Output handle on the right */}
+      <Handle
+        type="source"
+        position={Position.Right}
+        style={{
+          background: '#555',
+          width: 8,
+          height: 8,
+          border: '2px solid #fff',
+        }}
+      />
     </div>
   );
 }
 
-const nodeTypes = { default: LabelNode };
+// Create a context for sharing setNodes function and canvas ref
+const NodeUpdateContext = React.createContext();
 
-// Extend mapping for dynamic class selection
-// Include source kind
-nodeStyles.source = { className: 'node-card node-source' };
+function ModelProviderNode({ data, id }) {
+  const [contextMenu, setContextMenu] = useState(null);
+  const [availableModels, setAvailableModels] = useState([]);
+  const connectedServices = useStore.use.connectedServices();
+  const { updateNode, canvasRef } = React.useContext(NodeUpdateContext);
+  const { screenToFlowPosition } = useReactFlow();
+
+  const handleDoubleClick = useCallback(async (event) => {
+    event.preventDefault();
+    event.stopPropagation();
+
+    // Ensure the node is not in selected state for double-click to work
+    if (event.detail === 2) { // Verify it's actually a double-click
+
+    // Fetch available models for this provider
+    let models = [];
+    try {
+      if (data.providerId === 'gemini') {
+        models = [
+          { id: 'gemini-2.0-flash-exp', name: 'Gemini 2.0 Flash', description: 'Experimental' },
+          { id: 'gemini-1.5-pro', name: 'Gemini 1.5 Pro', description: 'Balanced' },
+          { id: 'gemini-1.5-flash', name: 'Gemini 1.5 Flash', description: 'Fast' },
+        ];
+      } else if (data.providerId === 'openai' && connectedServices?.openai?.connected) {
+        models = [
+          { id: 'gpt-4o', name: 'GPT-4o', description: 'Advanced' },
+          { id: 'gpt-4o-mini', name: 'GPT-4o Mini', description: 'Efficient' },
+        ];
+      } else if (data.providerId === 'claude' && connectedServices?.claude?.connected) {
+        models = [
+          { id: 'claude-3-5-sonnet-20241022', name: 'Claude 3.5 Sonnet', description: 'Smart' },
+          { id: 'claude-3-5-haiku-20241022', name: 'Claude 3.5 Haiku', description: 'Quick' },
+        ];
+      } else if (data.providerId === 'ollama' && connectedServices?.ollama?.connected) {
+        const response = await fetch('/api/ollama/models', { credentials: 'include' });
+        if (response.ok) {
+          const modelData = await response.json();
+          models = (modelData.models || []).map(m => ({
+            id: m.name,
+            name: m.name,
+            description: 'Local'
+          }));
+        }
+      }
+    } catch (error) {
+      console.error('Failed to fetch models:', error);
+    }
+
+    setAvailableModels(models);
+
+    // Get the canvas container bounds to position relative to it
+    const canvasRect = canvasRef?.current?.getBoundingClientRect();
+    if (canvasRect) {
+      setContextMenu({
+        x: event.clientX - canvasRect.left + 2,
+        y: event.clientY - canvasRect.top + 2,
+      });
+    } else {
+      setContextMenu({
+        x: event.clientX + 2,
+        y: event.clientY + 2,
+      });
+    }
+    } // Close the event.detail === 2 check
+  }, [data, connectedServices]);
+
+  const handleModelSelect = useCallback((model) => {
+    if (updateNode) {
+      updateNode(id, {
+        selectedModel: model,
+        sub: `Model: ${model.name}${model.description ? ` (${model.description})` : ''}`
+      });
+    }
+    setContextMenu(null);
+  }, [id, updateNode]);
+
+  const handleClickOutside = useCallback((event) => {
+    if (contextMenu && !event.target.closest('.context-menu')) {
+      setContextMenu(null);
+    }
+  }, [contextMenu]);
+
+  // Close context menu on outside click
+  useEffect(() => {
+    if (contextMenu) {
+      document.addEventListener('click', handleClickOutside);
+      return () => document.removeEventListener('click', handleClickOutside);
+    }
+  }, [contextMenu, handleClickOutside]);
+
+  return (
+    <div className={data.className} onDoubleClick={handleDoubleClick}>
+      {/* Input handle on the left */}
+      <Handle
+        type="target"
+        position={Position.Left}
+        style={{
+          background: '#555',
+          width: 8,
+          height: 8,
+          border: '2px solid #fff',
+        }}
+      />
+
+      <div className="node-title">{data.label}</div>
+      {data.sub && <div className="node-sub">{data.sub}</div>}
+
+      {/* Output handle on the right */}
+      <Handle
+        type="source"
+        position={Position.Right}
+        style={{
+          background: '#555',
+          width: 8,
+          height: 8,
+          border: '2px solid #fff',
+        }}
+      />
+
+      {contextMenu && (
+        <div
+          className="context-menu"
+          style={{
+            position: 'fixed',
+            left: contextMenu.x,
+            top: contextMenu.y,
+            zIndex: 1000,
+          }}
+        >
+          <div className="context-menu-header">Select Model</div>
+          {availableModels.length === 0 ? (
+            <div className="context-menu-item disabled">No models available</div>
+          ) : (
+            availableModels.map((model) => (
+              <div
+                key={model.id}
+                className="context-menu-item"
+                onClick={() => handleModelSelect(model)}
+              >
+                <div className="model-name">{model.name}</div>
+                {model.description && (
+                  <div className="model-description">{model.description}</div>
+                )}
+              </div>
+            ))
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+const nodeTypes = {
+  default: LabelNode,
+  'model-provider': ModelProviderNode,
+};
+
+// Note: nodeStyles now include source and model-provider
 
 export default function PlannerCanvas() {
   const persisted = useStore.use.plannerGraph?.() || { nodes: [], edges: [] };
   const [nodes, setNodes, onNodesChange] = useNodesState(persisted.nodes || []);
   const [edges, setEdges, onEdgesChange] = useEdgesState(persisted.edges || []);
+  const [workflowTitle, setWorkflowTitle] = useState(persisted.title || '');
+  const [isEditingTitle, setIsEditingTitle] = useState(false);
+  const [isGeneratingTitle, setIsGeneratingTitle] = useState(false);
   const setActiveApp = useStore.use.actions().setActiveApp;
   const addCustomWorkflow = useStore.use.actions().addCustomWorkflow;
 
@@ -46,6 +231,16 @@ export default function PlannerCanvas() {
   const fileInputRef = useRef(null);
 
   const onConnect = useCallback((params) => setEdges((eds) => addEdge(params, eds)), [setEdges]);
+
+  // Handle node clicks to manage selection state
+  const onNodeClick = useCallback((event, node) => {
+    // Allow normal selection behavior, but ensure double-click works
+  }, []);
+
+  // Add a canvas click handler to deselect nodes
+  const onPaneClick = useCallback(() => {
+    setNodes((nds) => nds.map((node) => ({ ...node, selected: false })));
+  }, [setNodes]);
 
   const onDragOver = useCallback((event) => {
     event.preventDefault();
@@ -83,11 +278,18 @@ export default function PlannerCanvas() {
     }
 
     // Add the dropped node
+    const nodeType = item.kind === 'model-provider' ? 'model-provider' : 'default';
     setNodes((nds) => nds.concat({
       id: nid,
-      type: 'default',
+      type: nodeType,
       position,
-      data: { label: item.label, className: styleClass, sub: subText },
+      data: {
+        label: item.label,
+        className: styleClass,
+        sub: subText,
+        kind: item.kind,
+        providerId: item.id, // Store the provider ID for model providers
+      },
     }));
 
     // If it's an assistant, auto-add its specialized tasks and connect
@@ -366,16 +568,134 @@ export default function PlannerCanvas() {
     reader.readAsText(file);
   }, [setNodes, setEdges]);
 
-  // Persist planner graph on each render change
-  useMemo(() => {
+  // Function to update node data
+  const updateNode = useCallback((nodeId, updates) => {
+    setNodes((nds) =>
+      nds.map((node) =>
+        node.id === nodeId
+          ? { ...node, data: { ...node.data, ...updates } }
+          : node
+      )
+    );
+  }, [setNodes]);
+
+  // Handle title editing
+  const handleTitleDoubleClick = useCallback(() => {
+    setIsEditingTitle(true);
+  }, []);
+
+  const handleTitleChange = useCallback((e) => {
+    setWorkflowTitle(e.target.value);
+  }, []);
+
+  const handleTitleBlur = useCallback(() => {
+    setIsEditingTitle(false);
+  }, []);
+
+  const handleTitleKeyPress = useCallback((e) => {
+    if (e.key === 'Enter') {
+      setIsEditingTitle(false);
+    }
+  }, []);
+
+  // AI naming function
+  const generateAITitle = useCallback(async () => {
+    if (isGeneratingTitle) return; // Prevent double-clicks
+
+    try {
+      console.log('Generating AI title...');
+      setIsGeneratingTitle(true);
+
+      const flowData = { nodes, edges };
+
+      // Show loading state
+      setWorkflowTitle('Generating title...');
+
+      const response = await fetch('/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          model: 'gemini-1.5-flash',
+          messages: [{
+            role: 'user',
+            content: `Analyze this workflow/flow data and suggest a concise, descriptive title (2-4 words max): ${JSON.stringify(flowData, null, 2)}`
+          }]
+        }),
+        credentials: 'include'
+      });
+
+      console.log('Response status:', response.status);
+
+      if (response.ok) {
+        const data = await response.json();
+        console.log('API response:', data);
+
+        // Try different possible response formats
+        let suggestedTitle = data.content || data.response || data.message || data.text;
+
+        if (suggestedTitle) {
+          suggestedTitle = suggestedTitle.replace(/['"]/g, '').trim();
+          console.log('Suggested title:', suggestedTitle);
+          setWorkflowTitle(suggestedTitle);
+        } else {
+          console.warn('No title in response:', data);
+          setWorkflowTitle('AI Generated Flow');
+        }
+      } else {
+        console.error('API error:', response.status, response.statusText);
+        const errorData = await response.json().catch(() => ({}));
+        console.error('Error details:', errorData);
+        setWorkflowTitle(''); // Reset to empty
+      }
+    } catch (error) {
+      console.error('Failed to generate AI title:', error);
+      setWorkflowTitle(''); // Reset to empty
+    } finally {
+      setIsGeneratingTitle(false);
+    }
+  }, [nodes, edges, isGeneratingTitle]);
+
+  // Persist planner graph on each change
+  useEffect(() => {
     const actions = useStore.getState().actions;
     if (actions && actions.setPlannerGraph) {
-      actions.setPlannerGraph({ nodes, edges });
+      actions.setPlannerGraph({ nodes, edges, title: workflowTitle });
     }
-  }, [nodes, edges]);
+  }, [nodes, edges, workflowTitle]);
 
   return (
     <div className="planner-canvas-container">
+      {/* Workflow Title in upper left corner */}
+      <div className="workflow-title-container">
+        {isEditingTitle ? (
+          <input
+            type="text"
+            value={workflowTitle}
+            onChange={handleTitleChange}
+            onBlur={handleTitleBlur}
+            onKeyPress={handleTitleKeyPress}
+            placeholder="Title your Flow"
+            className="workflow-title-input"
+            autoFocus
+          />
+        ) : (
+          <div
+            className="workflow-title-display"
+            onDoubleClick={handleTitleDoubleClick}
+          >
+            {workflowTitle || 'Title your Flow'}
+          </div>
+        )}
+        <button
+          className="btn btn-ai-title"
+          onClick={generateAITitle}
+          disabled={isGeneratingTitle}
+          title={isGeneratingTitle ? "Generating title..." : "Generate title with AI"}
+        >
+          <span className="icon">{isGeneratingTitle ? 'hourglass_empty' : 'auto_awesome'}</span>
+        </button>
+      </div>
+
       <div className="planner-toolbar">
         <button className="btn btn-secondary btn-sm" onClick={clear}>
           <span className="icon">delete</span> Clear
@@ -398,21 +718,25 @@ export default function PlannerCanvas() {
         />
       </div>
       <div className="planner-canvas" ref={rfRef}>
-        <ReactFlow
-          nodes={nodes}
-          edges={edges}
-          onNodesChange={onNodesChange}
-          onEdgesChange={onEdgesChange}
-          onConnect={onConnect}
-          onDrop={onDrop}
-          onDragOver={onDragOver}
-          nodeTypes={nodeTypes}
-          fitView
-        >
-          <MiniMap />
-          <Controls />
-          <Background gap={16} />
-        </ReactFlow>
+        <NodeUpdateContext.Provider value={{ updateNode, canvasRef: rfRef }}>
+          <ReactFlow
+            nodes={nodes}
+            edges={edges}
+            onNodesChange={onNodesChange}
+            onEdgesChange={onEdgesChange}
+            onConnect={onConnect}
+            onDrop={onDrop}
+            onDragOver={onDragOver}
+            onNodeClick={onNodeClick}
+            onPaneClick={onPaneClick}
+            nodeTypes={nodeTypes}
+            fitView
+          >
+            <MiniMap />
+            <Controls />
+            <Background gap={16} />
+          </ReactFlow>
+        </NodeUpdateContext.Provider>
       </div>
     </div>
   );

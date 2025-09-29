@@ -97,7 +97,8 @@ export const updateModuleResourceUrl = (moduleId, resourceType, url) => {
 
 
 // --- Orchestrator Actions ---
-export const sendMessageToOrchestrator = async (message) => {
+export const sendMessageToOrchestrator = async (message, options = {}) => {
+    const { enableThinking = false, thinkingBudget = 'medium' } = options;
     if (!message.trim()) return;
 
     set(state => {
@@ -256,7 +257,9 @@ Be helpful, concise, and action-oriented. Ask clarifying questions when needed.`
                 body: JSON.stringify({
                     model,
                     messages: conversationHistory,
-                    systemPrompt: systemPrompt
+                    systemPrompt: systemPrompt,
+                    enableThinking,
+                    thinkingBudget
                 })
             });
             const raw = await resp.text();

@@ -54,26 +54,32 @@ function AgentToolsList() {
   ];
 }
 
-function SourcesList() {
-  // External sources/connectors
+function SourcesList(connectedServices) {
+  // External data sources/connectors
   return [
-    { id: 'github', label: 'GitHub', kind: 'source' },
-    { id: 'notion', label: 'Notion', kind: 'source' },
-    { id: 'figma', label: 'Figma', kind: 'source' },
-    { id: 'googledrive', label: 'Google Drive', kind: 'source' },
-    { id: 'googlephotos', label: 'Google Photos', kind: 'source' },
-    { id: 'googlecalendar', label: 'Google Calendar', kind: 'source' },
-    { id: 'gmail', label: 'Gmail', kind: 'source' },
-    { id: 'openai', label: 'OpenAI', kind: 'source' },
-    { id: 'claude', label: 'Claude', kind: 'source' },
-    { id: 'gemini', label: 'Gemini', kind: 'source' },
-    { id: 'ollama', label: 'Ollama', kind: 'source' },
+    { id: 'github', label: 'GitHub', kind: 'source', connected: connectedServices?.github?.connected || false },
+    { id: 'notion', label: 'Notion', kind: 'source', connected: connectedServices?.notion?.connected || false },
+    { id: 'figma', label: 'Figma', kind: 'source', connected: connectedServices?.figma?.connected || false },
+    { id: 'googledrive', label: 'Google Drive', kind: 'source', connected: connectedServices?.googledrive?.connected || false },
+    { id: 'googlephotos', label: 'Google Photos', kind: 'source', connected: connectedServices?.googlephotos?.connected || false },
+    { id: 'googlecalendar', label: 'Google Calendar', kind: 'source', connected: connectedServices?.googlecalendar?.connected || false },
+    { id: 'gmail', label: 'Gmail', kind: 'source', connected: connectedServices?.gmail?.connected || false },
   ];
 }
 
-function WorkflowsList() {
+function ModelProvidersList(connectedServices) {
+  // AI model providers
+  return [
+    { id: 'openai', label: 'OpenAI', kind: 'model-provider', icon: 'smart_toy', connected: connectedServices?.openai?.connected || false },
+    { id: 'claude', label: 'Claude', kind: 'model-provider', icon: 'psychology', connected: connectedServices?.claude?.connected || false },
+    { id: 'gemini', label: 'Gemini', kind: 'model-provider', icon: 'auto_awesome', connected: true }, // Built-in, always connected
+    { id: 'ollama', label: 'Ollama', kind: 'model-provider', icon: 'computer', connected: connectedServices?.ollama?.connected || false },
+  ];
+}
+
+function WorkflowsList(customWorkflows) {
   // Read built-in and custom workflows in components when needed
-  const custom = useStore.use.customWorkflows?.() || {};
+  const custom = customWorkflows || {};
   // Built-in list kept in Workflows app; here we only enable dragging existing ones by id
   const builtIn = []; // Kept minimal; can be connected later to lib/workflows if needed
   return [...builtIn, ...Object.values(custom).map(w => ({ id: w.id, label: w.title, kind: 'workflow' }))];
@@ -85,6 +91,7 @@ const ACCORDION_SECTIONS = [
   { id: 'tasks', title: 'Tasks' },
   { id: 'tools', title: 'Tools (Agent)' },
   { id: 'sources', title: 'Sources' },
+  { id: 'model-providers', title: 'Model Providers' },
   { id: 'workflows', title: 'Workflows' },
   { id: 'connectors', title: 'Connectors' },
 ];
@@ -94,23 +101,34 @@ function DraggableItem({ item }) {
     e.dataTransfer.setData('application/x-planner', JSON.stringify(item));
     e.dataTransfer.effectAllowed = 'copy';
   };
+
+  const showConnectionStatus = item.kind === 'source' || item.kind === 'model-provider';
+
   return (
     <div className="planner-item" draggable onDragStart={onDragStart} title={item.label}>
       <span className="icon">{item.icon || 'drag_indicator'}</span>
       <span className="label">{item.label}</span>
+      {showConnectionStatus && (
+        <span className={`connection-status ${item.connected ? 'connected' : 'disconnected'}`}
+              title={item.connected ? 'Connected' : 'Disconnected'}>
+        </span>
+      )}
     </div>
   );
 }
 
 export default function PlannerSidebar() {
-  const [open, setOpen] = useState({ modules: true, assistants: true, tasks: false, tools: false, workflows: false, connectors: false });
+  const [open, setOpen] = useState({ modules: true, assistants: true, tasks: false, tools: false, sources: false, 'model-providers': false, workflows: false, connectors: false });
+  const connectedServices = useStore.use.connectedServices();
+  const customWorkflows = useStore.use.customWorkflows?.() || {};
 
   const modulesList = useModulesList();
   const assistants = useAssistants();
   const tasks = useTasksList();
   const tools = AgentToolsList();
-  const sources = SourcesList();
-  const workflows = WorkflowsList();
+  const sources = SourcesList(connectedServices);
+  const modelProviders = ModelProvidersList(connectedServices);
+  const workflows = WorkflowsList(customWorkflows);
   const connectors = [
     { id: 'connector:sequence', label: 'Sequence', kind: 'connector' },
     { id: 'connector:parallel', label: 'Parallel', kind: 'connector' },
@@ -125,6 +143,7 @@ export default function PlannerSidebar() {
     tasks,
     tools,
     sources,
+    'model-providers': modelProviders,
     workflows,
     connectors,
   };

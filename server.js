@@ -17,6 +17,29 @@ import { verifyGoogleToken, generateJWT, requireAuth, optionalAuth } from './src
 // In ES modules, __dirname is not available. path.resolve() provides the project root.
 const __dirname = path.resolve();
 
+// Development environment checks
+const isDevelopment = process.env.NODE_ENV !== 'production';
+if (isDevelopment) {
+  console.log('🔧 Development mode - Environment variables check:');
+  const requiredEnvVars = ['GOOGLE_API_KEY', 'AUTH_SECRET'];
+  const optionalEnvVars = ['GEMINI_API_KEY', 'OPENAI_API_KEY', 'CLAUDE_API_KEY', 'GOOGLE_CLIENT_ID', 'GOOGLE_CLIENT_SECRET'];
+
+  console.log('✅ Required variables:');
+  requiredEnvVars.forEach(varName => {
+    const value = process.env[varName];
+    console.log(`   ${varName}: ${value ? '✓ Set' : '❌ Missing'}`);
+  });
+
+  console.log('🔧 Optional variables:');
+  optionalEnvVars.forEach(varName => {
+    const value = process.env[varName];
+    console.log(`   ${varName}: ${value ? '✓ Set' : '⚠️  Not set'}`);
+  });
+
+  console.log('📁 Current working directory:', process.cwd());
+  console.log('📄 .env file should be at:', path.join(process.cwd(), '.env'));
+}
+
 const app = express();
 app.use(cookieParser());
 
@@ -608,7 +631,7 @@ app.post('/api/chat', requireAuth, async (req, res) => {
     // Determine which service to use based on model name
     let service, response;
 
-    if (model.startsWith('gpt-') || model.includes('openai')) {
+    if ((model.startsWith('gpt-') && !model.includes('gpt-oss')) || model.includes('openai')) {
       // OpenAI models
       service = 'openai';
       const connection = connections[service];
@@ -625,18 +648,25 @@ app.post('/api/chat', requireAuth, async (req, res) => {
         openaiMessages.unshift({ role: 'system', content: systemPrompt });
       }
 
+      const requestBody = {
+        model: model,
+        messages: openaiMessages,
+        max_tokens: 2000,
+        temperature: 0.7
+      };
+
+      // Add thinking model support for GPT-OSS models
+      if (enableThinking && (model.includes('gpt-oss') || model.includes('reasoning'))) {
+        requestBody.reasoning_effort = thinkingBudget === 'low' ? 'low' : thinkingBudget === 'high' ? 'high' : 'medium';
+      }
+
       const openaiResponse = await fetch('https://api.openai.com/v1/chat/completions', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${connection.apiKey}`,
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify({
-          model: model,
-          messages: openaiMessages,
-          max_tokens: 2000,
-          temperature: 0.7
-        })
+        body: JSON.stringify(requestBody)
       });
 
       const openaiData = await openaiResponse.json();
@@ -645,6 +675,11 @@ app.post('/api/chat', requireAuth, async (req, res) => {
       }
 
       response = openaiData.choices[0].message.content;
+
+      // Include reasoning for GPT-OSS thinking models
+      if (enableThinking && openaiData.choices[0].message.reasoning) {
+        response = `**Reasoning Process:**\n${openaiData.choices[0].message.reasoning}\n\n**Final Answer:**\n${response}`;
+      }
 
     } else if (model.startsWith('claude-') || model.includes('anthropic')) {
       // Claude models
@@ -681,8 +716,8 @@ app.post('/api/chat', requireAuth, async (req, res) => {
 
       response = claudeData.content[0].text;
 
-    } else if (connections.ollama?.connected) {
-      // Check if this looks like an Ollama model or if Ollama is the only available service
+    } else if (model.includes('gpt-oss') || model.includes('deepseek') || model.includes('llama') || model.includes('qwen') || connections.ollama?.connected) {
+      // Ollama models (including gpt-oss) or fallback if Ollama is connected
       service = 'ollama';
       const connection = connections[service];
 
@@ -706,14 +741,21 @@ app.post('/api/chat', requireAuth, async (req, res) => {
         ollamaUrl = `${connection.url}/api/chat`;
       }
 
+      const requestBody = {
+        model: model,
+        messages: ollamaMessages,
+        stream: false
+      };
+
+      // Add thinking model support for DeepSeek-R1 and other thinking models
+      if (enableThinking && (model.includes('deepseek-r1') || model.includes('thinking') || model.includes('reasoning'))) {
+        requestBody.think = true;
+      }
+
       const ollamaResponse = await fetch(ollamaUrl, {
         method: 'POST',
         headers,
-        body: JSON.stringify({
-          model: model,
-          messages: ollamaMessages,
-          stream: false
-        })
+        body: JSON.stringify(requestBody)
       });
 
       const ollamaData = await ollamaResponse.json();
@@ -722,6 +764,11 @@ app.post('/api/chat', requireAuth, async (req, res) => {
       }
 
       response = ollamaData.message.content;
+
+      // Include thinking process for Ollama thinking models
+      if (enableThinking && ollamaData.message.thinking) {
+        response = `**Thinking Process:**\n${ollamaData.message.thinking}\n\n**Final Answer:**\n${response}`;
+      }
 
     } else {
       // Default to Gemini for built-in models
@@ -741,12 +788,29 @@ app.post('/api/chat', requireAuth, async (req, res) => {
         });
       }
 
-      const geminiResponse = await ai.models.generateContent({
+      const requestConfig = {
         model: model,
         contents: geminiContents
-      });
+      };
+
+      // Add thinking model support for Gemini 2.5
+      if (enableThinking && (model.includes('2.5') || model.includes('thinking'))) {
+        requestConfig.generationConfig = {
+          thinkingConfig: {
+            thinkingBudget: thinkingBudget,
+            includeThoughts: true
+          }
+        };
+      }
+
+      const geminiResponse = await ai.models.generateContent(requestConfig);
 
       response = geminiResponse.candidates[0].content.parts[0].text;
+
+      // Include thinking process for Gemini thinking models
+      if (enableThinking && geminiResponse.candidates[0].content.thoughtSummary) {
+        response = `**Thought Summary:**\n${geminiResponse.candidates[0].content.thoughtSummary}\n\n**Final Answer:**\n${response}`;
+      }
     }
 
     res.json({ response, service });
