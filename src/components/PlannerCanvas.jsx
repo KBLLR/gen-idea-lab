@@ -418,8 +418,16 @@ export default function PlannerCanvas() {
       y: event.clientY - bounds.top,
     };
 
-    const baseId = `${item.kind}:${item.id}`;
-    const nid = `${baseId}:${Date.now()}`;
+    let nid;
+    let connectorType;
+    if (item.kind === 'connector') {
+      const [, subtypeRaw = ''] = item.id.split(':');
+      connectorType = subtypeRaw || 'sequence';
+      nid = `connector:${connectorType}:${Date.now()}`;
+    } else {
+      const baseId = `${item.kind}:${item.id}`;
+      nid = `${baseId}:${Date.now()}`;
+    }
     const styleClass = (nodeStyles[item.kind] || {}).className || 'node-card';
 
     // Determine subtext for modules
@@ -449,6 +457,7 @@ export default function PlannerCanvas() {
         sub: subText || (item.kind === 'archiva-template' ? `${item.templateType} Template` : undefined),
         kind: item.kind,
         providerId: item.id, // Store the provider ID for model providers
+        ...(connectorType ? { connectorType } : {}),
         // ArchivAI template specific data
         ...(item.kind === 'archiva-template' && {
           templateType: item.templateType,
@@ -495,7 +504,9 @@ export default function PlannerCanvas() {
     // Identify tasks and connectors
     const taskNodes = nodes.filter(n => n.id.startsWith('task'))
       .sort((a, b) => a.position.y - b.position.y || a.position.x - b.position.x);
-    const connectors = nodes.filter(n => n.id.startsWith('connector'));
+    const connectors = nodes.filter(
+      (n) => n?.data?.kind === 'connector' || n.id.startsWith('connector')
+    );
 
     const assistantNode = nodes.find(n => n.id.startsWith('assistant'));
     const moduleNode = nodes.find(n => n.id.startsWith('module'));
@@ -524,7 +535,16 @@ export default function PlannerCanvas() {
     // Connector-based dependencies
     const seqPairs = []; // for consolidation
     connectors.forEach(cn => {
-      const kind = (cn.id.split(':')[1] || '').toLowerCase();
+      const idParts = cn.id.split(':');
+      let fallbackType = '';
+      if (idParts[0] === 'connector') {
+        if (idParts[1] && idParts[1] !== 'connector') {
+          fallbackType = idParts[1];
+        } else if (idParts.length > 2) {
+          fallbackType = idParts[2];
+        }
+      }
+      const kind = (cn.data?.connectorType || fallbackType || '').toLowerCase();
       const groupId = cn.id;
       const upstream = edges
         .filter(e => e.target === cn.id && e.source?.startsWith('task'))
