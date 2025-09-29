@@ -11,6 +11,7 @@ import gen from './llm.js'
 import modes from './modes.js'
 import { workflowTemplates, getWorkflowsForModule, getWorkflowById } from './workflows.js'
 import { templates } from './archiva/templates.js';
+import { chunkText, upsertModuleChunks } from './rag.js';
 
 const get = useStore.getState
 const set = useStore.setState
@@ -33,7 +34,7 @@ export const toggleTheme = () => {
 
 
 // --- App Switching Actions ---
-const apps = ['ideaLab', 'imageBooth', 'archiva', 'workflows'];
+const apps = ['ideaLab', 'imageBooth', 'archiva', 'workflows', 'planner'];
 
 export const switchApp = (direction) => {
   set(state => {
@@ -44,7 +45,22 @@ export const switchApp = (direction) => {
     } else {
       nextIndex = (currentIndex - 1 + apps.length) % apps.length;
     }
-    state.activeApp = apps[nextIndex];
+
+    const newApp = apps[nextIndex];
+    const wasInIdeaLab = state.activeApp === 'ideaLab';
+    const goingToIdeaLab = newApp === 'ideaLab';
+
+    // If switching away from ideaLab and user has had a conversation, show floating orchestrator
+    if (wasInIdeaLab && !goingToIdeaLab && state.orchestratorHasConversation) {
+      state.isFloatingOrchestratorOpen = true;
+    }
+
+    // If switching back to ideaLab, hide floating orchestrator
+    if (goingToIdeaLab && state.isFloatingOrchestratorOpen) {
+      state.isFloatingOrchestratorOpen = false;
+    }
+
+    state.activeApp = newApp;
   });
 };
 
@@ -86,6 +102,8 @@ export const sendMessageToOrchestrator = async (message) => {
 
     set(state => {
         state.orchestratorHistory.push({ role: 'user', parts: [{ text: message }] });
+        // Mark that user has started a conversation
+        state.orchestratorHasConversation = true;
     });
 
     // --- Slash Command Handling ---
@@ -194,12 +212,76 @@ export const sendMessageToOrchestrator = async (message) => {
     // --- Regular Message to Orchestrator ---
     set({ isOrchestratorLoading: true });
 
-    await new Promise(res => setTimeout(res, 1500)); // Simulate API call
+    try {
+        const { orchestratorModel, orchestratorHistory } = get();
 
-    set(state => {
-        state.isOrchestratorLoading = false;
-        state.orchestratorHistory.push({ role: 'model', parts: [{ text: `This is a simulated response from the Orchestrator about "${message}". In the future, I will be able to reason, invite agents, and use tools to help you.` }] });
-    });
+        // Create orchestrator system prompt
+        const systemPrompt = `You are the Orchestrator, a project coordinator AI assistant. Your role is to:
+1. Help users plan and manage their projects
+2. Invite relevant module agents when needed using /invite
+3. Use web search when needed using /search <query>
+4. Coordinate between different agents and tools
+5. Provide clear, actionable guidance
+
+Available commands:
+- /invite - Invite a module agent to help (user must select a module first)
+- /search <query> - Search the web for information
+
+Be helpful, concise, and action-oriented. Ask clarifying questions when needed.`;
+
+        // Build conversation history for context
+        const conversationHistory = orchestratorHistory.map(msg => {
+            if (msg.role === 'user') {
+                return { role: 'user', content: msg.parts[0].text };
+            } else if (msg.role === 'model') {
+                return { role: 'assistant', content: msg.parts[0].text };
+            }
+            return null;
+        }).filter(Boolean);
+
+        // Add current message
+        conversationHistory.push({ role: 'user', content: message });
+
+        // Make API call using the selected orchestrator model via universal chat endpoint
+        const response = await fetch('/api/chat', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            credentials: 'include',
+            body: JSON.stringify({
+                model: orchestratorModel,
+                messages: conversationHistory,
+                systemPrompt: systemPrompt
+            })
+        });
+
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
+        }
+
+        const data = await response.json();
+        const aiResponse = data.response;
+
+        set(state => {
+            state.isOrchestratorLoading = false;
+            state.orchestratorHistory.push({
+                role: 'model',
+                parts: [{ text: aiResponse }]
+            });
+        });
+
+    } catch (error) {
+        console.error('Orchestrator API call failed:', error);
+        set(state => {
+            state.isOrchestratorLoading = false;
+            state.orchestratorHistory.push({
+                role: 'system',
+                parts: [{ text: `*Error: Failed to get response from orchestrator. ${error.message}*` }]
+            });
+        });
+    }
 };
 
 // --- Assistant Actions (Floating Chat) ---
@@ -218,6 +300,16 @@ export const sendAssistantMessage = async (content) => {
         state.assistantHistories[activeModuleId].push({ role: 'user', content });
         state.isAssistantLoading = true;
     });
+
+    // Best-effort: upsert user content into per-module RAG using Ollama embeddings
+    try {
+      const chunks = chunkText(content);
+      if (chunks.length) {
+        await upsertModuleChunks(activeModuleId, chunks, {});
+      }
+    } catch (e) {
+      console.warn('RAG upsert failed (non-blocking):', e.message);
+    }
 
     const currentHistory = get().assistantHistories[activeModuleId];
     const response = await getAssistantResponse(currentHistory, activeModuleId);
@@ -408,8 +500,14 @@ export const loginWithGoogle = async (idToken) => {
       });
       return { success: true };
     } else {
-      const errorData = await response.json();
-      return { success: false, error: errorData.error };
+      // Robust error parsing: try JSON first, then fallback to text
+      const raw = await response.text();
+      try {
+        const errorData = JSON.parse(raw);
+        return { success: false, error: errorData.error || raw };
+      } catch (e) {
+        return { success: false, error: raw || `Login failed with status ${response.status}` };
+      }
     }
   } catch (error) {
     console.error('Login failed:', error);

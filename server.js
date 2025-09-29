@@ -72,6 +72,15 @@ app.use((req, res, next) => {
   }
 });
 
+// Relax COOP/COEP for OAuth popups and Google One Tap
+app.use((req, res, next) => {
+  // Allow popups to communicate back to opener
+  res.setHeader('Cross-Origin-Opener-Policy', 'same-origin-allow-popups');
+  // Avoid strict COEP that can break third-party iframes; credentialless is a safer default
+  res.setHeader('Cross-Origin-Embedder-Policy', 'credentialless');
+  next();
+});
+
 const port = process.env.PORT || 8081;
 
 // Initialize Google Auth for Gemini API with OAuth2
