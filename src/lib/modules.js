@@ -4,7 +4,7 @@
 */
 
 // Import the complete module data from JSON
-import moduleData from '../../docs/modules-code-university.json';
+import moduleData from '../data/modules-code-university.json';
 
 // Add resources field to each module for compatibility
 const rawModules = moduleData.map(module => ({
@@ -19,22 +19,22 @@ const rawModules = moduleData.map(module => ({
 
 // Clean the data by removing citation marks
 const cleanString = (str) => {
-    if (typeof str !== 'string') return str;
-    return str.replace(/:contentReference\[oaicite:\d+\]\{index=\d+\}/g, '').trim();
+  if (typeof str !== 'string') return str;
+  return str.replace(/:contentReference\[oaicite:\d+\]\{index=\d+\}/g, '').trim();
 }
 
 const cleanedModules = rawModules.map(module => {
-    const cleanedModule = {};
-    for (const key in module) {
-        if (Array.isArray(module[key])) {
-            cleanedModule[key] = module[key].map(cleanString);
-        } else {
-            cleanedModule[key] = cleanString(module[key]);
-        }
+  const cleanedModule = {};
+  for (const key in module) {
+    if (Array.isArray(module[key])) {
+      cleanedModule[key] = module[key].map(cleanString);
+    } else {
+      cleanedModule[key] = cleanString(module[key]);
     }
-    return cleanedModule;
+  }
+  return cleanedModule;
 })
-.filter(module => !module['Module Code'].startsWith('BM_')); // Remove BM modules
+  .filter(module => !module['Module Code'].startsWith('BM_')); // Remove BM modules
 
 // Create a lookup object by module code
 export const modules = cleanedModules.reduce((acc, module) => {
