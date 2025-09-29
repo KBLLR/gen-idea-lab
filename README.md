@@ -2,12 +2,12 @@
 <img width="1200" height="475" alt="GHBanner" src="https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6" />
 </div>
 
-# ProjectGen Booth Idea Lab
+# Academic Mods Idea Lab
 
 GenBooth Idea Lab is a comprehensive educational platform designed for CODE University of Applied Sciences students, integrating AI-powered learning assistance with project management and creative tools.
 
 **Application Suite:**
-- **Idea Lab** — AI-assisted academic module exploration with specialized agents and Orchestrator Chat
+- **Academic Mods** — AI-assisted academic module exploration with specialized agents and Orchestrator Chat
 - **Image Booth** — Creative AI image transformation powered by Google Gemini
 - **Archiva** — Documentation and project archive system with templates
 - **Workflows** — Guided, multi-step processes for design, engineering, and orchestration
@@ -50,7 +50,7 @@ See also: reports/multi-agent-systems.md for an in-depth architecture and provid
 
 ## Purpose & Features
 
-### 🎓 Idea Lab (Academic Focus)
+### 🎓 Academic Mods (Academic Focus)
 - **Module System**: Organized by CODE University semester structure (Orientation, Core 2–5, Synthesis)
 - **AI Agents**: Each academic module (Design, SE, STS) has specialized AI personalities
 - **Orchestrator Chat**: Central AI coordinator that invites module-specific agents to conversations

@@ -899,6 +899,41 @@ main.workflows-layout .right-column {
   font-weight: 500;
 }
 
+/* Topic tags for key focus areas */
+.topic-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.topic-tag {
+  background: var(--bg-button-primary);
+  color: var(--text-on-primary);
+  padding: 6px 14px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+  border: 1px solid transparent;
+  transition: all 0.2s ease;
+}
+
+.topic-tag:hover {
+  background: var(--border-accent);
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(30, 136, 229, 0.3);
+}
+
+[data-theme="light"] .topic-tag {
+  background: var(--bg-button-primary);
+  color: var(--text-on-primary);
+  box-shadow: 0 1px 3px rgba(30, 136, 229, 0.2);
+}
+
+[data-theme="light"] .topic-tag:hover {
+  box-shadow: 0 2px 8px rgba(30, 136, 229, 0.25);
+}
+
 .reflection-section ul {
   list-style-type: disc;
   list-style-position: inside;

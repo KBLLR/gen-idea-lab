@@ -25,16 +25,16 @@ import Assistant from './Assistant.jsx'
 import PlannerSidebar from './PlannerSidebar.jsx'
 import PlannerCanvas from './PlannerCanvas.jsx'
 import { personalities } from '../lib/assistant/personalities'
-import { modulesBySemester } from '../lib/modules'
+import { modulesByDiscipline } from '../lib/modules'
 
 const ModuleSelector = () => {
   const activeModuleId = useStore.use.activeModuleId()
 
   return (
     <>
-      {Object.entries(modulesBySemester).map(([semester, modules]) => (
-        <div className="semester-group" key={semester}>
-          <h2>{semester}</h2>
+      {Object.entries(modulesByDiscipline).map(([discipline, modules]) => (
+        <div className="semester-group" key={discipline}>
+          <h2>{discipline}</h2>
           <div className="module-list">
             {modules.map(module => {
               const personality = personalities[module['Module Code']];

@@ -467,12 +467,11 @@ function PlannerCanvasInner() {
     persistedNodes,
     persistedEdges,
     persistedTitle,
-    setNodes,
-    setEdges,
-    setWorkflowTitle,
+    // Removed setNodes, setEdges, setWorkflowTitle from dependencies
+    // These are stable functions from useNodesState/useEdgesState/useState
   ]);
 
-  const onConnect = useCallback((params) => setEdges((eds) => addEdge(params, eds)), [setEdges]);
+  const onConnect = useCallback((params) => setEdges((eds) => addEdge(params, eds)), []);
 
   // Handle node clicks to manage selection state
   const onNodeClick = useCallback((event, node) => {
@@ -493,7 +492,7 @@ function PlannerCanvasInner() {
     setNodes(nds => nds.map(n => n.id === updatedNode.id ? updatedNode : n));
     setConfigModalNode(null);
     setIsConfigModalOpen(false);
-  }, [setNodes]);
+  }, []);
 
   // Handle configuration modal close
   const handleConfigClose = useCallback(() => {
@@ -504,7 +503,7 @@ function PlannerCanvasInner() {
   // Add a canvas click handler to deselect nodes
   const onPaneClick = useCallback(() => {
     setNodes((nds) => nds.map((node) => ({ ...node, selected: false })));
-  }, [setNodes]);
+  }, []);
 
   const onDragOver = useCallback((event) => {
     event.preventDefault();
@@ -594,12 +593,12 @@ function PlannerCanvasInner() {
         setEdges((eds) => eds.concat(newEdges));
       }
     }
-  }, [screenToFlowPosition, setNodes, setEdges]);
+  }, [screenToFlowPosition]);
 
   const clear = useCallback(() => {
     setNodes([]);
     setEdges([]);
-  }, [setNodes, setEdges]);
+  }, []);
 
   const buildWorkflowFromGraph = useCallback(() => {
     // Identify tasks and connectors
@@ -854,7 +853,7 @@ function PlannerCanvasInner() {
       }
     };
     reader.readAsText(file);
-  }, [setNodes, setEdges]);
+  }, []);
 
   // Function to update node data
   const updateNode = useCallback((nodeId, updates) => {
@@ -865,7 +864,7 @@ function PlannerCanvasInner() {
           : node
       )
     );
-  }, [setNodes]);
+  }, []);
 
   // Handle title editing
   const handleTitleDoubleClick = useCallback(() => {

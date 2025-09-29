@@ -25,13 +25,15 @@ This playbook gives Claude Code (claude.ai/code) the context it needs when joini
 - Client error surfaces: check `src/lib/actions.js` handlers for toast/reporting patterns
 
 ## Next Priorities
-1. **Stabilize Orchestrator chat regressions**
+
+1. **Stabilize onboarding flow analytics** – Investigate inconsistent event tracking for the Idea Lab onboarding screens and ensure amplitude events fire reliably across rerenders.
+2. **Ship Archiva search improvements** – Finish wiring the semantic search endpoint to the client, add loading states, and update documentation for the new filters.
+3. **Stabilize Orchestrator chat regressions**
    - Audit `src/components/OrchestratorChat.jsx` message handling to ensure assistant/personality switching stays in sync with `src/lib/store.js` state slices.
    - Add regression tests covering the orchestrator flow in `tests/` (simulate a multi-agent chat turn via supertest).
-2. **Document service integration flows**
+4. **Document service integration flows**
    - Expand `docs/` with setup guides for GitHub, Notion, and Figma OAuth. Capture env variables, redirect URIs, and expected scopes.
    - Ensure `server.js` OAuth routes reference the new documentation.
-3. **Planner performance sweep**
    - Profile `src/components/planner/` React Flow usage for large graphs; memoize expensive selectors and derive data in `src/lib/store.js`.
    - Create a troubleshooting section in `README.md` focused on planner lag and how to mitigate it (hardware hints, toggles, etc.).
 

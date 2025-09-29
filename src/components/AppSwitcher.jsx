@@ -7,7 +7,7 @@ import useStore from '../lib/store';
 import { switchApp } from '../lib/actions';
 
 const apps = [
-  { id: 'ideaLab', title: 'ProjectGen Lab' },
+  { id: 'ideaLab', title: 'Academic Mods' },
   { id: 'imageBooth', title: 'VizGen Booth' },
   { id: 'archiva', title: 'ArchivAI' },
   { id: 'workflows', title: 'Workflows' },

@@ -2,7 +2,7 @@
  * @license
  * SPDX-License-Identifier: Apache-2.0
 */
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import useStore from '../lib/store';
 import c from 'clsx';
 import { setActiveEntryId, createNewArchivaEntry } from '../lib/actions';
@@ -12,6 +12,9 @@ export default function ArchivaSidebar() {
     const archivaEntries = useStore.use.archivaEntries();
     const entries = useMemo(() => Object.values(archivaEntries), [archivaEntries]);
     const activeEntryId = useStore.use.activeEntryId();
+    const [searchQuery, setSearchQuery] = useState('');
+    const [isSearching, setIsSearching] = useState(false);
+    const [searchResults, setSearchResults] = useState([]);
 
     const drafts = useMemo(
         () => entries.filter(e => e.status === 'draft').sort((a,b) => new Date(b.updatedAt) - new Date(a.updatedAt)),
@@ -21,9 +24,143 @@ export default function ArchivaSidebar() {
         () => entries.filter(e => e.status === 'published').sort((a,b) => new Date(b.updatedAt) - new Date(a.updatedAt)),
         [entries]
     );
+
+    // Semantic search function
+    const performSemanticSearch = async (query) => {
+        if (!query.trim()) {
+            setSearchResults([]);
+            return;
+        }
+
+        setIsSearching(true);
+        try {
+            // For now, use local search as the backend resource store is empty
+            // TODO: Implement proper semantic search once there's data in moduleResources
+            const localResults = entries.filter(entry =>
+                entry.values?.title?.toLowerCase().includes(query.toLowerCase()) ||
+                entry.values?.content?.toLowerCase().includes(query.toLowerCase()) ||
+                entry.values?.description?.toLowerCase().includes(query.toLowerCase())
+            );
+
+            if (localResults.length > 0) {
+                setSearchResults(localResults.slice(0, 10));
+            } else {
+                // Try backend search as fallback if local search finds nothing
+                const response = await fetch(`/api/modules/general/resources/documentation/search?q=${encodeURIComponent(query)}`, {
+                    credentials: 'include'
+                });
+
+                if (response.ok) {
+                    const backendResults = await response.json();
+                    setSearchResults(backendResults.slice(0, 10));
+                } else {
+                    console.warn('Both local and backend search returned no results');
+                    setSearchResults([]);
+                }
+            }
+        } catch (error) {
+            console.error('Search failed:', error);
+            // Fallback to local search
+            const localResults = entries.filter(entry =>
+                entry.values?.title?.toLowerCase().includes(query.toLowerCase()) ||
+                entry.values?.content?.toLowerCase().includes(query.toLowerCase())
+            );
+            setSearchResults(localResults.slice(0, 10));
+        } finally {
+            setIsSearching(false);
+        }
+    };
+
+    // Debounced search
+    const handleSearchChange = (e) => {
+        const query = e.target.value;
+        setSearchQuery(query);
+
+        // Simple debounce
+        clearTimeout(window.archivaSearchTimeout);
+        window.archivaSearchTimeout = setTimeout(() => {
+            performSemanticSearch(query);
+        }, 300);
+    };
     
     return (
         <>
+            {/* Search Section */}
+            <div className="semester-group">
+                <h2>Search Archive</h2>
+                <div className="search-container">
+                    <div className="search-input-wrapper">
+                        <input
+                            type="text"
+                            placeholder="Search documentation, workflows, and notes..."
+                            value={searchQuery}
+                            onChange={handleSearchChange}
+                            className="search-input"
+                        />
+                        {isSearching && (
+                            <div className="search-spinner">
+                                <span className="icon rotating">refresh</span>
+                            </div>
+                        )}
+                        {searchQuery && (
+                            <button
+                                className="search-clear"
+                                onClick={() => {
+                                    setSearchQuery('');
+                                    setSearchResults([]);
+                                }}
+                                title="Clear search"
+                            >
+                                <span className="icon">close</span>
+                            </button>
+                        )}
+                    </div>
+
+                    {/* Search Results */}
+                    {searchQuery && searchResults.length > 0 && (
+                        <div className="search-results">
+                            <h3 style={{ fontSize: 12, color: 'var(--text-tertiary)', paddingLeft: 10 }}>
+                                Results ({searchResults.length})
+                            </h3>
+                            <div className="module-list">
+                                {searchResults.map((result, index) => (
+                                    <div
+                                        key={result.id || `result-${index}`}
+                                        role="button"
+                                        tabIndex={0}
+                                        className={c('search-result-item', { active: result.id === activeEntryId })}
+                                        onClick={() => setActiveEntryId(result.id)}
+                                        onKeyDown={(e) => {
+                                            if (e.key === 'Enter' || e.key === ' ') {
+                                                e.preventDefault();
+                                                setActiveEntryId(result.id);
+                                            }
+                                        }}
+                                        title={result.description || result.title}
+                                    >
+                                        <div className="module-info">
+                                            <span className="icon">search</span>
+                                            <p>{result.title || result.values?.title || 'Untitled'}</p>
+                                        </div>
+                                        {result.preview && (
+                                            <div className="search-preview">
+                                                {result.preview.substring(0, 60)}...
+                                            </div>
+                                        )}
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+
+                    {searchQuery && searchResults.length === 0 && !isSearching && (
+                        <div className="search-no-results">
+                            <p className="empty-list-message">No results found for "{searchQuery}"</p>
+                        </div>
+                    )}
+                </div>
+            </div>
+
             <div className="semester-group">
                 <h2>Templates</h2>
                 {(() => {
@@ -37,8 +174,8 @@ export default function ArchivaSidebar() {
                     return order
                         .filter(group => grouped[group]?.length)
                         .map(group => (
-                            <div className="module-list" key={group} style={{ marginBottom: 10 }}>
-                                <h3 style={{ fontSize: 12, color: 'var(--text-tertiary)', paddingLeft: 10 }}>{group}</h3>
+                            <div className="module-list" key={group}>
+                                <h3>{group}</h3>
                                 {grouped[group]
                                     .sort((a, b) => a.name.localeCompare(b.name))
                                     .map(({ key, name }) => {
@@ -53,6 +190,7 @@ export default function ArchivaSidebar() {
                                             }
                                         };
 
+                                        const template = templates[key];
                                         return (
                                             <div
                                                 key={key}
@@ -61,11 +199,16 @@ export default function ArchivaSidebar() {
                                                 onClick={handlePreview}
                                                 onKeyDown={handleKeyDown}
                                                 className={c('template-item', { active: isActive })}
-                                                title={`Preview ${name} template`}
+                                                title={`${name} - ${template?.purpose || 'Preview template'}`}
                                             >
                                                 <div className="module-info">
-                                                    <span className="icon">preview</span>
-                                                    <p>{name}</p>
+                                                    <span className="icon">description</span>
+                                                    <div className="template-text">
+                                                        <p className="template-name">{name}</p>
+                                                        {template?.purpose && (
+                                                            <span className="template-purpose">{template.purpose}</span>
+                                                        )}
+                                                    </div>
                                                 </div>
                                                 <button
                                                     type="button"
