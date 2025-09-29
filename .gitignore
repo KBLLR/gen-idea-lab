@@ -29,5 +29,6 @@ dist-ssr
 
 # Project directories
 templates
+!src/lib/archiva/templates/
 goals
 docs
