@@ -375,6 +375,7 @@ export default function PlannerCanvas() {
   const [hasHydrated, setHasHydrated] = useState(() => useStore.persist?.hasHydrated?.() ?? true);
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [isGeneratingTitle, setIsGeneratingTitle] = useState(false);
+  const [titleError, setTitleError] = useState(null);
   const [configModalNode, setConfigModalNode] = useState(null);
   const [isConfigModalOpen, setIsConfigModalOpen] = useState(false);
   const setActiveApp = useStore.use.actions().setActiveApp;
@@ -810,6 +811,7 @@ export default function PlannerCanvas() {
 
   const handleTitleChange = useCallback((e) => {
     setWorkflowTitle(e.target.value);
+    setTitleError(null);
   }, []);
 
   const handleTitleBlur = useCallback(() => {
@@ -826,9 +828,12 @@ export default function PlannerCanvas() {
   const generateAITitle = useCallback(async () => {
     if (isGeneratingTitle) return; // Prevent double-clicks
 
+    const previousTitle = workflowTitle;
+
     try {
       console.log('Generating AI title...');
       setIsGeneratingTitle(true);
+      setTitleError(null);
 
       const flowData = { nodes, edges };
 
@@ -861,23 +866,27 @@ export default function PlannerCanvas() {
           suggestedTitle = suggestedTitle.replace(/['"]/g, '').trim();
           console.log('Suggested title:', suggestedTitle);
           setWorkflowTitle(suggestedTitle);
+          setTitleError(null);
         } else {
           console.warn('No title in response:', data);
           setWorkflowTitle('AI Generated Flow');
+          setTitleError(null);
         }
       } else {
         console.error('API error:', response.status, response.statusText);
         const errorData = await response.json().catch(() => ({}));
         console.error('Error details:', errorData);
-        setWorkflowTitle(''); // Reset to empty
+        setWorkflowTitle(previousTitle);
+        setTitleError('Unable to generate a new title. Please try again.');
       }
     } catch (error) {
       console.error('Failed to generate AI title:', error);
-      setWorkflowTitle(''); // Reset to empty
+      setWorkflowTitle(previousTitle);
+      setTitleError('Unable to generate a new title. Please try again.');
     } finally {
       setIsGeneratingTitle(false);
     }
-  }, [nodes, edges, isGeneratingTitle, workflowAutoTitleModel]);
+  }, [nodes, edges, isGeneratingTitle, workflowAutoTitleModel, workflowTitle]);
 
   // Persist planner graph on each change
   useEffect(() => {
@@ -891,33 +900,38 @@ export default function PlannerCanvas() {
     <div className="planner-canvas-container">
       {/* Workflow Title in upper left corner */}
       <div className="workflow-title-container">
-        {isEditingTitle ? (
-          <input
-            type="text"
-            value={workflowTitle}
-            onChange={handleTitleChange}
-            onBlur={handleTitleBlur}
-            onKeyPress={handleTitleKeyPress}
-            placeholder="Title your Flow"
-            className="workflow-title-input"
-            autoFocus
-          />
-        ) : (
-          <div
-            className="workflow-title-display"
-            onDoubleClick={handleTitleDoubleClick}
+        <div className="workflow-title-row">
+          {isEditingTitle ? (
+            <input
+              type="text"
+              value={workflowTitle}
+              onChange={handleTitleChange}
+              onBlur={handleTitleBlur}
+              onKeyPress={handleTitleKeyPress}
+              placeholder="Title your Flow"
+              className="workflow-title-input"
+              autoFocus
+            />
+          ) : (
+            <div
+              className="workflow-title-display"
+              onDoubleClick={handleTitleDoubleClick}
+            >
+              {workflowTitle || 'Title your Flow'}
+            </div>
+          )}
+          <button
+            className="btn btn-ai-title"
+            onClick={generateAITitle}
+            disabled={isGeneratingTitle}
+            title={isGeneratingTitle ? "Generating title..." : "Generate title with AI"}
           >
-            {workflowTitle || 'Title your Flow'}
-          </div>
+            <span className="icon">{isGeneratingTitle ? 'hourglass_empty' : 'auto_awesome'}</span>
+          </button>
+        </div>
+        {titleError && (
+          <div className="workflow-title-error">{titleError}</div>
         )}
-        <button
-          className="btn btn-ai-title"
-          onClick={generateAITitle}
-          disabled={isGeneratingTitle}
-          title={isGeneratingTitle ? "Generating title..." : "Generate title with AI"}
-        >
-          <span className="icon">{isGeneratingTitle ? 'hourglass_empty' : 'auto_awesome'}</span>
-        </button>
       </div>
 
       <div className="planner-toolbar">
