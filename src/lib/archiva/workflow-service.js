@@ -3,6 +3,8 @@
  * Client-side service for generating documentation from workflow results
  */
 
+import { getTemplateIds, isGenericTemplate } from './templates/library.js';
+
 // Generate documentation from workflow results
 export async function generateWorkflowDocumentation(workflowResult, templateId, options = {}) {
   const {
@@ -119,6 +121,17 @@ export function validateWorkflowForTemplate(workflowResult, templateId) {
     prompt_card: ['steps']
   };
 
+  if (isGenericTemplate(templateId)) {
+    if (Array.isArray(workflowResult.steps) && workflowResult.steps.length > 0) {
+      return { valid: true };
+    }
+    return {
+      valid: false,
+      error: 'Generic templates require workflow steps to summarize',
+      missing: ['steps']
+    };
+  }
+
   const required = requiredFields[templateId];
   if (!required) {
     return { valid: false, error: `Unknown template: ${templateId}` };
@@ -138,7 +151,7 @@ export function validateWorkflowForTemplate(workflowResult, templateId) {
 
 // Get available templates that can render the given workflow
 export function getCompatibleTemplates(workflowResult) {
-  const allTemplates = ['process_journal', 'experiment_report', 'prompt_card'];
+  const allTemplates = getTemplateIds();
 
   return allTemplates.filter(templateId => {
     const validation = validateWorkflowForTemplate(workflowResult, templateId);
