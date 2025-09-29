@@ -14,6 +14,7 @@ import ModeSelector from './ModeSelector.jsx'
 import BoothViewer from './BoothViewer.jsx'
 import UserBar from './UserBar.jsx'
 import OrchestratorChat from './OrchestratorChat.jsx'
+import FloatingOrchestrator from './FloatingOrchestrator.jsx'
 import ArchivaDashboard from './ArchivaDashboard.jsx'
 import ArchivaSidebar from './ArchivaSidebar.jsx'
 import ArchivaEntryForm from './ArchivaEntryForm.jsx'
@@ -21,6 +22,8 @@ import WorkflowsList from './WorkflowsList.jsx'
 import WorkflowEditor from './WorkflowEditor.jsx'
 import ModuleViewer from './ModuleViewer.jsx'
 import Assistant from './Assistant.jsx'
+import PlannerSidebar from './PlannerSidebar.jsx'
+import PlannerCanvas from './PlannerCanvas.jsx'
 import { personalities } from '../lib/assistant/personalities'
 import { modulesBySemester } from '../lib/modules'
 
@@ -146,6 +149,8 @@ export default function App() {
         return <ArchivaSidebar />;
       case 'workflows':
         return <WorkflowsList />;
+      case 'planner':
+        return <PlannerSidebar />;
       default:
         return null;
     }
@@ -161,6 +166,8 @@ export default function App() {
         return activeEntryId ? <ArchivaEntryForm /> : <ArchivaDashboard />;
       case 'workflows':
         return <WorkflowEditor />;
+      case 'planner':
+        return <PlannerCanvas />;
       default:
         return null;
     }
@@ -194,6 +201,7 @@ export default function App() {
       {isWelcomeScreenOpen && <WelcomeScreen onStart={handleStart} />}
       {isAssistantOpen && <Assistant />}
       {isSettingsOpen && <SettingsModal />}
+      <FloatingOrchestrator />
 
       <div 
         className="left-column"

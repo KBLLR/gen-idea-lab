@@ -14,8 +14,43 @@
 @import './legacy.css';
 
 /* Theme-specific overrides */
-:root[data-theme="light"] {
-  /* Light theme tokens will be generated in future versions */
+:root[data-theme="light"],
+[data-theme="light"] {
+  /* Surfaces */
+  --surface-primary: var(--color-gray-100);
+  --surface-secondary: var(--color-white);
+  --surface-tertiary: var(--color-gray-100);
+  --surface-quaternary: var(--color-gray-200);
+  --surface-overlay: var(--color-alpha-white80);
+  --surface-modal: var(--color-white);
+  --surface-input: var(--color-gray-200);
+  --surface-error: var(--color-red-500);
+
+  /* Text */
+  --text-primary: var(--color-gray-800);
+  --text-secondary: var(--color-gray-700);
+  --text-tertiary: var(--color-gray-600);
+  --text-muted: var(--color-gray-500);
+  --text-inverse: var(--color-white);
+  --text-accent: var(--color-blue-500);
+  --text-on-primary: var(--color-white);
+
+  /* Borders */
+  --border-primary: var(--color-gray-400);
+  --border-secondary: var(--color-gray-300);
+  --border-accent: var(--color-blue-500);
+  --border-dashed: var(--color-gray-400);
+
+  /* Interactive */
+  --interactive-primary-default: var(--color-blue-500);
+  --interactive-primary-hover: var(--color-blue-600);
+  --interactive-secondary-default: var(--color-gray-200);
+  --interactive-secondary-hover: var(--color-gray-300);
+  --interactive-icon-hover: var(--color-gray-300);
+
+  /* Selection */
+  --selection-background: var(--color-blue-500);
+  --selection-text: var(--color-white);
 }
 
 /* Component-specific utility classes */

@@ -11,6 +11,7 @@ const apps = [
   { id: 'imageBooth', title: 'VizGen Booth' },
   { id: 'archiva', title: 'ArchivAI' },
   { id: 'workflows', title: 'Workflows' },
+  { id: 'planner', title: 'PlannerAI' },
 ];
 
 export default function AppSwitcher() {

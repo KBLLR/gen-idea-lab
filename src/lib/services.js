@@ -96,7 +96,12 @@ const services = {
         name: 'Ollama',
         requiresUrl: true,
         defaultUrl: 'http://localhost:11434',
-        testEndpoint: '/api/tags'
+        testEndpoint: '/api/tags',
+        // New 2025 cloud API features
+        supportsApiKey: true,
+        cloudApiUrl: 'https://ollama.com/api',
+        webSearchEndpoint: '/web_search',
+        webFetchEndpoint: '/web_fetch'
     },
     googlesearch: {
         name: 'Google Search',

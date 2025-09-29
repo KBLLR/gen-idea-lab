@@ -26,4 +26,8 @@ dist-ssr
 .env
 
 .vercel
+
+# Project directories
 templates
+goals
+docs

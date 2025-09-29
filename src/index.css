@@ -1,5 +1,8 @@
 
 
+@import './styles/tokens/index.css';
+@import './styles/utilities/utilities.css';
+
 * {
   margin: 0;
   padding: 0;
@@ -970,6 +973,7 @@ main.workflows-layout .right-column {
     backdrop-filter: blur(12px);
     border-bottom: 1px solid var(--border-primary);
     position: relative;
+    z-index: 300; /* Ensure header dropdowns overlay chat messages */
 }
 
 [data-theme="light"] .orchestrator-header {
@@ -1009,6 +1013,9 @@ main.workflows-layout .right-column {
 
 .orchestrator-header-actions {
     position: relative;
+    display: flex;
+    align-items: center;
+    gap: 10px;
 }
 
 .ai-list-btn {
@@ -1062,6 +1069,68 @@ main.workflows-layout .right-column {
 [data-theme="light"] .ai-list-dropdown {
     background: rgba(255, 255, 255, 0.95);
 }
+
+/* Orchestrator Model Selector */
+.model-selector-btn {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid var(--border-primary);
+    border-radius: 20px;
+    color: var(--text-primary);
+    font-size: 14px;
+    transition: all 0.2s ease;
+}
+.model-selector-btn:hover {
+    background: rgba(255, 255, 255, 0.1);
+    transform: translateY(-1px);
+}
+.model-selector-btn .model-name {
+    font-size: 12px;
+    color: var(--text-secondary);
+}
+
+.model-selector-dropdown {
+    position: absolute;
+    top: 100%;
+    right: 0;
+    margin-top: 8px;
+    background: rgba(26, 26, 26, 0.95);
+    backdrop-filter: blur(16px);
+    border: 1px solid var(--border-primary);
+    border-radius: 12px;
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.4);
+    min-width: 300px;
+    max-height: 360px;
+    overflow-y: auto;
+    z-index: 10000;
+}
+[data-theme="light"] .model-selector-dropdown {
+    background: rgba(255, 255, 255, 0.95);
+}
+.model-selector-dropdown .dropdown-header {
+    padding: 12px 16px;
+    font-weight: 700;
+    color: var(--text-tertiary);
+    border-bottom: 1px solid var(--border-secondary);
+}
+.model-selector-dropdown .dropdown-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 16px;
+    color: var(--text-primary);
+    font-size: 14px;
+    border-bottom: 1px solid var(--border-secondary);
+}
+.model-selector-dropdown .dropdown-item:last-child { border-bottom: none; }
+.model-selector-dropdown .dropdown-item.active { background: rgba(255, 255, 255, 0.06); }
+.model-selector-dropdown .model-info { display: flex; flex-direction: column; text-align: left; }
+.model-selector-dropdown .model-title { font-weight: 600; }
+.model-selector-dropdown .model-desc { font-size: 12px; color: var(--text-secondary); }
+.model-selector-dropdown .model-badge { margin-left: auto; font-size: 10px; opacity: 0.8; }
 
 .ai-list-item {
     display: flex;
@@ -3610,4 +3679,13 @@ main.workflows-layout .right-column {
 .history-placeholder small {
   font-size: 12px;
   color: var(--text-muted);
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 0.3;
+  }
+  50% {
+    opacity: 1;
+  }
 }

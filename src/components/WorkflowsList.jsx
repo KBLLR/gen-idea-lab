@@ -16,19 +16,23 @@ const WorkflowsList = () => {
   const workflowHistory = useStore.use.workflowHistory();
 
   // Get all workflows and organize them
-  const allWorkflows = Object.values(workflowTemplates);
+  const customWorkflows = useStore.use.customWorkflows?.() || {};
+  const allWorkflows = [...Object.values(workflowTemplates), ...Object.values(customWorkflows)];
 
   const filteredWorkflows = allWorkflows.filter(workflow => {
     const matchesSearch = workflow.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          workflow.description.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesCategory = categoryFilter === 'all' || workflow.category === categoryFilter;
+    const matchesCategory = categoryFilter === 'all' ||
+      workflow.category === categoryFilter ||
+      (categoryFilter === 'custom' && workflow.id?.startsWith('custom_'));
     return matchesSearch && matchesCategory;
   });
 
   const categories = [
     { id: 'all', name: 'All Workflows' },
     { id: 'module_assistant', name: 'Module Assistant' },
-    { id: 'orchestrator', name: 'Orchestrator' }
+    { id: 'orchestrator', name: 'Orchestrator' },
+    { id: 'custom', name: 'Custom (Planner)' },
   ];
 
   const getWorkflowStatus = (workflowId) => {

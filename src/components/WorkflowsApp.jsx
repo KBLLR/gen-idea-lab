@@ -18,19 +18,23 @@ const WorkflowsApp = () => {
   const workflowHistory = useStore.use.workflowHistory();
 
   // Get all workflows and organize them
-  const allWorkflows = Object.values(workflowTemplates);
+  const customWorkflows = useStore.use.customWorkflows?.() || {};
+  const allWorkflows = [...Object.values(workflowTemplates), ...Object.values(customWorkflows)];
 
   const filteredWorkflows = allWorkflows.filter(workflow => {
     const matchesSearch = workflow.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          workflow.description.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesCategory = categoryFilter === 'all' || workflow.category === categoryFilter;
+    const matchesCategory = categoryFilter === 'all' ||
+      workflow.category === categoryFilter ||
+      (categoryFilter === 'custom' && workflow.id?.startsWith('custom_'));
     return matchesSearch && matchesCategory;
   });
 
   const categories = [
     { id: 'all', name: 'All Workflows' },
     { id: 'module_assistant', name: 'Module Assistant' },
-    { id: 'orchestrator', name: 'Orchestrator' }
+    { id: 'orchestrator', name: 'Orchestrator' },
+    { id: 'custom', name: 'Custom (Planner)' },
   ];
 
   const getWorkflowStatus = (workflowId) => {
@@ -196,6 +200,19 @@ const WorkflowsApp = () => {
                   <span className={`step-type-badge ${step.type}`}>
                     {step.type.replace('_', ' ')}
                   </span>
+                  {step.guidance?.flow && (
+                    <div className="flow-badges" style={{ display: 'flex', gap: '6px', marginLeft: '8px' }}>
+                      {Array.isArray(step.guidance.flow.dependsOn) && step.guidance.flow.dependsOn.length > 0 && (
+                        <span className="step-type-badge">depends on {step.guidance.flow.dependsOn.length}</span>
+                      )}
+                      {step.guidance.flow.parallelGroup && (
+                        <span className="step-type-badge">parallel</span>
+                      )}
+                      {step.guidance.flow.decisionGroup && (
+                        <span className="step-type-badge">decision</span>
+                      )}
+                    </div>
+                  )}
                 </div>
               </div>
 

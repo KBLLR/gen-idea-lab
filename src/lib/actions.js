@@ -243,25 +243,51 @@ Be helpful, concise, and action-oriented. Ask clarifying questions when needed.`
         conversationHistory.push({ role: 'user', content: message });
 
         // Make API call using the selected orchestrator model via universal chat endpoint
-        const response = await fetch('/api/chat', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            credentials: 'include',
-            body: JSON.stringify({
-                model: orchestratorModel,
-                messages: conversationHistory,
-                systemPrompt: systemPrompt
-            })
-        });
+        const fallbackModel = 'gemini-2.0-flash-exp';
+        let modelToUse = orchestratorModel;
 
-        if (!response.ok) {
-            const errorData = await response.json();
-            throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
+        async function callChat(model) {
+            const resp = await fetch('/api/chat', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                credentials: 'include',
+                body: JSON.stringify({
+                    model,
+                    messages: conversationHistory,
+                    systemPrompt: systemPrompt
+                })
+            });
+            const raw = await resp.text();
+            return { ok: resp.ok, status: resp.status, raw };
         }
 
-        const data = await response.json();
+        let { ok, status, raw } = await callChat(modelToUse);
+
+        if (!ok) {
+            let parsed;
+            try { parsed = JSON.parse(raw); } catch {}
+            const msg = parsed?.error?.message || parsed?.error || raw || `HTTP error! status: ${status}`;
+            const notFound = /NOT_FOUND|not found|is not found|not supported|Unsupported|unknown model/i.test(String(msg));
+            if (notFound && modelToUse !== fallbackModel) {
+                set(state => {
+                    state.orchestratorHistory.push({ role: 'system', parts: [{ text: `*Selected model unavailable (${modelToUse}). Falling back to ${fallbackModel}.*` }]});
+                    state.orchestratorModel = fallbackModel;
+                });
+                modelToUse = fallbackModel;
+                ({ ok, status, raw } = await callChat(modelToUse));
+            }
+
+            if (!ok) {
+                throw new Error(typeof msg === 'string' ? msg : JSON.stringify(parsed || { status }));
+            }
+        }
+
+        let data;
+        try { data = JSON.parse(raw); } catch {
+            throw new Error(raw || 'Invalid response from chat API');
+        }
         const aiResponse = data.response;
 
         set(state => {
@@ -282,6 +308,63 @@ Be helpful, concise, and action-oriented. Ask clarifying questions when needed.`
             });
         });
     }
+};
+
+export const newOrchestratorChat = () => {
+    const { orchestratorHistory, orchestratorHasConversation, orchestratorModel } = get();
+    const messages = orchestratorHistory || [];
+    const hasConversation = orchestratorHasConversation || messages.some(m => m.role === 'user' || m.role === 'agent-task');
+
+    // Save current session only if there was a real conversation beyond the initial greeting
+    if (hasConversation && messages.length > 1) {
+        const firstUser = messages.find(m => m.role === 'user');
+        const title = (firstUser?.parts?.[0]?.text || 'Session').split('\n')[0].slice(0, 80);
+        const session = {
+            id: `session_${Date.now()}`,
+            title,
+            createdAt: new Date().toISOString(),
+            model: orchestratorModel,
+            history: messages,
+        };
+        set(state => {
+            if (!state.orchestratorSavedSessions) state.orchestratorSavedSessions = [];
+            state.orchestratorSavedSessions.unshift(session);
+        });
+    }
+
+    // Reset chat to initial state
+    set(state => {
+        state.orchestratorHistory = [
+            {
+                role: 'model',
+                parts: [{ text: "I am the Orchestrator. How can we start building your next project? You can select a module on the left and I can invite its agent to help us." }]
+            }
+        ];
+        state.orchestratorHasConversation = false;
+    });
+};
+
+export const restoreOrchestratorSession = (sessionId) => {
+    const { orchestratorSavedSessions } = get();
+    const session = (orchestratorSavedSessions || []).find(s => s.id === sessionId);
+    if (!session) return;
+    set(state => {
+        state.orchestratorHistory = session.history || [];
+        state.orchestratorHasConversation = true;
+        state.isFloatingOrchestratorOpen = false; // ensure main chat reflects restored
+    });
+};
+
+export const deleteOrchestratorSession = (sessionId) => {
+    set(state => {
+        state.orchestratorSavedSessions = (state.orchestratorSavedSessions || []).filter(s => s.id !== sessionId);
+    });
+};
+
+export const clearOrchestratorSessions = () => {
+    set(state => {
+        state.orchestratorSavedSessions = [];
+    });
 };
 
 // --- Assistant Actions (Floating Chat) ---

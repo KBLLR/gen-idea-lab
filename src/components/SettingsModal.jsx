@@ -126,20 +126,29 @@ const serviceCategories = {
             {
                 id: 'ollama',
                 name: 'Ollama',
-                description: 'Connect to your local Ollama instance for private AI',
+                description: 'Connect to your local Ollama instance for private AI models, or add an API key to enable web search capabilities.',
                 icon: RiRobot2Line,
                 color: '#000000',
                 scopes: [],
                 requiresUrl: true,
+                requiresApiKey: true, // Support both connection types
+                supportsWebSearch: true,
                 setupUrl: 'https://ollama.com/download',
-                helpText: 'Download Ollama and run "ollama serve" in your terminal',
+                helpText: 'Local instance for private models, API key enables web search for any model',
                 placeholder: 'http://localhost:11434',
                 defaultValue: 'http://localhost:11434',
+                cloudApiKeyPlaceholder: 'Enter your Ollama API key',
+                apiKeySetupUrl: 'https://ollama.com/settings/keys',
                 instructions: [
+                    'Local Ollama:',
                     '1. Download Ollama from ollama.com',
                     '2. Install and run: ollama serve',
-                    '3. Pull a model: ollama pull llama2',
-                    '4. Connect using the default URL below'
+                    '3. Connect using URL: http://localhost:11434',
+                    '',
+                    'API Key for Web Search:',
+                    '1. Create account at ollama.com',
+                    '2. Generate API key at ollama.com/settings/keys',
+                    '3. Add key to enable web search for local models'
                 ]
             }
         ]
@@ -168,12 +177,18 @@ function ServiceConnector({ service }) {
 
     const handleConnect = async () => {
         setError('');
-        
+
+        // Special handling for Ollama - show both URL and API key inputs
+        if (service.id === 'ollama' && service.requiresApiKey && service.requiresUrl) {
+            setShowUrlInput(true);
+            return;
+        }
+
         if (service.requiresApiKey) {
             setShowApiKeyInput(true);
             return;
         }
-        
+
         if (service.requiresUrl) {
             setShowUrlInput(true);
             return;
@@ -195,7 +210,7 @@ function ServiceConnector({ service }) {
             setError('Please enter an API key');
             return;
         }
-        
+
         setError('');
         setIsConnecting(true);
         try {
@@ -215,12 +230,23 @@ function ServiceConnector({ service }) {
             setError('Please enter a URL');
             return;
         }
-        
+
+        // For Ollama, require API key as well
+        if (service.id === 'ollama' && !apiKeyValue.trim()) {
+            setError('Please enter both URL and API key');
+            return;
+        }
+
         setError('');
         setIsConnecting(true);
         try {
-            await connectService(service.id, { url: urlValue.trim() });
+            const payload = { url: urlValue.trim() };
+            if (service.id === 'ollama' && apiKeyValue.trim()) {
+                payload.apiKey = apiKeyValue.trim();
+            }
+            await connectService(service.id, payload);
             setShowUrlInput(false);
+            setApiKeyValue('');
         } catch (error) {
             console.error(`Failed to connect ${service.name}:`, error);
             setError(`Failed to connect: ${error.message}`);
@@ -332,10 +358,10 @@ function ServiceConnector({ service }) {
                     <div className="input-container">
                         <div className="input-header">
                             <span>API Key Required</span>
-                            {service.setupUrl && (
-                                <a 
-                                    href={service.setupUrl} 
-                                    target="_blank" 
+                            {(service.apiKeySetupUrl || service.setupUrl) && (
+                                <a
+                                    href={service.apiKeySetupUrl || service.setupUrl}
+                                    target="_blank"
                                     rel="noopener noreferrer"
                                     className="get-key-link"
                                 >
@@ -345,7 +371,7 @@ function ServiceConnector({ service }) {
                         </div>
                         <input
                             type="password"
-                            placeholder={service.placeholder || `Enter ${service.name} API key`}
+                            placeholder={service.id === 'ollama' ? service.cloudApiKeyPlaceholder : (service.placeholder || `Enter ${service.name} API key`)}
                             value={apiKeyValue}
                             onChange={(e) => {
                                 setApiKeyValue(e.target.value);
@@ -382,15 +408,15 @@ function ServiceConnector({ service }) {
                 ) : showUrlInput ? (
                     <div className="input-container">
                         <div className="input-header">
-                            <span>Server URL Required</span>
+                            <span>{service.id === 'ollama' ? 'Ollama Connection' : 'Server URL Required'}</span>
                             {service.setupUrl && (
-                                <a 
-                                    href={service.setupUrl} 
-                                    target="_blank" 
+                                <a
+                                    href={service.setupUrl}
+                                    target="_blank"
                                     rel="noopener noreferrer"
                                     className="get-key-link"
                                 >
-                                    Download Ollama
+                                    {service.id === 'ollama' ? 'Download Ollama' : 'Setup Guide'}
                                 </a>
                             )}
                         </div>
@@ -405,24 +431,57 @@ function ServiceConnector({ service }) {
                             className="service-input"
                             autoFocus
                             onKeyPress={(e) => {
-                                if (e.key === 'Enter' && urlValue.trim()) {
+                                if (e.key === 'Enter' && urlValue.trim() && (service.id !== 'ollama' || apiKeyValue.trim())) {
                                     handleUrlConnect();
                                 }
                             }}
                         />
+                        {service.id === 'ollama' && (
+                            <>
+                                <div className="input-label" style={{ marginTop: '10px', marginBottom: '5px' }}>
+                                    <span>API Key for Web Search</span>
+                                    {service.apiKeySetupUrl && (
+                                        <a
+                                            href={service.apiKeySetupUrl}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="get-key-link"
+                                        >
+                                            Get API Key
+                                        </a>
+                                    )}
+                                </div>
+                                <input
+                                    type="password"
+                                    placeholder={service.cloudApiKeyPlaceholder || "Enter your Ollama API key"}
+                                    value={apiKeyValue}
+                                    onChange={(e) => {
+                                        setApiKeyValue(e.target.value);
+                                        setError('');
+                                    }}
+                                    className="service-input"
+                                    onKeyPress={(e) => {
+                                        if (e.key === 'Enter' && urlValue.trim() && apiKeyValue.trim()) {
+                                            handleUrlConnect();
+                                        }
+                                    }}
+                                />
+                            </>
+                        )}
                         <div className="input-actions">
-                            <button 
+                            <button
                                 className="connect-btn primary"
                                 onClick={handleUrlConnect}
-                                disabled={isConnecting || !urlValue.trim()}
+                                disabled={isConnecting || !urlValue.trim() || (service.id === 'ollama' && !apiKeyValue.trim())}
                             >
                                 {isConnecting ? 'Connecting...' : 'Connect'}
                             </button>
-                            <button 
+                            <button
                                 className="cancel-btn"
                                 onClick={() => {
                                     setShowUrlInput(false);
                                     setUrlValue(service.defaultValue || 'http://localhost:11434');
+                                    setApiKeyValue('');
                                     setError('');
                                 }}
                             >
@@ -431,7 +490,7 @@ function ServiceConnector({ service }) {
                         </div>
                     </div>
                 ) : (
-                    <button 
+                    <button
                         className="connect-btn"
                         onClick={handleConnect}
                         disabled={isConnecting}

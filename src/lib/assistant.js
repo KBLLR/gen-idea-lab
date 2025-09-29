@@ -4,6 +4,7 @@
 */
 import { Type } from '@google/genai';
 import { personalities } from './assistant/personalities.js';
+import { queryModule } from './rag.js';
 
 // The GoogleGenAI object is no longer initialized on the client.
 
@@ -27,6 +28,21 @@ export const getAssistantResponse = async (history, activePersonalityId) => {
 
     const contents = [];
 
+    // Build retrieval context from per-module RAG (short-term query = last user message)
+    let retrievalContext = '';
+    try {
+        const lastUser = [...history].reverse().find(m => m.role === 'user');
+        if (lastUser && lastUser.content) {
+            const top = await queryModule(activePersonalityId, lastUser.content, { topK: 4 });
+            if (top && top.length) {
+                const merged = top.map((t, i) => `#${i+1} ${t.text}`).join('\n\n');
+                retrievalContext = `\n\nRelevant context from your knowledge base (top ${Math.min(4, top.length)}):\n${merged}`;
+            }
+        }
+    } catch (e) {
+        // RAG is best-effort; continue without it
+    }
+
     // Add previous history to the conversation
     history.forEach(msg => {
         // Skip the initial greeting message in the history sent to the API
@@ -42,7 +58,7 @@ export const getAssistantResponse = async (history, activePersonalityId) => {
         model: 'gemini-2.5-flash',
         contents,
         config: {
-            systemInstruction: activePersonality.systemInstruction,
+            systemInstruction: `${activePersonality.systemInstruction}${retrievalContext}`,
             responseMimeType: "application/json",
             responseSchema: responseSchema,
             temperature: 0.7,

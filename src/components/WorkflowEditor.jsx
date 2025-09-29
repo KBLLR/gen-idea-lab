@@ -98,12 +98,25 @@ const WorkflowEditor = () => {
           <div key={step.id} className="workflow-step">
             <div className="step-header">
               <div className="step-number">{index + 1}</div>
-              <div className="step-title">
-                <h4>{step.title}</h4>
-                <span className={`step-type-badge ${step.type}`}>
-                  {step.type.replace('_', ' ')}
-                </span>
-              </div>
+                <div className="step-title">
+                  <h4>{step.title}</h4>
+                  <span className={`step-type-badge ${step.type}`}>
+                    {step.type.replace('_', ' ')}
+                  </span>
+                  {step.guidance?.flow && (
+                    <div className="flow-badges" style={{ display: 'flex', gap: '6px', marginLeft: '8px' }}>
+                      {Array.isArray(step.guidance.flow.dependsOn) && step.guidance.flow.dependsOn.length > 0 && (
+                        <span className="step-type-badge">depends on {step.guidance.flow.dependsOn.length}</span>
+                      )}
+                      {step.guidance.flow.parallelGroup && (
+                        <span className="step-type-badge">parallel</span>
+                      )}
+                      {step.guidance.flow.decisionGroup && (
+                        <span className="step-type-badge">decision</span>
+                      )}
+                    </div>
+                  )}
+                </div>
             </div>
 
             <div className="step-content">
