@@ -41,29 +41,46 @@ export default function ArchivaSidebar() {
                                 <h3 style={{ fontSize: 12, color: 'var(--text-tertiary)', paddingLeft: 10 }}>{group}</h3>
                                 {grouped[group]
                                     .sort((a, b) => a.name.localeCompare(b.name))
-                                    .map(({ key, name }) => (
-                                        <button
-                                            key={key}
-                                            onClick={() => useStore.setState({ selectedTemplateForPreview: key, activeEntryId: null })}
-                                            className={c({ active: useStore.getState().selectedTemplateForPreview === key })}
-                                            title={`Preview ${name} template`}
-                                        >
-                                            <div className="module-info">
-                                                <span className="icon">preview</span>
-                                                <p>{name}</p>
-                                            </div>
-                                            <button
-                                                className="create-btn"
-                                                onClick={(e) => {
-                                                    e.stopPropagation();
-                                                    createNewArchivaEntry(key);
-                                                }}
-                                                title={`Create new ${name}`}
+                                    .map(({ key, name }) => {
+                                        const isActive = useStore.getState().selectedTemplateForPreview === key;
+                                        const handlePreview = () => {
+                                            useStore.setState({ selectedTemplateForPreview: key, activeEntryId: null });
+                                        };
+                                        const handleKeyDown = (event) => {
+                                            if (event.key === 'Enter' || event.key === ' ') {
+                                                event.preventDefault();
+                                                handlePreview();
+                                            }
+                                        };
+
+                                        return (
+                                            <div
+                                                key={key}
+                                                role="button"
+                                                tabIndex={0}
+                                                onClick={handlePreview}
+                                                onKeyDown={handleKeyDown}
+                                                className={c('template-item', { active: isActive })}
+                                                title={`Preview ${name} template`}
                                             >
-                                                <span className="icon">add</span>
-                                            </button>
-                                        </button>
-                                    ))}
+                                                <div className="module-info">
+                                                    <span className="icon">preview</span>
+                                                    <p>{name}</p>
+                                                </div>
+                                                <button
+                                                    type="button"
+                                                    className="create-btn"
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        createNewArchivaEntry(key);
+                                                    }}
+                                                    title={`Create new ${name}`}
+                                                >
+                                                    <span className="icon">add</span>
+                                                </button>
+                                            </div>
+                                        );
+                                    })}
                             </div>
                         ));
                 })()}
