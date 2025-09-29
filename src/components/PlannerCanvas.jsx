@@ -356,6 +356,7 @@ export default function PlannerCanvas() {
   const [nodes, setNodes, onNodesChange] = useNodesState(persisted.nodes || []);
   const [edges, setEdges, onEdgesChange] = useEdgesState(persisted.edges || []);
   const [workflowTitle, setWorkflowTitle] = useState(persisted.title || '');
+  const [hasHydrated, setHasHydrated] = useState(() => useStore.persist?.hasHydrated?.() ?? true);
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [isGeneratingTitle, setIsGeneratingTitle] = useState(false);
   const [configModalNode, setConfigModalNode] = useState(null);
@@ -367,6 +368,49 @@ export default function PlannerCanvas() {
 
   const rfRef = useRef(null);
   const fileInputRef = useRef(null);
+
+  const nodesSignature = useMemo(() => JSON.stringify(nodes), [nodes]);
+  const edgesSignature = useMemo(() => JSON.stringify(edges), [edges]);
+
+  useEffect(() => {
+    const persistApi = useStore.persist;
+    if (!persistApi?.onFinishHydration) {
+      return;
+    }
+
+    const unsubscribe = persistApi.onFinishHydration(() => {
+      setHasHydrated(true);
+    });
+
+    if (persistApi.hasHydrated?.()) {
+      setHasHydrated(true);
+    }
+
+    return () => unsubscribe?.();
+  }, []);
+
+  useEffect(() => {
+    if (!hasHydrated) return;
+
+    const nextNodes = persisted.nodes || [];
+    const nextEdges = persisted.edges || [];
+    const nextTitle = persisted.title || '';
+
+    const nextNodesSignature = JSON.stringify(nextNodes);
+    const nextEdgesSignature = JSON.stringify(nextEdges);
+
+    if (nodesSignature !== nextNodesSignature) {
+      setNodes(nextNodes);
+    }
+
+    if (edgesSignature !== nextEdgesSignature) {
+      setEdges(nextEdges);
+    }
+
+    if (workflowTitle !== nextTitle) {
+      setWorkflowTitle(nextTitle);
+    }
+  }, [hasHydrated, persisted, nodesSignature, edgesSignature, workflowTitle, setNodes, setEdges, setWorkflowTitle]);
 
   const onConnect = useCallback((params) => setEdges((eds) => addEdge(params, eds)), [setEdges]);
 
