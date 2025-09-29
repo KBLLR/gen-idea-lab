@@ -125,6 +125,26 @@ const serviceCategories = {
                 placeholder: 'AIzaSy...'
             },
             {
+                id: 'drawthings',
+                name: 'DrawThings',
+                description: 'Connect to your local Draw Things server via HTTP or gRPC bridge for on-device image generation.',
+                icon: RiImageLine,
+                color: '#6C5CE7',
+                requiresUrl: true,
+                transportOptions: [
+                    { value: 'http', label: 'HTTP REST' },
+                    { value: 'grpc', label: 'gRPC Bridge' }
+                ],
+                setupUrl: 'https://github.com/DrawThings/DrawThings',
+                helpText: 'Enable the Draw Things server in the app (Settings → Advanced → Server) and provide the endpoint URL.',
+                placeholder: 'http://127.0.0.1:5678',
+                instructions: [
+                    '1. Open Draw Things on your device and enable the local server feature.',
+                    '2. Copy the HTTP or gRPC endpoint displayed in the server panel.',
+                    '3. Paste the endpoint here to allow Idea Lab to send generation jobs.'
+                ]
+            },
+            {
                 id: 'ollama',
                 name: 'Ollama',
                 description: 'Connect to your local Ollama instance for private AI models, or add an API key to enable web search capabilities.',
@@ -170,6 +190,11 @@ function ServiceConnector({ service }) {
     const [showSettings, setShowSettings] = useState(false);
     const [apiKeyValue, setApiKeyValue] = useState('');
     const [urlValue, setUrlValue] = useState(service.defaultValue || 'http://localhost:11434');
+    const [transportValue, setTransportValue] = useState(
+        Array.isArray(service.transportOptions)
+            ? (service.transportOptions[0]?.value || service.transportOptions[0]?.id || service.transportOptions[0] || 'http')
+            : 'http'
+    );
     const [error, setError] = useState('');
     
     const isConnected = connectedServices[service.id]?.connected || false;
@@ -245,9 +270,17 @@ function ServiceConnector({ service }) {
             if (service.id === 'ollama' && apiKeyValue.trim()) {
                 payload.apiKey = apiKeyValue.trim();
             }
+            if (Array.isArray(service.transportOptions) && service.transportOptions.length > 0) {
+                payload.transport = transportValue;
+            }
             await connectService(service.id, payload);
             setShowUrlInput(false);
             setApiKeyValue('');
+            if (Array.isArray(service.transportOptions) && service.transportOptions.length > 0) {
+                setTransportValue(
+                    service.transportOptions[0]?.value || service.transportOptions[0]?.id || service.transportOptions[0] || 'http'
+                );
+            }
         } catch (error) {
             console.error(`Failed to connect ${service.name}:`, error);
             setError(`Failed to connect: ${error.message}`);
@@ -344,7 +377,9 @@ function ServiceConnector({ service }) {
                             <span className="status-text">Connected</span>
                             {connectedServices[service.id]?.info?.name && (
                                 <span className="connection-details">
-                                    ({connectedServices[service.id].info.name})
+                                    ({connectedServices[service.id].info.name}
+                                    {connectedServices[service.id].info.transport ? ` • ${connectedServices[service.id].info.transport.toUpperCase()}` : ''}
+                                    {connectedServices[service.id].info.url ? ` • ${connectedServices[service.id].info.url}` : ''})
                                 </span>
                             )}
                         </div>
@@ -437,6 +472,28 @@ function ServiceConnector({ service }) {
                                 }
                             }}
                         />
+                        {Array.isArray(service.transportOptions) && service.transportOptions.length > 0 && (
+                            <div className="input-group" style={{ marginTop: '10px' }}>
+                                <div className="input-label" style={{ marginBottom: '6px' }}>
+                                    <span>Connection Protocol</span>
+                                </div>
+                                <select
+                                    className="service-input"
+                                    value={transportValue}
+                                    onChange={(e) => setTransportValue(e.target.value)}
+                                >
+                                    {service.transportOptions.map((option) => {
+                                        const value = option?.value || option?.id || option;
+                                        const label = option?.label || option?.name || String(option).toUpperCase();
+                                        return (
+                                            <option key={value} value={value}>
+                                                {label}
+                                            </option>
+                                        );
+                                    })}
+                                </select>
+                            </div>
+                        )}
                         {service.id === 'ollama' && (
                             <>
                                 <div className="input-label" style={{ marginTop: '10px', marginBottom: '5px' }}>
@@ -483,6 +540,14 @@ function ServiceConnector({ service }) {
                                     setShowUrlInput(false);
                                     setUrlValue(service.defaultValue || 'http://localhost:11434');
                                     setApiKeyValue('');
+                                    if (Array.isArray(service.transportOptions) && service.transportOptions.length > 0) {
+                                        setTransportValue(
+                                            service.transportOptions[0]?.value ||
+                                            service.transportOptions[0]?.id ||
+                                            service.transportOptions[0] ||
+                                            'http'
+                                        );
+                                    }
                                     setError('');
                                 }}
                             >

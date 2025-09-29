@@ -14,6 +14,7 @@ import net from 'net';
 import logger from './src/lib/logger.js';
 import { register, httpRequestDurationMicroseconds, httpRequestsTotal } from './src/lib/metrics.js';
 import { verifyGoogleToken, generateJWT, requireAuth, optionalAuth } from './src/lib/auth.js';
+import { DEFAULT_IMAGE_MODELS } from './src/lib/imageProviders.js';
 
 // In ES modules, __dirname is not available. path.resolve() provides the project root.
 const __dirname = path.resolve();
@@ -71,6 +72,57 @@ function getBaseUrl(req) {
   const host = req.headers['x-forwarded-host'] || req.get('host');
   return `${proto}://${host}`;
 }
+
+function sanitizeEndpointUrl(endpoint) {
+  if (!endpoint) return null;
+  const trimmed = String(endpoint).trim();
+  if (!trimmed) return null;
+  const withScheme = /^(https?|grpc|grpcs):\/\//i.test(trimmed) ? trimmed : `http://${trimmed}`;
+  return withScheme.replace(/\/$/, '');
+}
+
+function normalizeDrawThingsUrl(endpoint, transport = 'http') {
+  const sanitized = sanitizeEndpointUrl(endpoint);
+  if (!sanitized) return null;
+  if (transport === 'grpc') {
+    return sanitized
+      .replace(/^grpcs:\/\//i, 'https://')
+      .replace(/^grpc:\/\//i, 'http://');
+  }
+  return sanitized;
+}
+
+function parseBase64ImagePayload(image) {
+  if (!image || typeof image !== 'string') {
+    return null;
+  }
+  const match = image.match(/^data:([^;]+);base64,(.+)$/);
+  if (match) {
+    return { mimeType: match[1], base64: match[2] };
+  }
+  return { mimeType: 'image/png', base64: image };
+}
+
+const providerRateLimitMessages = {
+  gemini: 'Gemini image generation rate limit reached. Please try again shortly.',
+  openai: 'OpenAI image generation rate limit reached. Please try again later.',
+  drawthings: 'DrawThings is busy right now. Wait a moment or try another provider.'
+};
+
+function respondWithRateLimit(res, provider, message) {
+  const fallback = providerRateLimitMessages[provider] || 'Rate limit reached. Please try again later.';
+  return res.status(429).json({
+    error: message || fallback,
+    code: 'RATE_LIMIT'
+  });
+}
+
+const GEMINI_SAFETY_SETTINGS = [
+  'HARM_CATEGORY_HATE_SPEECH',
+  'HARM_CATEGORY_SEXUALLY_EXPLICIT',
+  'HARM_CATEGORY_DANGEROUS_CONTENT',
+  'HARM_CATEGORY_HARASSMENT'
+].map(category => ({ category, threshold: 'BLOCK_NONE' }));
 
 // CORS headers for development and production
 app.use((req, res, next) => {
@@ -281,7 +333,8 @@ function getUserConnections(userId) {
       openai: null,
       claude: null,
       gemini: null,
-      ollama: null
+      ollama: null,
+      drawthings: null
     });
   }
   return userConnections.get(userId);
@@ -295,7 +348,13 @@ app.get('/api/services', requireAuth, (req, res) => {
   for (const [service, connection] of Object.entries(connections)) {
     connectedServices[service] = {
       connected: !!connection,
-      info: connection ? { name: connection.name || service } : null
+      info: connection
+        ? {
+            name: connection.name || service,
+            transport: connection.transport,
+            url: connection.url
+          }
+        : null
     };
   }
   
@@ -358,7 +417,39 @@ app.post('/api/services/:service/connect', requireAuth, (req, res) => {
     
     return res.json({ success: true, message: `${service} connected successfully` });
   }
-  
+
+  if (service === 'drawthings') {
+    const endpoint = sanitizeEndpointUrl(url);
+    if (!endpoint) {
+      return res.status(400).json({ error: 'Endpoint URL is required for DrawThings' });
+    }
+
+    const rawTransport = (req.body.transport || '').toString().toLowerCase();
+    const inferredTransport = endpoint.startsWith('grpc') ? 'grpc' : 'http';
+    const transport = ['http', 'grpc'].includes(rawTransport) ? rawTransport : inferredTransport;
+
+    const connections = getUserConnections(req.user.email);
+    const connectionName = transport === 'grpc' ? 'DrawThings (gRPC)' : 'DrawThings (HTTP)';
+
+    connections[service] = {
+      type: 'endpoint',
+      name: connectionName,
+      url: endpoint,
+      transport,
+      connectedAt: new Date().toISOString()
+    };
+
+    return res.json({
+      success: true,
+      message: 'DrawThings connected successfully',
+      info: {
+        name: connectionName,
+        transport,
+        url: endpoint
+      }
+    });
+  }
+
   // Handle Ollama connection (URL for local, API key for cloud)
   if (service === 'ollama') {
     const connections = getUserConnections(req.user.email);
@@ -598,8 +689,14 @@ app.post('/api/services/:service/test', requireAuth, async (req, res) => {
           test_results: results.results?.length || 0
         };
       }
+    } else if (service === 'drawthings' && connection.type === 'endpoint') {
+      testResult.info = {
+        type: 'local',
+        transport: connection.transport || 'http',
+        url: connection.url
+      };
     }
-    
+
     res.json(testResult);
   } catch (error) {
     logger.error(`Error testing ${service} connection:`, error);
@@ -640,6 +737,199 @@ app.get('/healthz', async (req, res) => {
   } catch (error) {
     logger.error('Health check failed: Could not connect to Gemini API.', { errorMessage: error.message });
     res.status(503).json({ status: 'error', message: 'Service Unavailable: Cannot connect to Gemini API.' });
+  }
+});
+
+
+app.post('/api/image/generate', requireAuth, async (req, res) => {
+  const end = httpRequestDurationMicroseconds.startTimer();
+  const providerId = (req.body?.provider || 'gemini').toString().toLowerCase();
+
+  try {
+    const { prompt, image, model } = req.body || {};
+    if (!prompt || !image) {
+      return res.status(400).json({ error: 'Both prompt and image fields are required.' });
+    }
+
+    const parsedImage = parseBase64ImagePayload(image);
+    if (!parsedImage?.base64) {
+      return res.status(400).json({ error: 'Invalid image payload supplied.' });
+    }
+
+    const connections = getUserConnections(req.user.email);
+    let resolvedModel = model || DEFAULT_IMAGE_MODELS[providerId] || null;
+    let outputBase64;
+    let outputMime = parsedImage.mimeType || 'image/png';
+
+    if (providerId === 'gemini') {
+      const geminiClient = geminiBootstrap.getClient();
+      if (!geminiClient?.models?.generateContent) {
+        return res.status(503).json({ error: 'Gemini client not configured.' });
+      }
+
+      const request = {
+        model: resolvedModel || DEFAULT_IMAGE_MODELS.gemini || 'gemini-2.5-flash-image-preview',
+        contents: {
+          parts: [
+            {
+              inlineData: {
+                data: parsedImage.base64,
+                mimeType: parsedImage.mimeType || 'image/png'
+              }
+            },
+            { text: prompt }
+          ]
+        },
+        safetySettings: GEMINI_SAFETY_SETTINGS
+      };
+
+      if ((request.model || '').includes('image')) {
+        request.config = { responseModalities: ['IMAGE', 'TEXT'] };
+      }
+
+      const response = await geminiClient.models.generateContent(request);
+      const candidate = response?.candidates?.[0];
+      const inlinePart = candidate?.content?.parts?.find((part) => part.inlineData);
+
+      if (!inlinePart?.inlineData?.data) {
+        const textPart = candidate?.content?.parts?.find((part) => part.text);
+        throw new Error(textPart?.text || 'Gemini response missing image data.');
+      }
+
+      outputBase64 = inlinePart.inlineData.data;
+      outputMime = inlinePart.inlineData.mimeType || outputMime;
+      resolvedModel = request.model;
+    } else if (providerId === 'openai') {
+      const connection = connections.openai;
+      if (!connection?.apiKey) {
+        return res.status(400).json({ error: 'OpenAI not connected' });
+      }
+
+      const openaiModel = resolvedModel || DEFAULT_IMAGE_MODELS.openai || 'gpt-image-1';
+      const formData = new FormData();
+      formData.append(
+        'image',
+        new Blob([Buffer.from(parsedImage.base64, 'base64')], { type: parsedImage.mimeType || 'image/png' }),
+        'input.png'
+      );
+      formData.append('model', openaiModel);
+      formData.append('prompt', prompt);
+      formData.append('n', '1');
+      formData.append('response_format', 'b64_json');
+
+      const response = await fetch('https://api.openai.com/v1/images/edits', {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${connection.apiKey}`
+        },
+        body: formData
+      });
+
+      const body = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        if (response.status === 429) {
+          return respondWithRateLimit(res, 'openai', body?.error?.message);
+        }
+        throw new Error(body?.error?.message || `OpenAI request failed with status ${response.status}`);
+      }
+
+      const openaiData = body?.data?.[0]?.b64_json;
+      if (!openaiData) {
+        throw new Error('OpenAI response missing image data.');
+      }
+
+      outputBase64 = openaiData;
+      outputMime = 'image/png';
+      resolvedModel = openaiModel;
+    } else if (providerId === 'drawthings') {
+      const connection = connections.drawthings;
+      if (!connection?.url) {
+        return res.status(400).json({ error: 'DrawThings not connected' });
+      }
+
+      const endpoint = normalizeDrawThingsUrl(connection.url, connection.transport);
+      if (!endpoint) {
+        return res.status(400).json({ error: 'Invalid DrawThings endpoint.' });
+      }
+
+      const response = await fetch(`${endpoint}/v1/generate`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          prompt,
+          image: parsedImage.base64,
+          model: resolvedModel,
+          mimeType: parsedImage.mimeType || 'image/png'
+        })
+      });
+
+      const body = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        if (response.status === 429) {
+          return respondWithRateLimit(res, 'drawthings', body?.error);
+        }
+        throw new Error(body?.error || `DrawThings request failed with status ${response.status}`);
+      }
+
+      const dtImage =
+        body?.image ||
+        body?.base64 ||
+        body?.data ||
+        body?.images?.[0]?.base64 ||
+        body?.images?.[0]?.data;
+
+      if (!dtImage) {
+        throw new Error('DrawThings response missing image data.');
+      }
+
+      if (dtImage.startsWith('data:')) {
+        const parsed = parseBase64ImagePayload(dtImage);
+        outputBase64 = parsed?.base64;
+        outputMime = parsed?.mimeType || outputMime;
+      } else {
+        outputBase64 = dtImage;
+      }
+
+      if (!resolvedModel && body?.model) {
+        resolvedModel = body.model;
+      }
+    } else {
+      return res.status(400).json({ error: `Unsupported provider: ${providerId}` });
+    }
+
+    if (!outputBase64) {
+      throw new Error('Provider response did not include image data.');
+    }
+
+    const dataUrl = outputBase64.startsWith('data:')
+      ? outputBase64
+      : `data:${outputMime || 'image/png'};base64,${outputBase64}`;
+
+    return res.json({
+      image: dataUrl,
+      provider: providerId,
+      model: resolvedModel || null
+    });
+  } catch (error) {
+    logger.error('Image generation failed:', {
+      errorMessage: error.message,
+      provider: providerId
+    });
+
+    if (!res.headersSent) {
+      if (
+        error?.status === 'RESOURCE_EXHAUSTED' ||
+        error?.statusCode === 429 ||
+        error?.code === 'RATE_LIMIT'
+      ) {
+        return respondWithRateLimit(res, providerId, error.message);
+      }
+
+      res.status(500).json({ error: error.message || 'Image generation failed' });
+    }
+  } finally {
+    end({ route: '/api/image/generate', code: res.statusCode, method: 'POST' });
+    httpRequestsTotal.inc({ route: '/api/image/generate', code: res.statusCode, method: 'POST' });
   }
 });
 

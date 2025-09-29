@@ -12,6 +12,43 @@ import { createSelectorFunctions } from 'auto-zustand-selectors-hook'
 import { modules } from './modules'
 import { personalities } from './assistant/personalities'
 import { getResourceManager } from './services/ResourceManager.js'
+import { DEFAULT_IMAGE_MODELS, ALWAYS_AVAILABLE_IMAGE_PROVIDERS } from './imageProviders.js'
+
+const IMAGE_PROVIDER_PRIORITY = ['gemini', 'openai', 'drawthings']
+
+function resolveImageProvider(currentProvider, connectedServices = {}) {
+  const normalizedCurrent = currentProvider || 'gemini'
+  if (
+    ALWAYS_AVAILABLE_IMAGE_PROVIDERS.has(normalizedCurrent) ||
+    connectedServices[normalizedCurrent]?.connected
+  ) {
+    return normalizedCurrent
+  }
+
+  for (const provider of IMAGE_PROVIDER_PRIORITY) {
+    if (
+      ALWAYS_AVAILABLE_IMAGE_PROVIDERS.has(provider) ||
+      connectedServices[provider]?.connected
+    ) {
+      return provider
+    }
+  }
+
+  return 'gemini'
+}
+
+function syncImageProviderState(state, { forceModelReset = false } = {}) {
+  const previousProvider = state.imageProvider
+  const resolvedProvider = resolveImageProvider(previousProvider, state.connectedServices)
+
+  state.imageProvider = resolvedProvider
+
+  const providerChanged = previousProvider !== resolvedProvider
+
+  if (providerChanged || forceModelReset || state.imageModel === undefined) {
+    state.imageModel = DEFAULT_IMAGE_MODELS[resolvedProvider] ?? null
+  }
+}
 
 const store = immer((set, get) => ({
   didInit: false,
@@ -77,6 +114,8 @@ const store = immer((set, get) => ({
   outputImage: null,
   isGenerating: false,
   generationError: null,
+  imageProvider: 'gemini',
+  imageModel: DEFAULT_IMAGE_MODELS.gemini,
 
   // Archiva State
   archivaEntries: {}, // Store entries by ID
@@ -114,14 +153,17 @@ const store = immer((set, get) => ({
     // Service management actions
     setConnectedServices: (services) => set((state) => {
       state.connectedServices = services;
+      syncImageProviderState(state);
     }),
 
     updateServiceConnection: (serviceId, connectionInfo) => set((state) => {
       state.connectedServices[serviceId] = connectionInfo;
+      syncImageProviderState(state);
     }),
 
     removeServiceConnection: (serviceId) => set((state) => {
       delete state.connectedServices[serviceId];
+      syncImageProviderState(state, { forceModelReset: true });
     }),
 
     // Store service credentials separately from connection status
@@ -169,6 +211,7 @@ const store = immer((set, get) => ({
                 connected: true,
                 info: result.info || { name: serviceId }
               };
+              syncImageProviderState(state);
             });
           }
         } else {
@@ -188,6 +231,7 @@ const store = immer((set, get) => ({
               connected: false,
               info: null
             };
+            syncImageProviderState(state, { forceModelReset: true });
           });
         }
       } catch (error) {
@@ -270,6 +314,7 @@ const store = immer((set, get) => ({
           const services = await response.json();
           set((state) => {
             state.connectedServices = services;
+            syncImageProviderState(state);
           });
         }
       } catch (error) {
@@ -299,6 +344,19 @@ const store = immer((set, get) => ({
     // UI Actions
     setIsSettingsOpen: (open) => set((state) => {
       state.isSettingsOpen = open;
+    }),
+
+    setImageProvider: (provider) => set((state) => {
+      state.imageProvider = provider || 'gemini';
+      state.imageModel = DEFAULT_IMAGE_MODELS[state.imageProvider] ?? null;
+    }),
+
+    setImageModel: (model) => set((state) => {
+      const next = (model ?? '').trim();
+      state.imageModel = next || null;
+      if (!next) {
+        state.imageModel = DEFAULT_IMAGE_MODELS[state.imageProvider] ?? null;
+      }
     }),
 
     setActiveApp: (app) => set((state) => {
@@ -498,6 +556,8 @@ export default createSelectorFunctions(
         archivaEntries: state.archivaEntries,
         connectedServices: state.connectedServices,
         serviceCredentials: state.serviceCredentials,
+        imageProvider: state.imageProvider,
+        imageModel: state.imageModel,
         selectedWorkflow: state.selectedWorkflow,
         rightColumnWidth: state.rightColumnWidth,
         leftColumnWidth: state.leftColumnWidth,
