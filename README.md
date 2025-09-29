@@ -273,6 +273,13 @@ GenBooth supports OAuth integration with multiple services:
 - `GET /metrics` - Prometheus metrics
 - Legal pages: `/privacy`, `/terms`
 
+## QA Guidance
+
+- **Planner persistence**
+  1. Open the Planner app and create or modify a graph (add a few nodes, connect them, and set a workflow title).
+  2. Navigate away or refresh the browser, then return to the Planner canvas via the app switcher.
+  3. Confirm the previously saved nodes, edges, and title are restored without manual re-importing.
+
 ## Troubleshooting
 
 ### Common Issues
