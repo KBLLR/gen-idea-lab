@@ -162,6 +162,7 @@
 }
 
 .planner-canvas {
+  position: relative;
   height: 100%;
 }
 
