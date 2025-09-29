@@ -3,9 +3,10 @@
  * SPDX-License-Identifier: Apache-2.0
 */
 import { useMemo } from 'react';
+import { useRef } from 'react';
 import useStore from '../lib/store';
-import { generateImage } from '../lib/actions';
-import ImageUploader from './ImageUploader';
+import { generateImage, setInputImage } from '../lib/actions';
+import ImageUploader, { fileToBase64 } from './ImageUploader';
 import modes from '../lib/modes';
 import descriptions from '../lib/descriptions';
 import { getImageProviderLabel, DEFAULT_IMAGE_MODELS } from '../lib/imageProviders';
@@ -78,6 +79,48 @@ export default function BoothViewer() {
         );
     }
 
+    const fileInputRef = useRef(null);
+
+    const handleFileSelection = async (file) => {
+        if (!file) return;
+        try {
+            const base64 = await fileToBase64(file);
+            setInputImage(base64);
+        } catch (error) {
+            console.error('Error converting file to base64:', error);
+        }
+    };
+
+    const handleFileChange = async (event) => {
+        const file = event.target.files && event.target.files[0];
+        await handleFileSelection(file);
+        if (fileInputRef.current) {
+            fileInputRef.current.value = '';
+        }
+    };
+
+    const handleReplaceTrigger = () => {
+        fileInputRef.current?.click();
+    };
+
+    const handleKeyDown = (event) => {
+        if (event.key === 'Enter' || event.key === ' ') {
+            event.preventDefault();
+            handleReplaceTrigger();
+        }
+    };
+
+    const handleDragOver = (event) => {
+        event.preventDefault();
+        event.dataTransfer.dropEffect = 'copy';
+    };
+
+    const handleDrop = async (event) => {
+        event.preventDefault();
+        const file = event.dataTransfer.files && event.dataTransfer.files[0];
+        await handleFileSelection(file);
+    };
+
     return (
         <div className="booth-viewer">
             {/* Header Section with Detailed Information */}
@@ -128,13 +171,6 @@ export default function BoothViewer() {
                         />
                     </div>
                     <button
-                        className="upload-new-btn secondary"
-                        onClick={() => useStore.setState({ inputImage: null, outputImage: null })}
-                    >
-                        <span className="icon">upload</span>
-                        Upload New Image
-                    </button>
-                    <button
                         className="booth-generate-btn primary"
                         onClick={generateImage}
                         disabled={isGenerating}
@@ -154,8 +190,30 @@ export default function BoothViewer() {
                             <h3>Input Image</h3>
                             <span className="image-info">Source</span>
                         </div>
-                        <div className="image-content">
+                        <div
+                            className="image-content replaceable"
+                            role="button"
+                            tabIndex={0}
+                            aria-label="Replace input image"
+                            onClick={handleReplaceTrigger}
+                            onKeyDown={handleKeyDown}
+                            onDragOver={handleDragOver}
+                            onDrop={handleDrop}
+                        >
                             <img src={inputImage} alt="Input" />
+                            <div className="replace-overlay" aria-hidden="true">
+                                <span className="icon">upload</span>
+                                <span>Replace image</span>
+                            </div>
+                            <input
+                                ref={fileInputRef}
+                                type="file"
+                                accept="image/jpeg, image/png, image/webp"
+                                onChange={handleFileChange}
+                                hidden
+                                aria-hidden="true"
+                                tabIndex={-1}
+                            />
                         </div>
                     </div>
 

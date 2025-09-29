@@ -41,6 +41,12 @@
   --border-accent: #1e88e5;
   --border-dashed: #333;
 
+  --glass-panel-bg: rgba(12, 12, 12, 0.72);
+  --glass-panel-border: rgba(255, 255, 255, 0.1);
+  --glass-panel-shadow: 0 20px 40px rgba(0, 0, 0, 0.55);
+  --glass-divider-strong: rgba(255, 255, 255, 0.16);
+  --glass-backdrop-filter: blur(18px);
+
   --backdrop-filter: blur(10px);
 
   --color-selection-bg: #fff;
@@ -74,6 +80,12 @@
   --border-secondary: #dcdfe2;
   --border-accent: #1e88e5;
   --border-dashed: #ced0d4;
+
+  --glass-panel-bg: rgba(255, 255, 255, 0.78);
+  --glass-panel-border: rgba(15, 23, 42, 0.12);
+  --glass-panel-shadow: 0 18px 36px rgba(15, 23, 42, 0.15);
+  --glass-divider-strong: rgba(15, 23, 42, 0.18);
+  --glass-backdrop-filter: blur(18px);
 
   --backdrop-filter: blur(10px);
 
@@ -3534,6 +3546,52 @@ main.workflows-layout .right-column {
   margin: 0;
 }
 
+.input-container .image-content.replaceable {
+  position: relative;
+  cursor: pointer;
+  outline: none;
+}
+
+.input-container .image-content.replaceable:focus {
+  outline: none;
+}
+
+.input-container .image-content.replaceable:focus-visible {
+  outline: 2px solid var(--border-accent);
+  outline-offset: 4px;
+}
+
+.input-container .image-content.replaceable .replace-overlay {
+  position: absolute;
+  top: var(--spacing-5);
+  right: var(--spacing-5);
+  bottom: var(--spacing-5);
+  left: var(--spacing-5);
+  background: rgba(0, 0, 0, 0.65);
+  color: var(--text-on-primary);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--spacing-3);
+  border-radius: 6px;
+  text-transform: uppercase;
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+  pointer-events: none;
+}
+
+.input-container .image-content.replaceable .replace-overlay .icon {
+  font-size: 32px;
+}
+
+.input-container .image-content.replaceable:hover .replace-overlay,
+.input-container .image-content.replaceable:focus-visible .replace-overlay {
+  opacity: 1;
+}
+
 .transformation-arrow {
   display: flex;
   flex-direction: column;
@@ -3624,8 +3682,13 @@ main.workflows-layout .right-column {
 .booth-footer {
   flex-shrink: 0;
   padding: var(--spacing-10);
-  border-top: 1px solid var(--border-primary);
-  background: var(--bg-panel);
+  border-top: 1px solid var(--glass-panel-border);
+  background:
+    linear-gradient(to bottom, var(--glass-divider-strong) 0%, transparent 35%),
+    var(--glass-panel-bg);
+  backdrop-filter: var(--glass-backdrop-filter);
+  -webkit-backdrop-filter: var(--glass-backdrop-filter);
+  box-shadow: var(--glass-panel-shadow);
   max-height: 200px;
   overflow: hidden;
   display: flex;
@@ -4165,11 +4228,6 @@ main.workflows-layout .right-column {
 }
 
 .booth-generate-btn:disabled {
-  opacity: 0.7;
-  cursor: not-allowed;
-}
-
-.upload-new-btn:disabled {
   opacity: 0.7;
   cursor: not-allowed;
 }

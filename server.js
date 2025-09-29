@@ -15,6 +15,7 @@ import logger from './src/lib/logger.js';
 import { register, httpRequestDurationMicroseconds, httpRequestsTotal } from './src/lib/metrics.js';
 import { verifyGoogleToken, generateJWT, requireAuth, optionalAuth } from './src/lib/auth.js';
 import { DEFAULT_IMAGE_MODELS } from './src/lib/imageProviders.js';
+import { renderTemplate, getTemplateIds } from './src/lib/archiva/templates/library.js';
 
 // In ES modules, __dirname is not available. path.resolve() provides the project root.
 const __dirname = path.resolve();
@@ -1908,33 +1909,16 @@ app.post('/api/workflow/generate-docs', requireAuth, async (req, res) => {
     // Import and render the template
     let renderedContent;
     try {
-      if (templateId === 'process_journal') {
-        const { render } = await import('./src/lib/archiva/templates/process_journal.js');
-        renderedContent = {
-          markdown: render('md', templateData),
-          html: render('html', templateData)
-        };
-      } else if (templateId === 'experiment_report') {
-        const { render } = await import('./src/lib/archiva/templates/experiment_report.js');
-        renderedContent = {
-          markdown: render('md', templateData),
-          html: render('html', templateData)
-        };
-      } else if (templateId === 'prompt_card') {
-        const { render } = await import('./src/lib/archiva/templates/prompt_card.js');
-        renderedContent = {
-          markdown: render('md', templateData),
-          html: render('html', templateData)
-        };
-      } else {
-        return res.status(400).json({
-          error: `Template renderer not found: ${templateId}`,
-          available: ['process_journal', 'experiment_report', 'prompt_card']
-        });
-      }
+      renderedContent = {
+        markdown: renderTemplate(templateId, 'md', templateData),
+        html: renderTemplate(templateId, 'html', templateData)
+      };
     } catch (renderError) {
       logger.error('Template rendering failed:', renderError);
-      return res.status(500).json({ error: 'Template rendering failed' });
+      return res.status(400).json({
+        error: `Template renderer not found or failed: ${templateId}`,
+        available: getTemplateIds()
+      });
     }
 
     res.json({
