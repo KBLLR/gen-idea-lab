@@ -2,12 +2,14 @@
  * @license
  * SPDX-License-Identifier: Apache-2.0
 */
+import { useMemo } from 'react';
 import { useRef } from 'react';
 import useStore from '../lib/store';
 import { generateImage, setInputImage } from '../lib/actions';
 import ImageUploader, { fileToBase64 } from './ImageUploader';
 import modes from '../lib/modes';
 import descriptions from '../lib/descriptions';
+import { getImageProviderLabel, DEFAULT_IMAGE_MODELS } from '../lib/imageProviders';
 
 const getModeDetails = (modeKey) => {
     for (const [categoryName, category] of Object.entries(modes)) {
@@ -35,7 +37,34 @@ export default function BoothViewer() {
     const isGenerating = useStore.use.isGenerating();
     const activeModeKey = useStore.use.activeModeKey();
     const generationError = useStore.use.generationError();
+    const connectedServices = useStore.use.connectedServices();
+    const imageProvider = useStore.use.imageProvider();
+    const imageModel = useStore.use.imageModel();
+    const setImageProvider = useStore((state) => state.actions.setImageProvider);
+    const setImageModel = useStore((state) => state.actions.setImageModel);
     const modeDetails = getModeDetails(activeModeKey);
+
+    const providerOptions = useMemo(() => {
+        const options = [
+            { value: 'gemini', label: getImageProviderLabel('gemini') }
+        ];
+
+        if (connectedServices.openai?.connected) {
+            options.push({ value: 'openai', label: getImageProviderLabel('openai') });
+        }
+
+        if (connectedServices.drawthings?.connected) {
+            options.push({ value: 'drawthings', label: getImageProviderLabel('drawthings') });
+        }
+
+        if (imageProvider && !options.some(option => option.value === imageProvider)) {
+            options.unshift({ value: imageProvider, label: getImageProviderLabel(imageProvider) });
+        }
+
+        return options;
+    }, [connectedServices, imageProvider]);
+
+    const currentModelValue = imageModel ?? DEFAULT_IMAGE_MODELS[imageProvider] ?? '';
 
     if (!inputImage) {
         return <ImageUploader />;
@@ -113,6 +142,34 @@ export default function BoothViewer() {
                 </div>
 
                 <div className="booth-actions">
+                    <div className="provider-controls">
+                        <label htmlFor="image-provider-select" className="provider-label">
+                            Image Provider
+                        </label>
+                        <select
+                            id="image-provider-select"
+                            value={imageProvider}
+                            onChange={(e) => setImageProvider(e.target.value)}
+                            className="provider-select"
+                        >
+                            {providerOptions.map(option => (
+                                <option key={option.value} value={option.value}>
+                                    {option.label}
+                                </option>
+                            ))}
+                        </select>
+                        <label htmlFor="image-provider-model" className="provider-label secondary">
+                            Model (optional)
+                        </label>
+                        <input
+                            id="image-provider-model"
+                            type="text"
+                            value={currentModelValue || ''}
+                            onChange={(e) => setImageModel(e.target.value)}
+                            placeholder={DEFAULT_IMAGE_MODELS[imageProvider] || 'Leave blank for provider default'}
+                            className="provider-model-input"
+                        />
+                    </div>
                     <button
                         className="booth-generate-btn primary"
                         onClick={generateImage}

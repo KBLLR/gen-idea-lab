@@ -12,6 +12,7 @@ import modes from './modes.js'
 import { workflowTemplates, getWorkflowsForModule, getWorkflowById } from './workflows.js'
 import { templates } from './archiva/templates.js';
 import { chunkText, upsertModuleChunks } from './rag.js';
+import { DEFAULT_IMAGE_MODELS, getImageProviderLabel } from './imageProviders.js'
 
 const get = useStore.getState
 const set = useStore.setState
@@ -417,7 +418,7 @@ export const setInputImage = (base64) => {
 };
 
 export const generateImage = async () => {
-  const { inputImage, activeModeKey } = get();
+  const { inputImage, activeModeKey, imageProvider, imageModel, connectedServices } = get();
   if (!inputImage || !activeModeKey) return;
 
   set({ isGenerating: true, outputImage: null, generationError: null });
@@ -437,19 +438,28 @@ export const generateImage = async () => {
     if (!modeDetails) throw new Error('Selected mode not found.');
 
     const { workflow, prompt } = modeDetails;
-    const model = 'gemini-2.5-flash-image-preview';
+    const provider = imageProvider || 'gemini';
+    const providerModel = imageModel || DEFAULT_IMAGE_MODELS[provider] || DEFAULT_IMAGE_MODELS.gemini;
+    const providerConnected = provider === 'gemini' || connectedServices?.[provider]?.connected;
+
+    if (!providerConnected) {
+      throw new Error(`Connect the ${getImageProviderLabel(provider)} service before generating images.`);
+    }
+
     let result;
 
     if (workflow && workflowTemplates[workflow]) {
       result = await workflowTemplates[workflow]({
         gen,
-        model,
+        model: providerModel,
+        provider,
         base64: inputImage,
         prompt
       });
     } else {
       result = await gen({
-        model,
+        provider,
+        model: providerModel,
         prompt,
         inputFile: inputImage,
       });

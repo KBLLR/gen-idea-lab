@@ -2,154 +2,89 @@
  * @license
  * SPDX-License-Identifier: Apache-2.0
 */
-import {Modality} from '@google/genai'
 import pLimit from 'p-limit'
 import { GENBOOTH_PRIMER } from './primer'
+import { DEFAULT_IMAGE_MODELS } from './imageProviders.js'
 
 const limit = pLimit(2)
 const wrapLimit = (fn) => (...args) => limit(() => fn(...args))
 
 const timeoutMs = 123_333
-const maxRetries = 5
-const baseDelay = 1_233
-// The GoogleGenAI object is no longer initialized on the client.
+const maxRetries = 3
+const baseDelay = 1_000
 
-export default wrapLimit(
-  async ({model, prompt, inputFile, signal}) => {
-    for (let attempt = 0; attempt < maxRetries; attempt++) {
-      try {
-        // Use AbortController for fetch timeouts
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort('timeout'), timeoutMs);
+const friendlyQuotaMessages = {
+  gemini: 'Gemini image generation has reached its quota. Please try again soon or switch providers.',
+  openai: 'OpenAI image generation is currently rate limited. Try again later or choose a different provider.',
+  drawthings: 'The DrawThings endpoint is busy. Give it a moment and retry or try another provider.'
+}
 
-        const genConfig = {}
-        if (model === 'gemini-2.5-flash-image-preview') {
-          genConfig.responseModalities = [Modality.IMAGE, Modality.TEXT]
-        }
+const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms))
 
-        const fullPrompt = `${GENBOOTH_PRIMER}\n\n${prompt}`
-        
-        const requestBody = {
-          model,
-          config: genConfig,
-          contents: {
-            parts: [
-              ...(inputFile
-                ? [
-                    {
-                      inlineData: {
-                        data: inputFile.split(',')[1],
-                        mimeType: 'image/jpeg'
-                      }
-                    }
-                  ]
-                : []),
-              {text: fullPrompt}
-            ]
-          },
-          safetySettings
-        };
+export default wrapLimit(async ({ provider = 'gemini', model, prompt, inputFile, signal }) => {
+  const selectedModel = model || DEFAULT_IMAGE_MODELS[provider] || DEFAULT_IMAGE_MODELS.gemini
+  const requestPayload = {
+    provider,
+    model: selectedModel,
+    prompt: `${GENBOOTH_PRIMER}\n\n${prompt}`,
+    image: inputFile
+  }
 
-        const fetchPromise = fetch('/api/proxy', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(requestBody),
-            signal: signal || controller.signal,
-        });
+  for (let attempt = 0; attempt < maxRetries; attempt++) {
+    const controller = new AbortController()
+    const activeSignal = signal || controller.signal
+    const timeoutId = setTimeout(() => controller.abort(), timeoutMs)
 
-        const fetchResponse = await fetchPromise;
-        clearTimeout(timeoutId); // Clear timeout if fetch completes
+    try {
+      const response = await fetch('/api/image/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(requestPayload),
+        signal: activeSignal
+      })
 
-        if (!fetchResponse.ok) {
-          const errorData = await fetchResponse.json();
-          const error = new Error(errorData.error || `HTTP error! status: ${fetchResponse.status}`);
-          if (fetchResponse.status === 429) { // Emulate API error for retry logic
-              error.status = 'RESOURCE_EXHAUSTED';
-          }
-          throw error;
-        }
+      const data = await response.json().catch(() => ({}))
 
-        const response = await fetchResponse.json();
+      if (!response.ok) {
+        const isRateLimited =
+          response.status === 429 ||
+          data?.code === 'RATE_LIMIT' ||
+          data?.code === 'RESOURCE_EXHAUSTED'
 
-        // The API can return a response without `candidates` if the prompt is blocked.
-        if (!response.candidates || response.candidates.length === 0) {
-          if (response.promptFeedback?.blockReason) {
-            throw new Error(
-              `Request blocked by API. Reason: ${response.promptFeedback.blockReason}`
-            )
-          }
-          throw new Error('API returned no candidates.')
-        }
-
-        const candidate = response.candidates[0]
-
-        // Check if the candidate has content before trying to access it.
-        // This can happen if the model's response is empty for other reasons (e.g. safety).
-        if (!candidate.content) {
-          if (candidate.finishReason) {
-            throw new Error(
-              `Image generation failed. Reason: ${candidate.finishReason}`
-            )
-          }
-          throw new Error('API returned a candidate with no content.')
-        }
-
-        // Check if the generation finished but was flagged for safety.
-        if (
-          candidate.finishReason &&
-          ['SAFETY', 'RECITATION'].includes(candidate.finishReason)
-        ) {
-          throw new Error(
-            `Image generation failed due to safety policy: ${candidate.finishReason}`
-          )
-        }
-
-        const inlineDataPart = candidate.content.parts.find(
-          p => p.inlineData
-        )
-
-        // If no image is found, check for a text explanation from the model.
-        if (!inlineDataPart) {
-          const textPart = candidate.content.parts.find(p => p.text)
-          if (textPart) {
-            throw new Error(
-              `Model returned a text response instead of an image: "${textPart.text}"`
-            )
-          }
-          throw new Error('No inline data found in response') // Keep as a final fallback.
-        }
-
-        return 'data:image/png;base64,' + inlineDataPart.inlineData.data
-      } catch (error) {
-        if (signal?.aborted || error.name === 'AbortError') {
-          return
-        }
-
-        if (attempt === maxRetries - 1) {
+        if (isRateLimited) {
+          const quotaMessage =
+            data?.error || friendlyQuotaMessages[provider] || 'The selected provider is currently rate limited.'
+          const error = new Error(quotaMessage)
+          error.code = 'RATE_LIMIT'
           throw error
         }
 
-        // Use a more aggressive backoff for rate limit errors
-        let delay = baseDelay * 2 ** attempt
-        if (error.status === 'RESOURCE_EXHAUSTED') {
-          console.warn(
-            `Rate limit error detected. Increasing retry delay.`
-          )
-          delay += 10000 // Add a 10-second penalty
-        }
-
-        await new Promise(res => setTimeout(res, delay))
-        console.warn(
-          `Attempt ${attempt + 1} failed, retrying after ${delay}ms...`
-        )
+        const error = new Error(data?.error || `Image generation failed with status ${response.status}`)
+        error.code = data?.code
+        throw error
       }
+
+      if (!data?.image) {
+        throw new Error('Image generation response was empty.')
+      }
+
+      return data.image
+    } catch (error) {
+      if (signal?.aborted || error.name === 'AbortError') {
+        return
+      }
+
+      if (error.code === 'RATE_LIMIT' || attempt === maxRetries - 1) {
+        throw error
+      }
+
+      const waitTime = baseDelay * 2 ** attempt
+      console.warn(
+        `Image generation attempt ${attempt + 1} failed (${error.message}). Retrying in ${waitTime}ms...`
+      )
+      await delay(waitTime)
+    } finally {
+      clearTimeout(timeoutId)
     }
   }
-)
-
-const safetySettings = [
-  'HARM_CATEGORY_HATE_SPEECH',
-  'HARM_CATEGORY_SEXUALLY_EXPLICIT',
-  'HARM_CATEGORY_DANGEROUS_CONTENT',
-  'HARM_CATEGORY_HARASSMENT'
-].map(category => ({category, threshold: 'BLOCK_NONE'}))
+})

@@ -18,6 +18,7 @@
     "tokens:clean": "rm -rf src/styles/tokens/tokens-*.css src/styles/tokens/tokens.js tokens/build",
     "tokens:audit": "node scripts/audit-css.js",
     "tokens:validate": "node scripts/validate-tokens.js",
+    "test": "NODE_ENV=test NODE_OPTIONS=--experimental-vm-modules jest",
     "test:auth": "NODE_ENV=test NODE_OPTIONS=--experimental-vm-modules jest tests/auth.routes.test.js"
   },
   "dependencies": {
