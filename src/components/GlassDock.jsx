@@ -6,6 +6,8 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import useStore from '../lib/store';
 import { voiceCommands } from '../lib/voiceCommands';
+import { enhancedVoiceSystem } from '../lib/voice/enhancedVoiceSystem';
+import { getVoicePersonality } from '../lib/voice/voicePersonalities';
 import '../styles/components/glass-dock.css';
 
 const DOCK_ITEM_SIZE = 56;
@@ -19,14 +21,24 @@ export default function GlassDock() {
   const [dockItems, setDockItems] = useState([]);
   const [isVoiceListening, setIsVoiceListening] = useState(false);
   const [voiceStatus, setVoiceStatus] = useState('');
+  const [showVoiceCommands, setShowVoiceCommands] = useState(false);
+  const [isScreenAware, setIsScreenAware] = useState(false);
+  const [showSubtitles, setShowSubtitles] = useState(false);
+  const [currentPersonality, setCurrentPersonality] = useState(null);
+  const [useEnhancedVoice, setUseEnhancedVoice] = useState(false);
+  const [dockDimensions, setDockDimensions] = useState({ width: 0, height: 0 });
   const dockRef = useRef(null);
   const dragRef = useRef({ startX: 0, startY: 0, offsetX: 0, offsetY: 0 });
 
   // Store actions
   const setIsOrchestratorOpen = useStore((state) => state.actions.setIsOrchestratorOpen);
   const setIsSettingsOpen = useStore((state) => state.actions.setIsSettingsOpen);
+  const setIsSystemInfoOpen = useStore((state) => state.actions.setIsSystemInfoOpen);
+  const setIsLiveVoiceChatOpen = useStore((state) => state.actions.setIsLiveVoiceChatOpen);
   const setActiveApp = useStore((state) => state.actions.setActiveApp);
   const activeApp = useStore((state) => state.activeApp);
+  const activeModuleId = useStore((state) => state.activeModuleId);
+  const isLiveVoiceChatOpen = useStore((state) => state.isLiveVoiceChatOpen);
 
   // Setup voice commands
   useEffect(() => {
@@ -69,6 +81,9 @@ export default function GlassDock() {
         case 'show-help':
           alert(data);
           break;
+        case 'show-system-info':
+          setIsSystemInfoOpen(true);
+          break;
         default:
           console.log('Unknown voice command action:', action);
       }
@@ -79,94 +94,135 @@ export default function GlassDock() {
     return () => {
       window.removeEventListener('voice-command', handleVoiceCommand);
     };
-  }, [setActiveApp, setIsOrchestratorOpen, setIsSettingsOpen]);
+  }, [setActiveApp, setIsOrchestratorOpen, setIsSettingsOpen, setIsSystemInfoOpen]);
+
+  // Update current personality when module changes
+  useEffect(() => {
+    const context = { activeModuleId, activeApp, isOrchestrator: !activeModuleId };
+    const personality = getVoicePersonality(context);
+    setCurrentPersonality(personality);
+  }, [activeModuleId, activeApp]);
+
+  // Setup enhanced voice system
+  useEffect(() => {
+    if (!enhancedVoiceSystem.isSupported) return;
+
+    enhancedVoiceSystem.onStart = () => {
+      setIsVoiceListening(true);
+      setVoiceStatus('Listening...');
+    };
+
+    enhancedVoiceSystem.onEnd = () => {
+      setIsVoiceListening(false);
+      setVoiceStatus('');
+    };
+
+    enhancedVoiceSystem.onError = (error) => {
+      setIsVoiceListening(false);
+      setVoiceStatus(`Error: ${error}`);
+      setTimeout(() => setVoiceStatus(''), 3000);
+    };
+
+    enhancedVoiceSystem.onResult = (result, confidence) => {
+      setVoiceStatus(`Processing: "${result}" (${Math.round(confidence * 100)}%)`);
+      setTimeout(() => setVoiceStatus(''), 3000);
+    };
+
+    enhancedVoiceSystem.onPersonalityChange = (personality) => {
+      setCurrentPersonality(personality);
+      if (personality.name === 'Puck') {
+        setVoiceStatus('🎭 Puck is here to help!');
+      } else {
+        setVoiceStatus(`🎓 ${personality.name} is ready to teach`);
+      }
+      setTimeout(() => setVoiceStatus(''), 2000);
+    };
+
+    return () => {
+      // Cleanup would go here
+    };
+  }, []);
 
   // Toggle voice listening
   const toggleVoiceListening = async () => {
     if (isVoiceListening) {
-      voiceCommands.stopListening();
+      if (useEnhancedVoice) {
+        enhancedVoiceSystem.stopListening();
+      } else {
+        voiceCommands.stopListening();
+      }
     } else {
-      await voiceCommands.startListening();
+      if (useEnhancedVoice) {
+        await enhancedVoiceSystem.startListening();
+      } else {
+        await voiceCommands.startListening();
+      }
     }
+  };
+
+  // Toggle screen awareness
+  const toggleScreenAwareness = () => {
+    setIsScreenAware(!isScreenAware);
+    // TODO: Implement screen capture/awareness functionality
+    console.log('Screen awareness toggled:', !isScreenAware);
+  };
+
+  // Toggle subtitles display
+  const toggleSubtitles = () => {
+    setShowSubtitles(!showSubtitles);
   };
 
   // Initialize dock items
   useEffect(() => {
     const items = [
       {
-        id: 'orchestrator',
-        icon: 'smart_toy',
-        label: 'Assistant',
-        action: () => setIsOrchestratorOpen(true),
-        type: 'action'
-      },
-      {
         id: 'voice',
-        icon: isVoiceListening ? 'mic' : 'mic_none',
+        icon: isVoiceListening ? 'mic' : 'mic_off',
         label: 'Voice Commands',
         action: toggleVoiceListening,
+        secondaryAction: () => setShowVoiceCommands(!showVoiceCommands),
         type: 'voice',
         isActive: isVoiceListening,
-        status: voiceStatus
+        status: voiceStatus,
+        hasSecondary: true
       },
       {
-        id: 'ideaLab',
-        icon: 'lightbulb',
-        label: 'Idea Lab',
-        action: () => setActiveApp('ideaLab'),
-        type: 'navigation',
-        isActive: activeApp === 'ideaLab'
+        id: 'live-voice-chat',
+        icon: 'forum',
+        label: 'Live Voice Chat (Gemini)',
+        action: () => setIsLiveVoiceChatOpen(!isLiveVoiceChatOpen),
+        type: 'action',
+        isActive: isLiveVoiceChatOpen
       },
       {
-        id: 'planner',
-        icon: 'account_tree',
-        label: 'Planner',
-        action: () => setActiveApp('planner'),
-        type: 'navigation',
-        isActive: activeApp === 'planner'
+        id: 'subtitles',
+        icon: 'volume_up',
+        label: 'Subtitles',
+        action: toggleSubtitles,
+        type: 'action',
+        isActive: showSubtitles
       },
       {
-        id: 'archiva',
-        icon: 'inventory_2',
-        label: 'Archiva',
-        action: () => setActiveApp('archiva'),
-        type: 'navigation',
-        isActive: activeApp === 'archiva'
-      },
-      {
-        id: 'booth',
-        icon: 'photo_camera',
-        label: 'Image Booth',
-        action: () => setActiveApp('imageBooth'),
-        type: 'navigation',
-        isActive: activeApp === 'imageBooth'
-      },
-      {
-        id: 'workflows',
-        icon: 'workflow',
-        label: 'Workflows',
-        action: () => setActiveApp('workflows'),
-        type: 'navigation',
-        isActive: activeApp === 'workflows'
-      },
-      {
-        id: 'settings',
-        icon: 'settings',
-        label: 'Settings',
-        action: () => setIsSettingsOpen(true),
-        type: 'action'
+        id: 'screen-aware',
+        icon: isScreenAware ? 'visibility' : 'visibility_off',
+        label: 'Screen Awareness',
+        action: toggleScreenAwareness,
+        type: 'action',
+        isActive: isScreenAware
       }
     ];
     setDockItems(items);
-  }, [activeApp, setActiveApp, setIsOrchestratorOpen, setIsSettingsOpen]);
+  }, [isVoiceListening, voiceStatus, showSubtitles, isScreenAware, isLiveVoiceChatOpen]);
 
   // Calculate dock dimensions
   const getDockDimensions = useCallback(() => {
     const visibleItems = dockItems.filter(item => item.visible !== false);
     const width = visibleItems.length * DOCK_ITEM_SIZE + (visibleItems.length - 1) * DOCK_GAP + (DOCK_PADDING * 2);
-    const height = DOCK_ITEM_SIZE + (DOCK_PADDING * 2);
+    const baseHeight = DOCK_ITEM_SIZE + (DOCK_PADDING * 2);
+    const subtitleHeight = showSubtitles ? 80 : 0; // Add height for subtitle area
+    const height = baseHeight + subtitleHeight;
     return { width, height };
-  }, [dockItems]);
+  }, [dockItems, showSubtitles]);
 
   // Handle window resize
   useEffect(() => {
@@ -272,10 +328,23 @@ export default function GlassDock() {
     };
   }, [position, getDockDimensions]);
 
-  const handleItemClick = (item) => {
-    if (item.action) {
+  const handleItemClick = (item, isSecondary = false) => {
+    if (isSecondary && item.secondaryAction) {
+      item.secondaryAction();
+    } else if (item.action) {
       item.action();
     }
+  };
+
+  // Icon fallback mapping for better compatibility
+  const getIconFallback = (iconName) => {
+    const fallbacks = {
+      'mic_off': 'mic_none',
+      'build_circle': 'settings',
+      'psychology': 'smart_toy',
+      'inventory_2': 'archive'
+    };
+    return fallbacks[iconName] || iconName;
   };
 
   const removeItem = (itemId) => {
@@ -311,19 +380,23 @@ export default function GlassDock() {
         {visibleItems.map((item, index) => (
           <div
             key={item.id}
-            className={`dock-item ${item.type} ${item.isActive ? 'active' : ''}`}
+            className={`dock-item ${item.type} ${item.isActive ? 'active' : ''} ${item.type === 'voice' && isVoiceListening ? 'listening' : ''}`}
             onClick={() => handleItemClick(item)}
-            title={item.label}
+            title={item.status || item.label}
           >
-            {item.component === 'VoiceCommand' ? (
-              <div className="voice-command-dock">
-                <span className="icon">mic</span>
+            <span className="icon" aria-label={item.label}>
+              {getIconFallback(item.icon)}
+            </span>
+
+            {item.type === 'voice' && isVoiceListening && (
+              <div className="listening-animation">
+                <div className="pulse"></div>
+                <div className="pulse"></div>
+                <div className="pulse"></div>
               </div>
-            ) : (
-              <span className="icon">{item.icon}</span>
             )}
 
-            {item.type === 'navigation' && item.isActive && (
+            {((item.type === 'navigation' && item.isActive) || (item.type === 'voice' && item.isActive)) && (
               <div className="active-indicator" />
             )}
 
@@ -335,7 +408,7 @@ export default function GlassDock() {
               }}
               title={`Remove ${item.label}`}
             >
-              <span className="icon">close</span>
+              <span className="icon" aria-label="Remove">close</span>
             </button>
           </div>
         ))}
@@ -344,6 +417,35 @@ export default function GlassDock() {
       <div className="dock-handle">
         <span className="icon">drag_indicator</span>
       </div>
+
+      {voiceStatus && (
+        <div className="voice-status-dock">
+          {voiceStatus}
+        </div>
+      )}
+
+      {showSubtitles && (
+        <div className="subtitle-area">
+          <div className="subtitle-text">
+            Subtitles will appear here...
+          </div>
+        </div>
+      )}
+
+      {currentPersonality && (
+        <div className="personality-indicator">
+          <div className="personality-info">
+            <span className="personality-name">
+              {currentPersonality.name === 'Puck' ? '🎭 Puck' : `🎓 ${currentPersonality.name}`}
+            </span>
+            {currentPersonality.knowledge_base?.primary_domain && (
+              <span className="personality-domain">
+                {currentPersonality.knowledge_base.primary_domain}
+              </span>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

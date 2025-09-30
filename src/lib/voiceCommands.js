@@ -128,6 +128,11 @@ export class VoiceCommandSystem {
     this.addCommand(['help', 'voice help', 'what can you do'], () => {
       this.showHelp();
     });
+
+    // System info command
+    this.addCommand(['system info', 'show system info', 'system status'], () => {
+      this.showSystemInfo();
+    });
   }
 
   addCommand(phrases, action, description = '') {
@@ -330,6 +335,13 @@ export class VoiceCommandSystem {
 
     const event = new CustomEvent('voice-command', {
       detail: { action: 'show-help', data: helpText }
+    });
+    window.dispatchEvent(event);
+  }
+
+  showSystemInfo() {
+    const event = new CustomEvent('voice-command', {
+      detail: { action: 'show-system-info' }
     });
     window.dispatchEvent(event);
   }

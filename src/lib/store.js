@@ -54,6 +54,8 @@ const store = immer((set, get) => ({
   didInit: false,
   isWelcomeScreenOpen: true,
   isSettingsOpen: false,
+  isSystemInfoOpen: false,
+  isLiveVoiceChatOpen: false,
   theme: 'dark',
 
   // Authentication state
@@ -355,6 +357,14 @@ const store = immer((set, get) => ({
 
     setIsSettingsOpen: (open) => set((state) => {
       state.isSettingsOpen = open;
+    }),
+
+    setIsSystemInfoOpen: (open) => set((state) => {
+      state.isSystemInfoOpen = open;
+    }),
+
+    setIsLiveVoiceChatOpen: (open) => set((state) => {
+      state.isLiveVoiceChatOpen = open;
     }),
 
     setImageProvider: (provider) => set((state) => {

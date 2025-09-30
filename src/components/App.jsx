@@ -25,7 +25,9 @@ import Assistant from './Assistant.jsx'
 import PlannerSidebar from './PlannerSidebar.jsx'
 import PlannerCanvas from './PlannerCanvas.jsx'
 import VoiceCommand from './VoiceCommand.jsx'
+import LiveVoiceChat from './LiveVoiceChat.jsx'
 import GlassDock from './GlassDock.jsx'
+import SystemInfoModal from './SystemInfoModal.jsx'
 import { personalities } from '../lib/assistant/personalities'
 import { modulesByDiscipline } from '../lib/modules'
 
@@ -70,6 +72,8 @@ export default function App() {
   const isAuthenticated = useStore.use.isAuthenticated();
   const isCheckingAuth = useStore.use.isCheckingAuth();
   const isSettingsOpen = useStore.use.isSettingsOpen();
+  const isSystemInfoOpen = useStore.use.isSystemInfoOpen();
+  const setIsSystemInfoOpen = useStore.use.actions().setIsSystemInfoOpen;
   const rightColumnWidth = useStore.use.rightColumnWidth();
   const setRightColumnWidth = useStore.use.actions().setRightColumnWidth;
   const leftColumnWidth = useStore.use.leftColumnWidth();
@@ -203,7 +207,10 @@ export default function App() {
       {isWelcomeScreenOpen && <WelcomeScreen onStart={handleStart} />}
       {isAssistantOpen && <Assistant />}
       {isSettingsOpen && <SettingsModal />}
+      {isSystemInfoOpen && <SystemInfoModal isOpen={isSystemInfoOpen} onClose={() => setIsSystemInfoOpen(false)} />}
       <GlassDock />
+      <VoiceCommand />
+      <LiveVoiceChat />
 
       <div 
         className="left-column"

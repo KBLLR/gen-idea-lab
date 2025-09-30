@@ -19,6 +19,12 @@ export default defineConfig(({ command, mode }) => {
       port: 3000,
       host: true, // Listen on all addresses (useful for Docker/network access)
 
+      // Set COOP headers to allow HMR postMessage and OAuth popups
+      headers: {
+        'Cross-Origin-Opener-Policy': 'unsafe-none',
+        'Cross-Origin-Embedder-Policy': 'unsafe-none'
+      },
+
       // Proxy API calls to Express server
       proxy: {
         '/api': {

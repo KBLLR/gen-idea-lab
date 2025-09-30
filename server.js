@@ -964,11 +964,13 @@ app.get('/api/services/:service/callback', async (req, res) => {
     };
     
     logger.info(`Successfully connected ${service} for user ${userEmail}`);
-    res.redirect('/?success=connected&service=' + service);
+    const frontendUrl = process.env.NODE_ENV === 'production' ? 'https://yourdomain.com' : 'http://localhost:3000';
+    res.redirect(`${frontendUrl}/?success=connected&service=${service}`);
     
   } catch (error) {
     logger.error(`Error during ${service} OAuth callback:`, error);
-    res.redirect(`/?error=callback_error&service=${service}`);
+    const frontendUrl = process.env.NODE_ENV === 'production' ? 'https://yourdomain.com' : 'http://localhost:3000';
+    res.redirect(`${frontendUrl}/?error=callback_error&service=${service}`);
   }
 });
 

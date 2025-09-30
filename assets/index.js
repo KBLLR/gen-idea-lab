@@ -3710,11 +3710,15 @@ init();
 // src/components/WelcomeScreen.jsx
 import { jsx, jsxs } from "react/jsx-runtime";
 function WelcomeScreen({ onStart }) {
-  return /* @__PURE__ */ jsx("div", { className: "welcome-screen", children: /* @__PURE__ */ jsxs("div", { className: "welcome-content", children: [
+  return /* @__PURE__ */ jsx("div", {
+    className: "welcome-screen", children: /* @__PURE__ */ jsxs("div", {
+      className: "welcome-content", children: [
     /* @__PURE__ */ jsx("h1", { children: "Welcome to the GenBooth Idea Lab" }),
     /* @__PURE__ */ jsx("p", { className: "intro", children: "Explore university modules, connect with expert AI assistants for each subject, and generate creative project ideas. Select a module from the panel to begin your journey." }),
     /* @__PURE__ */ jsx("button", { className: "welcome-start-btn", onClick: onStart, children: "Start Exploring" })
-  ] }) });
+      ]
+    })
+  });
 }
 
 // src/components/AppSwitcher.jsx
@@ -3727,11 +3731,13 @@ var apps2 = [
 function AppSwitcher() {
   const activeApp = store_default.use.activeApp();
   const currentIndex = apps2.findIndex((app) => app.id === activeApp);
-  return /* @__PURE__ */ jsxs2("div", { className: "app-switcher", children: [
+  return /* @__PURE__ */ jsxs2("div", {
+    className: "app-switcher", children: [
     /* @__PURE__ */ jsx2("button", { className: "switch-btn icon", onClick: () => switchApp("prev"), title: "Previous App", children: "chevron_left" }),
     /* @__PURE__ */ jsx2("h1", { className: "app-title", children: apps2[currentIndex].title }),
     /* @__PURE__ */ jsx2("button", { className: "switch-btn icon", onClick: () => switchApp("next"), title: "Next App", children: "chevron_right" })
-  ] });
+    ]
+  });
 }
 
 // src/components/ModeSelector.jsx
@@ -4094,35 +4100,47 @@ function ModeSelector() {
   const toggleCategory = (categoryName) => {
     setOpenCategories((prev) => ({ ...prev, [categoryName]: !prev[categoryName] }));
   };
-  return /* @__PURE__ */ jsx3("div", { className: "mode-selector", children: Object.entries(modes_default).map(([categoryName, subCategories]) => {
-    const isOpen = openCategories[categoryName];
-    return /* @__PURE__ */ jsxs3("div", { className: "mode-category", children: [
-      /* @__PURE__ */ jsxs3("h2", { onClick: () => toggleCategory(categoryName), children: [
-        categoryName,
+  return /* @__PURE__ */ jsx3("div", {
+    className: "mode-selector", children: Object.entries(modes_default).map(([categoryName, subCategories]) => {
+      const isOpen = openCategories[categoryName];
+      return /* @__PURE__ */ jsxs3("div", {
+        className: "mode-category", children: [
+      /* @__PURE__ */ jsxs3("h2", {
+          onClick: () => toggleCategory(categoryName), children: [
+            categoryName,
         /* @__PURE__ */ jsx3("span", { className: "icon", children: isOpen ? "expand_less" : "expand_more" })
-      ] }),
-      isOpen && Object.entries(subCategories).map(([subCategoryName, modesInCategory]) => /* @__PURE__ */ jsxs3("div", { className: "mode-subcategory", children: [
+          ]
+        }),
+          isOpen && Object.entries(subCategories).map(([subCategoryName, modesInCategory]) => /* @__PURE__ */ jsxs3("div", {
+            className: "mode-subcategory", children: [
         /* @__PURE__ */ jsx3("h3", { children: subCategoryName }),
-        /* @__PURE__ */ jsx3("div", { className: "mode-grid", children: Object.entries(modesInCategory).map(([modeKey, modeDetails]) => /* @__PURE__ */ jsxs3(
-          "button",
-          {
-            className: c("mode-item", { active: activeModeKey === modeKey }),
-            onClick: () => selectMode(modeKey),
-            title: modeDetails.name,
-            children: [
+        /* @__PURE__ */ jsx3("div", {
+              className: "mode-grid", children: Object.entries(modesInCategory).map(([modeKey, modeDetails]) => /* @__PURE__ */ jsxs3(
+                "button",
+                {
+                  className: c("mode-item", { active: activeModeKey === modeKey }),
+                  onClick: () => selectMode(modeKey),
+                  title: modeDetails.name,
+                  children: [
               /* @__PURE__ */ jsx3("img", { src: thumbnails_default[modeKey], alt: modeDetails.name, loading: "lazy" }),
-              /* @__PURE__ */ jsxs3("span", { children: [
-                modeDetails.emoji,
-                " ",
-                modeDetails.name
-              ] })
+              /* @__PURE__ */ jsxs3("span", {
+                    children: [
+                      modeDetails.emoji,
+                      " ",
+                      modeDetails.name
+                    ]
+                  })
+                  ]
+                },
+                modeKey
+              ))
+            })
             ]
-          },
-          modeKey
-        )) })
-      ] }, subCategoryName))
-    ] }, categoryName);
-  }) });
+          }, subCategoryName))
+        ]
+      }, categoryName);
+    })
+  });
 }
 
 // src/components/ImageUploader.jsx
@@ -4147,7 +4165,8 @@ function ImageUploader() {
   };
   const handleDragOver = (e) => e.preventDefault();
   const handleDrop = (e) => e.preventDefault();
-  return /* @__PURE__ */ jsxs4("div", { className: "image-uploader", onDragOver: handleDragOver, onDrop: handleDrop, children: [
+  return /* @__PURE__ */ jsxs4("div", {
+    className: "image-uploader", onDragOver: handleDragOver, onDrop: handleDrop, children: [
     /* @__PURE__ */ jsx4("span", { className: "icon", children: "add_photo_alternate" }),
     /* @__PURE__ */ jsx4("h3", { children: "Upload a Portrait" }),
     /* @__PURE__ */ jsx4("p", { children: "Drag & drop an image here, or click to select a file." }),
@@ -4160,7 +4179,8 @@ function ImageUploader() {
         title: "Select an image to upload"
       }
     )
-  ] });
+    ]
+  });
 }
 
 // src/lib/descriptions.js
@@ -4600,21 +4620,29 @@ function BoothViewer() {
     return /* @__PURE__ */ jsx5(ImageUploader, {});
   }
   if (!modeDetails) {
-    return /* @__PURE__ */ jsxs5("div", { className: "module-viewer-placeholder", children: [
+    return /* @__PURE__ */ jsxs5("div", {
+      className: "module-viewer-placeholder", children: [
       /* @__PURE__ */ jsx5("span", { className: "icon", children: "error" }),
       /* @__PURE__ */ jsx5("h2", { children: "Mode not found. Please select a mode from the left." })
-    ] });
+      ]
+    });
   }
-  return /* @__PURE__ */ jsxs5("div", { className: "booth-viewer", children: [
-    /* @__PURE__ */ jsxs5("div", { className: "booth-header", children: [
-      /* @__PURE__ */ jsxs5("div", { className: "booth-header-info", children: [
-        /* @__PURE__ */ jsxs5("h2", { children: [
-          modeDetails.emoji,
-          " ",
-          modeDetails.name
-        ] }),
+  return /* @__PURE__ */ jsxs5("div", {
+    className: "booth-viewer", children: [
+    /* @__PURE__ */ jsxs5("div", {
+      className: "booth-header", children: [
+      /* @__PURE__ */ jsxs5("div", {
+        className: "booth-header-info", children: [
+        /* @__PURE__ */ jsxs5("h2", {
+          children: [
+            modeDetails.emoji,
+            " ",
+            modeDetails.name
+          ]
+        }),
         /* @__PURE__ */ jsx5("p", { children: modeDetails.description })
-      ] }),
+        ]
+      }),
       /* @__PURE__ */ jsxs5(
         "button",
         {
@@ -4627,32 +4655,44 @@ function BoothViewer() {
           ]
         }
       )
-    ] }),
-    /* @__PURE__ */ jsxs5("div", { className: "image-previews", children: [
-      isGenerating && /* @__PURE__ */ jsx5(LoadingSpinner, {}),
-      /* @__PURE__ */ jsxs5("div", { className: "image-container", children: [
+      ]
+    }),
+    /* @__PURE__ */ jsxs5("div", {
+      className: "image-previews", children: [
+        isGenerating && /* @__PURE__ */ jsx5(LoadingSpinner, {}),
+      /* @__PURE__ */ jsxs5("div", {
+          className: "image-container", children: [
         /* @__PURE__ */ jsx5("h4", { children: "Input" }),
         /* @__PURE__ */ jsx5("img", { src: inputImage, alt: "Input" })
-      ] }),
-      /* @__PURE__ */ jsxs5("div", { className: "image-container", children: [
+          ]
+        }),
+      /* @__PURE__ */ jsxs5("div", {
+          className: "image-container", children: [
         /* @__PURE__ */ jsx5("h4", { children: "Output" }),
-        outputImage ? /* @__PURE__ */ jsx5("img", { src: outputImage, alt: "Output" }) : /* @__PURE__ */ jsx5("div", { className: "placeholder icon", children: generationError ? "broken_image" : "photo_spark" })
-      ] }),
-      generationError && /* @__PURE__ */ jsx5("div", { className: "error-message", children: generationError })
-    ] })
-  ] });
+            outputImage ? /* @__PURE__ */ jsx5("img", { src: outputImage, alt: "Output" }) : /* @__PURE__ */ jsx5("div", { className: "placeholder icon", children: generationError ? "broken_image" : "photo_spark" })
+          ]
+        }),
+        generationError && /* @__PURE__ */ jsx5("div", { className: "error-message", children: generationError })
+      ]
+    })
+    ]
+  });
 }
 
 // src/components/UserBar.jsx
 import { jsx as jsx6, jsxs as jsxs6 } from "react/jsx-runtime";
 function UserBar() {
   const theme = store_default.use.theme();
-  return /* @__PURE__ */ jsxs6("div", { className: "user-bar", children: [
-    /* @__PURE__ */ jsxs6("div", { className: "user-info", children: [
+  return /* @__PURE__ */ jsxs6("div", {
+    className: "user-bar", children: [
+    /* @__PURE__ */ jsxs6("div", {
+      className: "user-info", children: [
       /* @__PURE__ */ jsx6("span", { className: "icon", children: "account_circle" }),
       /* @__PURE__ */ jsx6("p", { children: "User" })
-    ] }),
-    /* @__PURE__ */ jsxs6("div", { className: "user-actions", children: [
+      ]
+    }),
+    /* @__PURE__ */ jsxs6("div", {
+      className: "user-actions", children: [
       /* @__PURE__ */ jsx6("button", { className: "icon-btn icon", title: "Settings", children: "settings" }),
       /* @__PURE__ */ jsx6(
         "button",
@@ -4663,34 +4703,48 @@ function UserBar() {
           children: theme === "dark" ? "light_mode" : "dark_mode"
         }
       )
-    ] })
-  ] });
+      ]
+    })
+    ]
+  });
 }
 
 // src/components/OrchestratorChat.jsx
 import { useState as useState2, useEffect, useRef } from "react";
 import { jsx as jsx7, jsxs as jsxs7 } from "react/jsx-runtime";
-var AgentTask = ({ message }) => /* @__PURE__ */ jsxs7("div", { className: "agent-task-message", children: [
-  /* @__PURE__ */ jsxs7("div", { className: "agent-task-header", children: [
+var AgentTask = ({ message }) => /* @__PURE__ */ jsxs7("div", {
+  className: "agent-task-message", children: [
+  /* @__PURE__ */ jsxs7("div", {
+    className: "agent-task-header", children: [
     /* @__PURE__ */ jsx7("span", { className: "icon", children: message.agentIcon }),
-    /* @__PURE__ */ jsxs7("h4", { children: [
-      message.agentName,
-      " is on the job..."
-    ] })
-  ] }),
-  /* @__PURE__ */ jsxs7("div", { className: "agent-task-body", children: [
-    /* @__PURE__ */ jsxs7("p", { children: [
+    /* @__PURE__ */ jsxs7("h4", {
+      children: [
+        message.agentName,
+        " is on the job..."
+      ]
+    })
+    ]
+  }),
+  /* @__PURE__ */ jsxs7("div", {
+    className: "agent-task-body", children: [
+    /* @__PURE__ */ jsxs7("p", {
+      children: [
       /* @__PURE__ */ jsx7("strong", { children: "Task:" }),
-      " ",
-      message.task
-    ] }),
+        " ",
+        message.task
+      ]
+    }),
     /* @__PURE__ */ jsx7("div", { className: "spinner-line", children: /* @__PURE__ */ jsx7("div", { className: "spinner-dot" }) }),
-    message.result && /* @__PURE__ */ jsxs7("div", { className: "agent-task-result", children: [
+      message.result && /* @__PURE__ */ jsxs7("div", {
+        className: "agent-task-result", children: [
       /* @__PURE__ */ jsx7("strong", { children: "Findings:" }),
       /* @__PURE__ */ jsx7("p", { dangerouslySetInnerHTML: { __html: message.result.replace(/\n/g, "<br />") } })
-    ] })
-  ] })
-] });
+        ]
+      })
+    ]
+  })
+  ]
+});
 function OrchestratorChat() {
   const history = store_default.use.orchestratorHistory();
   const isLoading = store_default.use.isOrchestratorLoading();
@@ -4708,21 +4762,27 @@ function OrchestratorChat() {
     setInput("");
   };
   const placeholderText = activeModuleId ? `Message or try /invite @${personalities[activeModuleId]?.name || "Agent"}` : "Select a module to begin...";
-  return /* @__PURE__ */ jsxs7("div", { className: "orchestrator-chat-container", children: [
-    /* @__PURE__ */ jsxs7("div", { className: "assistant-history", ref: historyRef, children: [
-      history.map((msg, index) => {
-        if (msg.role === "agent-task") {
-          return /* @__PURE__ */ jsx7(AgentTask, { message: msg }, index);
-        }
-        return /* @__PURE__ */ jsx7("div", { className: `assistant-message ${msg.role}`, children: /* @__PURE__ */ jsx7("p", { dangerouslySetInnerHTML: { __html: msg.parts[0].text.replace(/\n/g, "<br />") } }) }, index);
-      }),
-      isLoading && /* @__PURE__ */ jsxs7("div", { className: "assistant-message model loading", children: [
+  return /* @__PURE__ */ jsxs7("div", {
+    className: "orchestrator-chat-container", children: [
+    /* @__PURE__ */ jsxs7("div", {
+      className: "assistant-history", ref: historyRef, children: [
+        history.map((msg, index) => {
+          if (msg.role === "agent-task") {
+            return /* @__PURE__ */ jsx7(AgentTask, { message: msg }, index);
+          }
+          return /* @__PURE__ */ jsx7("div", { className: `assistant-message ${msg.role}`, children: /* @__PURE__ */ jsx7("p", { dangerouslySetInnerHTML: { __html: msg.parts[0].text.replace(/\n/g, "<br />") } }) }, index);
+        }),
+        isLoading && /* @__PURE__ */ jsxs7("div", {
+          className: "assistant-message model loading", children: [
         /* @__PURE__ */ jsx7("div", { className: "dot" }),
         /* @__PURE__ */ jsx7("div", { className: "dot" }),
         /* @__PURE__ */ jsx7("div", { className: "dot" })
-      ] })
-    ] }),
-    /* @__PURE__ */ jsxs7("form", { className: "assistant-input-form", onSubmit: handleSubmit, children: [
+          ]
+        })
+      ]
+    }),
+    /* @__PURE__ */ jsxs7("form", {
+      className: "assistant-input-form", onSubmit: handleSubmit, children: [
       /* @__PURE__ */ jsx7(
         "input",
         {
@@ -4735,22 +4795,28 @@ function OrchestratorChat() {
         }
       ),
       /* @__PURE__ */ jsx7("button", { type: "submit", disabled: isLoading || !input.trim(), children: /* @__PURE__ */ jsx7("span", { className: "icon", children: "send" }) })
-    ] })
-  ] });
+      ]
+    })
+    ]
+  });
 }
 
 // src/components/ArchivaDashboard.jsx
 import { jsx as jsx8, jsxs as jsxs8 } from "react/jsx-runtime";
 function ArchivaDashboard() {
-  return /* @__PURE__ */ jsxs8("div", { className: "archiva-dashboard archiva-home", children: [
+  return /* @__PURE__ */ jsxs8("div", {
+    className: "archiva-dashboard archiva-home", children: [
     /* @__PURE__ */ jsx8("span", { className: "icon", children: "inventory_2" }),
     /* @__PURE__ */ jsx8("h2", { children: "Welcome to ArchivaAI" }),
-    /* @__PURE__ */ jsxs8("p", { children: [
-      "This is your space for structured, AI-powered documentation.",
+    /* @__PURE__ */ jsxs8("p", {
+      children: [
+        "This is your space for structured, AI-powered documentation.",
       /* @__PURE__ */ jsx8("br", {}),
-      "Select a template from the left to create a new document, or choose an existing document to continue editing."
-    ] })
-  ] });
+        "Select a template from the left to create a new document, or choose an existing document to continue editing."
+      ]
+    })
+    ]
+  });
 }
 
 // src/components/ArchivaSidebar.jsx
@@ -4761,67 +4827,91 @@ function ArchivaSidebar() {
   const activeEntryId = store_default.use.activeEntryId();
   const drafts = entries.filter((e) => e.status === "draft").sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt));
   const published = entries.filter((e) => e.status === "published").sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt));
-  return /* @__PURE__ */ jsxs9(Fragment, { children: [
-    /* @__PURE__ */ jsxs9("div", { className: "semester-group", children: [
+  return /* @__PURE__ */ jsxs9(Fragment, {
+    children: [
+    /* @__PURE__ */ jsxs9("div", {
+      className: "semester-group", children: [
       /* @__PURE__ */ jsx9("h2", { children: "Templates" }),
-      /* @__PURE__ */ jsx9("div", { className: "module-list", children: Object.entries(templates).map(([key, template]) => /* @__PURE__ */ jsx9(
-        "button",
-        {
-          onClick: () => createNewArchivaEntry(key),
-          title: `Create a new ${template.name}`,
-          children: /* @__PURE__ */ jsxs9("div", { className: "module-info", children: [
+      /* @__PURE__ */ jsx9("div", {
+        className: "module-list", children: Object.entries(templates).map(([key, template]) => /* @__PURE__ */ jsx9(
+          "button",
+          {
+            onClick: () => createNewArchivaEntry(key),
+            title: `Create a new ${template.name}`,
+            children: /* @__PURE__ */ jsxs9("div", {
+              className: "module-info", children: [
             /* @__PURE__ */ jsx9("span", { className: "icon", children: "add_box" }),
             /* @__PURE__ */ jsx9("p", { children: template.name })
-          ] })
-        },
-        key
-      )) })
-    ] }),
-    /* @__PURE__ */ jsxs9("div", { className: "semester-group", children: [
-      /* @__PURE__ */ jsxs9("h2", { children: [
-        "Drafts (",
-        drafts.length,
-        ")"
-      ] }),
-      /* @__PURE__ */ jsxs9("div", { className: "module-list", children: [
-        drafts.map((entry) => /* @__PURE__ */ jsx9(
-          "button",
-          {
-            className: c2({ active: entry.id === activeEntryId }),
-            onClick: () => setActiveEntryId(entry.id),
-            children: /* @__PURE__ */ jsxs9("div", { className: "module-info", children: [
+              ]
+            })
+          },
+          key
+        ))
+      })
+      ]
+    }),
+    /* @__PURE__ */ jsxs9("div", {
+      className: "semester-group", children: [
+      /* @__PURE__ */ jsxs9("h2", {
+        children: [
+          "Drafts (",
+          drafts.length,
+          ")"
+        ]
+      }),
+      /* @__PURE__ */ jsxs9("div", {
+        className: "module-list", children: [
+          drafts.map((entry) => /* @__PURE__ */ jsx9(
+            "button",
+            {
+              className: c2({ active: entry.id === activeEntryId }),
+              onClick: () => setActiveEntryId(entry.id),
+              children: /* @__PURE__ */ jsxs9("div", {
+                className: "module-info", children: [
               /* @__PURE__ */ jsx9("span", { className: "icon", children: "edit_document" }),
               /* @__PURE__ */ jsx9("p", { children: entry.values.title || "Untitled Entry" })
-            ] })
-          },
-          entry.id
-        )),
-        drafts.length === 0 && /* @__PURE__ */ jsx9("p", { className: "empty-list-message", children: "No drafts yet." })
-      ] })
-    ] }),
-    /* @__PURE__ */ jsxs9("div", { className: "semester-group", children: [
-      /* @__PURE__ */ jsxs9("h2", { children: [
-        "Published (",
-        published.length,
-        ")"
-      ] }),
-      /* @__PURE__ */ jsxs9("div", { className: "module-list", children: [
-        published.map((entry) => /* @__PURE__ */ jsx9(
-          "button",
-          {
-            className: c2({ active: entry.id === activeEntryId }),
-            onClick: () => setActiveEntryId(entry.id),
-            children: /* @__PURE__ */ jsxs9("div", { className: "module-info", children: [
+                ]
+              })
+            },
+            entry.id
+          )),
+          drafts.length === 0 && /* @__PURE__ */ jsx9("p", { className: "empty-list-message", children: "No drafts yet." })
+        ]
+      })
+      ]
+    }),
+    /* @__PURE__ */ jsxs9("div", {
+      className: "semester-group", children: [
+      /* @__PURE__ */ jsxs9("h2", {
+        children: [
+          "Published (",
+          published.length,
+          ")"
+        ]
+      }),
+      /* @__PURE__ */ jsxs9("div", {
+        className: "module-list", children: [
+          published.map((entry) => /* @__PURE__ */ jsx9(
+            "button",
+            {
+              className: c2({ active: entry.id === activeEntryId }),
+              onClick: () => setActiveEntryId(entry.id),
+              children: /* @__PURE__ */ jsxs9("div", {
+                className: "module-info", children: [
               /* @__PURE__ */ jsx9("span", { className: "icon", children: "article" }),
               /* @__PURE__ */ jsx9("p", { children: entry.values.title || "Untitled Entry" })
-            ] })
-          },
-          entry.id
-        )),
-        published.length === 0 && /* @__PURE__ */ jsx9("p", { className: "empty-list-message", children: "No published entries." })
-      ] })
-    ] })
-  ] });
+                ]
+              })
+            },
+            entry.id
+          )),
+          published.length === 0 && /* @__PURE__ */ jsx9("p", { className: "empty-list-message", children: "No published entries." })
+        ]
+      })
+      ]
+    })
+    ]
+  });
 }
 
 // src/components/ArchivaEntryForm.jsx
@@ -4843,10 +4933,12 @@ var Field = ({ field, value, onChange }) => {
         return /* @__PURE__ */ jsx10("input", { type: "text", value, onChange });
     }
   };
-  return /* @__PURE__ */ jsxs10("div", { className: "form-field", children: [
+  return /* @__PURE__ */ jsxs10("div", {
+    className: "form-field", children: [
     /* @__PURE__ */ jsx10("label", { htmlFor: field_key, children: label }),
-    renderInput()
-  ] });
+      renderInput()
+    ]
+  });
 };
 function ArchivaEntryForm() {
   const activeEntryId = store_default.use.activeEntryId();
@@ -4858,34 +4950,48 @@ function ArchivaEntryForm() {
   const handleFieldChange = (fieldKey, value) => {
     updateArchivaEntry(activeEntryId, fieldKey, value);
   };
-  return /* @__PURE__ */ jsxs10("div", { className: "archiva-entry-form", children: [
-    /* @__PURE__ */ jsxs10("div", { className: "archiva-form-header", children: [
-      /* @__PURE__ */ jsxs10("div", { className: "archiva-form-header-title", children: [
+  return /* @__PURE__ */ jsxs10("div", {
+    className: "archiva-entry-form", children: [
+    /* @__PURE__ */ jsxs10("div", {
+      className: "archiva-form-header", children: [
+      /* @__PURE__ */ jsxs10("div", {
+        className: "archiva-form-header-title", children: [
         /* @__PURE__ */ jsx10("h2", { children: entry.values.title || template.name }),
-        /* @__PURE__ */ jsxs10("p", { children: [
-          "Status: ",
+        /* @__PURE__ */ jsxs10("p", {
+          children: [
+            "Status: ",
           /* @__PURE__ */ jsx10("span", { className: `status-${entry.status}`, children: entry.status })
-        ] })
-      ] }),
-      /* @__PURE__ */ jsxs10("div", { className: "archiva-form-actions", children: [
-        /* @__PURE__ */ jsxs10("button", { className: "back-btn", onClick: clearActiveEntryId, children: [
+          ]
+        })
+        ]
+      }),
+      /* @__PURE__ */ jsxs10("div", {
+        className: "archiva-form-actions", children: [
+        /* @__PURE__ */ jsxs10("button", {
+          className: "back-btn", onClick: clearActiveEntryId, children: [
           /* @__PURE__ */ jsx10("span", { className: "icon", children: "close" }),
-          " Close"
-        ] }),
+            " Close"
+          ]
+        }),
         /* @__PURE__ */ jsx10("button", { className: "secondary", onClick: () => updateArchivaEntryStatus(activeEntryId, "draft"), children: "Save as Draft" }),
         /* @__PURE__ */ jsx10("button", { className: "primary", onClick: () => updateArchivaEntryStatus(activeEntryId, "published"), children: "Publish" })
-      ] })
-    ] }),
-    /* @__PURE__ */ jsx10("div", { className: "archiva-form-content", children: template.fields.map((field) => /* @__PURE__ */ jsx10(
-      Field,
-      {
-        field,
-        value: entry.values[field.field_key],
-        onChange: (e) => handleFieldChange(field.field_key, e.target.value)
-      },
-      field.field_key
-    )) })
-  ] });
+        ]
+      })
+      ]
+    }),
+    /* @__PURE__ */ jsx10("div", {
+      className: "archiva-form-content", children: template.fields.map((field) => /* @__PURE__ */ jsx10(
+        Field,
+        {
+          field,
+          value: entry.values[field.field_key],
+          onChange: (e) => handleFieldChange(field.field_key, e.target.value)
+        },
+        field.field_key
+      ))
+    })
+    ]
+  });
 }
 
 // src/components/ModuleViewer.jsx
@@ -4897,17 +5003,24 @@ function ModuleViewer() {
   }
   const module = modules[activeModuleId];
   const personality = personalities[activeModuleId];
-  return /* @__PURE__ */ jsxs11("div", { className: "module-viewer", children: [
-    /* @__PURE__ */ jsxs11("div", { className: "module-viewer-header", children: [
-      /* @__PURE__ */ jsxs11("div", { className: "module-viewer-title", children: [
+  return /* @__PURE__ */ jsxs11("div", {
+    className: "module-viewer", children: [
+    /* @__PURE__ */ jsxs11("div", {
+      className: "module-viewer-header", children: [
+      /* @__PURE__ */ jsxs11("div", {
+        className: "module-viewer-title", children: [
         /* @__PURE__ */ jsx11("h2", { children: personality.name }),
-        /* @__PURE__ */ jsxs11("p", { children: [
-          module["Module Code"],
-          " - ",
-          personality.title
-        ] })
-      ] }),
-      /* @__PURE__ */ jsxs11("div", { className: "module-connectors", children: [
+        /* @__PURE__ */ jsxs11("p", {
+          children: [
+            module["Module Code"],
+            " - ",
+            personality.title
+          ]
+        })
+        ]
+      }),
+      /* @__PURE__ */ jsxs11("div", {
+        className: "module-connectors", children: [
         /* @__PURE__ */ jsx11("button", { className: "icon-btn", title: "Figma", children: /* @__PURE__ */ jsx11("span", { className: "icon", children: "design_services" }) }),
         /* @__PURE__ */ jsx11("button", { className: "icon-btn", title: "GitHub", children: /* @__PURE__ */ jsx11("span", { className: "icon", children: "code" }) }),
         /* @__PURE__ */ jsx11("button", { className: "icon-btn", title: "Notion", children: /* @__PURE__ */ jsx11("span", { className: "icon", children: "article" }) }),
@@ -4922,19 +5035,28 @@ function ModuleViewer() {
             children: /* @__PURE__ */ jsx11("span", { className: "icon", children: "chat" })
           }
         )
-      ] })
-    ] }),
-    /* @__PURE__ */ jsxs11("div", { className: "module-viewer-content", children: [
-      /* @__PURE__ */ jsxs11("div", { children: [
+        ]
+      })
+      ]
+    }),
+    /* @__PURE__ */ jsxs11("div", {
+      className: "module-viewer-content", children: [
+      /* @__PURE__ */ jsxs11("div", {
+        children: [
         /* @__PURE__ */ jsx11("h3", { children: "Key Contents & Topics" }),
         /* @__PURE__ */ jsx11("p", { children: module["Key Contents / Topics"] })
-      ] }),
-      /* @__PURE__ */ jsxs11("div", { children: [
+        ]
+      }),
+      /* @__PURE__ */ jsxs11("div", {
+        children: [
         /* @__PURE__ */ jsx11("h3", { children: "Qualification Objectives" }),
         /* @__PURE__ */ jsx11("ul", { children: module["Qualification Objectives"].map((obj, i) => /* @__PURE__ */ jsx11("li", { children: obj }, i)) })
-      ] })
-    ] })
-  ] });
+        ]
+      })
+      ]
+    })
+    ]
+  });
 }
 
 // src/components/Assistant.jsx
@@ -4958,62 +5080,84 @@ function Assistant() {
     sendAssistantMessage(input);
     setInput("");
   };
-  return /* @__PURE__ */ jsx12("div", { className: "assistant-overlay", onClick: toggleAssistant, children: /* @__PURE__ */ jsxs12("div", { className: "assistant-window", onClick: (e) => e.stopPropagation(), children: [
-    /* @__PURE__ */ jsxs12("div", { className: "assistant-header", children: [
+  return /* @__PURE__ */ jsx12("div", {
+    className: "assistant-overlay", onClick: toggleAssistant, children: /* @__PURE__ */ jsxs12("div", {
+      className: "assistant-window", onClick: (e) => e.stopPropagation(), children: [
+    /* @__PURE__ */ jsxs12("div", {
+        className: "assistant-header", children: [
       /* @__PURE__ */ jsx12("span", { className: "icon assistant-icon", children: activePersonality.icon || "school" }),
-      /* @__PURE__ */ jsxs12("div", { className: "assistant-header-text", children: [
+      /* @__PURE__ */ jsxs12("div", {
+          className: "assistant-header-text", children: [
         /* @__PURE__ */ jsx12("h3", { children: activePersonality.name || "Assistant" }),
         /* @__PURE__ */ jsx12("h4", { children: activePersonality.title || "Your creative partner" })
-      ] }),
+          ]
+        }),
       /* @__PURE__ */ jsx12("button", { className: "close-btn", onClick: toggleAssistant, children: /* @__PURE__ */ jsx12("span", { className: "icon", children: "close" }) })
-    ] }),
-    /* @__PURE__ */ jsxs12("div", { className: "assistant-history", ref: historyRef, children: [
-      history.map((msg, index) => /* @__PURE__ */ jsx12("div", { className: `assistant-message ${msg.role}`, children: /* @__PURE__ */ jsx12("p", { dangerouslySetInnerHTML: { __html: msg.responseText || msg.content } }) }, index)),
-      isLoading && /* @__PURE__ */ jsxs12("div", { className: "assistant-message model loading", children: [
+        ]
+      }),
+    /* @__PURE__ */ jsxs12("div", {
+        className: "assistant-history", ref: historyRef, children: [
+          history.map((msg, index) => /* @__PURE__ */ jsx12("div", { className: `assistant-message ${msg.role}`, children: /* @__PURE__ */ jsx12("p", { dangerouslySetInnerHTML: { __html: msg.responseText || msg.content } }) }, index)),
+          isLoading && /* @__PURE__ */ jsxs12("div", {
+            className: "assistant-message model loading", children: [
         /* @__PURE__ */ jsx12("div", { className: "dot" }),
         /* @__PURE__ */ jsx12("div", { className: "dot" }),
         /* @__PURE__ */ jsx12("div", { className: "dot" })
-      ] })
-    ] }),
-    /* @__PURE__ */ jsxs12("form", { className: "assistant-input-form", onSubmit: handleSubmit, children: [
+            ]
+          })
+        ]
+      }),
+    /* @__PURE__ */ jsxs12("form", {
+        className: "assistant-input-form", onSubmit: handleSubmit, children: [
       /* @__PURE__ */ jsx12(
-        "input",
-        {
-          type: "text",
-          value: input,
-          onChange: (e) => setInput(e.target.value),
-          placeholder: `Ask ${activePersonality.name} for project ideas...`,
-          disabled: isLoading,
-          autoFocus: true
-        }
-      ),
+          "input",
+          {
+            type: "text",
+            value: input,
+            onChange: (e) => setInput(e.target.value),
+            placeholder: `Ask ${activePersonality.name} for project ideas...`,
+            disabled: isLoading,
+            autoFocus: true
+          }
+        ),
       /* @__PURE__ */ jsx12("button", { type: "submit", disabled: isLoading || !input.trim(), children: /* @__PURE__ */ jsx12("span", { className: "icon", children: "send" }) })
-    ] })
-  ] }) });
+        ]
+      })
+      ]
+    })
+  });
 }
 
 // src/components/App.jsx
 import { Fragment as Fragment2, jsx as jsx13, jsxs as jsxs13 } from "react/jsx-runtime";
 var ModuleSelector = () => {
   const activeModuleId = store_default.use.activeModuleId();
-  return /* @__PURE__ */ jsx13(Fragment2, { children: Object.entries(modulesBySemester).map(([semester, modules2]) => /* @__PURE__ */ jsxs13("div", { className: "semester-group", children: [
+  return /* @__PURE__ */ jsx13(Fragment2, {
+    children: Object.entries(modulesBySemester).map(([semester, modules2]) => /* @__PURE__ */ jsxs13("div", {
+      className: "semester-group", children: [
     /* @__PURE__ */ jsx13("h2", { children: semester }),
-    /* @__PURE__ */ jsx13("div", { className: "module-list", children: modules2.map((module) => {
-      const personality = personalities[module["Module Code"]];
-      return /* @__PURE__ */ jsx13(
-        "button",
-        {
-          onClick: () => selectModule(module["Module Code"]),
-          className: c3({ active: module["Module Code"] === activeModuleId }),
-          children: /* @__PURE__ */ jsxs13("div", { className: "module-info", children: [
+    /* @__PURE__ */ jsx13("div", {
+        className: "module-list", children: modules2.map((module) => {
+          const personality = personalities[module["Module Code"]];
+          return /* @__PURE__ */ jsx13(
+            "button",
+            {
+              onClick: () => selectModule(module["Module Code"]),
+              className: c3({ active: module["Module Code"] === activeModuleId }),
+              children: /* @__PURE__ */ jsxs13("div", {
+                className: "module-info", children: [
             /* @__PURE__ */ jsx13("span", { className: "icon", children: personality?.icon || "school" }),
             /* @__PURE__ */ jsx13("p", { children: personality?.name || module["Module Title"] })
-          ] })
-        },
-        module["Module Code"]
-      );
-    }) })
-  ] }, semester)) });
+                ]
+              })
+            },
+            module["Module Code"]
+          );
+        })
+      })
+      ]
+    }, semester))
+  });
 };
 function App() {
   const isWelcomeScreenOpen = store_default.use.isWelcomeScreenOpen();
@@ -5050,17 +5194,21 @@ function App() {
     }
   };
   const isThreeColumnLayout = activeApp === "ideaLab" && activeModuleId;
-  return /* @__PURE__ */ jsxs13("main", { "data-theme": theme, className: c3({ "three-column": isThreeColumnLayout }), children: [
-    isWelcomeScreenOpen && /* @__PURE__ */ jsx13(WelcomeScreen, { onStart: handleStart }),
-    isAssistantOpen && /* @__PURE__ */ jsx13(Assistant, {}),
-    /* @__PURE__ */ jsxs13("div", { className: "left-column", children: [
+  return /* @__PURE__ */ jsxs13("main", {
+    "data-theme": theme, className: c3({ "three-column": isThreeColumnLayout }), children: [
+      isWelcomeScreenOpen && /* @__PURE__ */ jsx13(WelcomeScreen, { onStart: handleStart }),
+      isAssistantOpen && /* @__PURE__ */ jsx13(Assistant, {}),
+    /* @__PURE__ */ jsxs13("div", {
+        className: "left-column", children: [
       /* @__PURE__ */ jsx13(AppSwitcher, {}),
       /* @__PURE__ */ jsx13("div", { className: "left-column-content", children: renderLeftColumnContent() }),
       /* @__PURE__ */ jsx13(UserBar, {})
-    ] }),
-    isThreeColumnLayout && /* @__PURE__ */ jsx13("div", { className: "middle-column", children: /* @__PURE__ */ jsx13(ModuleViewer, {}) }),
+        ]
+      }),
+      isThreeColumnLayout && /* @__PURE__ */ jsx13("div", { className: "middle-column", children: /* @__PURE__ */ jsx13(ModuleViewer, {}) }),
     /* @__PURE__ */ jsx13("div", { className: "right-column", children: renderRightColumnContent() })
-  ] });
+    ]
+  });
 }
 
 // index.tsx
@@ -5070,3 +5218,190 @@ createRoot(document.getElementById("root")).render(/* @__PURE__ */ jsx14(App, {}
  * @license
  * SPDX-License-Identifier: Apache-2.0
 */
+
+const availableVoices = [
+  "Zephyr",
+  "Puck",
+  "Charon",
+  "Kore",
+  "Fenrir",
+  "Leda",
+  "Orus",
+  "Aoede",
+  "Callirrhoe",
+  "Autonoe",
+  "Enceladus",
+  "Iapetus",
+  "Umbriel",
+  "Algieba",
+  "Despina",
+  "Erinome",
+  "Sulafat",
+  "Algenib",
+  "Rasalgethi",
+  "Laomedeia",
+  "Achernar",
+  "Alnilam",
+  "Schedar",
+  "Gacrux",
+  "Pulcherrima",
+  "Achird",
+  "Zubenelgenubi",
+  "Vindemiatrix",
+  "Sadachbia",
+  "Sadaltager",
+];
+const voiceOptions = [
+  {
+    name: "Zephyr",
+    style: "Bright",
+    pitch: "Mid-Hi",
+  },
+  {
+    name: "Puck",
+    style: "Upbeat",
+    pitch: "Mid",
+  },
+  {
+    name: "Charon",
+    style: "Informative",
+    pitch: "Lower",
+  },
+  {
+    name: "Kore",
+    style: "Firm",
+    pitch: "Mid",
+  },
+  {
+    name: "Fenrir",
+    style: "Excitable",
+    pitch: "Younger",
+  },
+  {
+    name: "Leda",
+    style: "Youthful",
+    pitch: "Mid-hi",
+  },
+  {
+    name: "Orus",
+    style: "Firm",
+    pitch: "Mid-Low",
+  },
+  {
+    name: "Aoede",
+    style: "Breezy",
+    pitch: "Mid",
+  },
+  {
+    name: "Callirrhoe",
+    style: "Easy-going",
+    pitch: "Mid",
+  },
+  {
+    name: "Autonoe",
+    style: "Bright",
+    pitch: "Mid",
+  },
+  {
+    name: "Enceladus",
+    style: "Breathy",
+    pitch: "Lower",
+  },
+  {
+    name: "Iapetus",
+    style: "Clear",
+    pitch: "Mid-Low",
+  },
+  {
+    name: "Umbriel",
+    style: "Easy-going",
+    pitch: "Mid-Low",
+  },
+  {
+    name: "Algieba",
+    style: "Smooth",
+    pitch: "Lower",
+  },
+  {
+    name: "Despina",
+    style: "Smooth",
+    pitch: "Mid",
+  },
+  {
+    name: "Erinome",
+    style: "Clear",
+    pitch: "Mid",
+  },
+  {
+    name: "Sulafat",
+    style: "Warm",
+    pitch: "Mid",
+  },
+  {
+    name: "Algenib",
+    style: "Gravelly",
+    pitch: "Low",
+  },
+  {
+    name: "Rasalgethi",
+    style: "Informative",
+    pitch: "Mid",
+  },
+  {
+    name: "Laomedeia",
+    style: "Upbeat",
+    pitch: "Mid Hi",
+  },
+  {
+    name: "Achernar",
+    style: "Soft",
+    pitch: "High",
+  },
+  {
+    name: "Alnilam",
+    style: "Firm",
+    pitch: "Mid-low",
+  },
+  {
+    name: "Schedar",
+    style: "Even",
+    pitch: "Mid-low",
+  },
+  {
+    name: "Gacrux",
+    style: "Mature",
+    pitch: "Mid",
+  },
+  {
+    name: "Pulcherrima",
+    style: "Forward",
+    pitch: "Mid High",
+  },
+  {
+    name: "Achird",
+    style: "Friendly",
+    pitch: "Mid",
+  },
+  {
+    name: "Zubenelgenubi",
+    style: "Casual",
+    pitch: "Mid Low",
+  },
+  {
+    name: "Vindemiatrix",
+    style: "Gentle",
+    pitch: "Mid Low",
+  },
+  {
+    name: "Sadachbia",
+    style: "Lively",
+    pitch: "Low",
+  },
+  {
+    name: "Sadaltager",
+    style: "Knowledgeable",
+    pitch: "Mid",
+  },
+];
+
+export { voiceOptions };
