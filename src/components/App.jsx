@@ -24,6 +24,8 @@ import ModuleViewer from './ModuleViewer.jsx'
 import Assistant from './Assistant.jsx'
 import PlannerSidebar from './PlannerSidebar.jsx'
 import PlannerCanvas from './PlannerCanvas.jsx'
+import VoiceCommand from './VoiceCommand.jsx'
+import GlassDock from './GlassDock.jsx'
 import { personalities } from '../lib/assistant/personalities'
 import { modulesByDiscipline } from '../lib/modules'
 
@@ -201,7 +203,7 @@ export default function App() {
       {isWelcomeScreenOpen && <WelcomeScreen onStart={handleStart} />}
       {isAssistantOpen && <Assistant />}
       {isSettingsOpen && <SettingsModal />}
-      <FloatingOrchestrator />
+      <GlassDock />
 
       <div 
         className="left-column"

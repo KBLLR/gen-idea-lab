@@ -7,7 +7,7 @@ import { useState, useEffect } from 'react';
 import useStore from '../lib/store';
 import { useAvailableModels } from '../hooks/useAvailableModels';
 import { SiFigma, SiGithub, SiNotion, SiGoogledrive, SiOpenai, SiGoogle, SiGmail } from 'react-icons/si';
-import { RiRobot2Line, RiBrainLine, RiSearchLine, RiImageLine, RiCalendarLine, RiCloudLine, RiServerLine, RiCpuLine, RiMovieLine } from 'react-icons/ri';
+import { RiRobot2Line, RiBrainLine, RiSearchLine, RiImageLine, RiCalendarLine, RiCloudLine, RiServerLine, RiCpuLine, RiMovieLine, RiSchoolLine } from 'react-icons/ri';
 
 const serviceCategories = {
     productivity: {
@@ -303,6 +303,21 @@ const serviceCategories = {
                 placeholder: 'runway_...'
             }
         ]
+    },
+    education: {
+        name: 'Educational Services',
+        services: [
+            {
+                id: 'university',
+                name: 'University (CODE Berlin)',
+                description: 'Connect to CODE University Learning Platform for student data and course information',
+                icon: RiSchoolLine,
+                color: '#FF6B6B',
+                scopes: [],
+                setupUrl: 'https://api.app.code.berlin',
+                helpText: 'Connect using your CODE University Google account'
+            }
+        ]
     }
 };
 
@@ -333,6 +348,31 @@ function ServiceConnector({ service }) {
 
     const handleConnect = async () => {
         setError('');
+
+        // Special handling for University service - uses client-side Google Identity Services
+        if (service.id === 'university') {
+            setIsConnecting(true);
+            try {
+                // Initialize Google Identity Services and get ID token
+                const { initializeUniversityAuth, getGoogleIdToken, authenticateWithUniversity } = await import('../lib/university-api.js');
+
+                await initializeUniversityAuth();
+                const googleIdToken = await getGoogleIdToken();
+                const authResult = await authenticateWithUniversity(googleIdToken);
+
+                // Connect service with session token
+                await connectService(service.id, {
+                    sessionToken: authResult.sessionToken,
+                    user: authResult.user
+                });
+            } catch (error) {
+                console.error(`Failed to connect ${service.name}:`, error);
+                setError(`Failed to connect to ${service.name}: ${error.message}`);
+            } finally {
+                setIsConnecting(false);
+            }
+            return;
+        }
 
         // Special handling for Ollama - show both URL and API key inputs
         if (service.id === 'ollama' && service.requiresApiKey && service.requiresUrl) {
@@ -829,6 +869,7 @@ export default function SettingsModal() {
                             <p className="section-description">
                                 {categoryId === 'productivity' && 'Connect productivity tools and cloud storage services for seamless project management.'}
                                 {categoryId === 'aiModels' && 'Connect AI model providers to enhance your assistants with additional capabilities.'}
+                                {categoryId === 'education' && 'Connect educational platforms to access student data, courses, and academic information.'}
                                 {categoryId === 'search' && 'Enable search capabilities to give your assistants access to real-time information.'}
                             </p>
                             

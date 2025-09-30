@@ -2568,11 +2568,81 @@ main.workflows-layout .right-column {
     border-radius: 50%;
     color: var(--text-tertiary);
     transition: all 0.2s ease;
+    position: relative;
 }
 .module-connectors .icon-btn:hover {
     color: var(--text-primary);
     background-color: var(--bg-item-hover);
 }
+
+/* Connection states for module connectors */
+.module-connectors .icon-btn.connected {
+    color: var(--text-accent);
+    border: 2px solid rgba(16, 185, 129, 0.3);
+}
+
+.module-connectors .icon-btn[data-service="figma"].connected {
+    color: #f24e1e;
+    border-color: rgba(242, 78, 30, 0.3);
+}
+
+.module-connectors .icon-btn[data-service="github"].connected {
+    color: #24292e;
+    border-color: rgba(36, 41, 46, 0.3);
+}
+
+.module-connectors .icon-btn[data-service="notion"].connected {
+    color: #000;
+    border-color: rgba(0, 0, 0, 0.3);
+}
+
+.module-connectors .icon-btn[data-service="googledrive"].connected {
+    color: #4285f4;
+    border-color: rgba(66, 133, 244, 0.3);
+}
+
+/* Connection indicator dot */
+.module-connectors .connection-indicator {
+    position: absolute;
+    top: 2px;
+    right: 2px;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    border: 2px solid var(--bg-panel);
+}
+
+.module-connectors .connection-indicator.connected {
+    background-color: #10b981;
+    box-shadow: 0 0 4px rgba(16, 185, 129, 0.5);
+}
+
+.module-connectors .connection-indicator.disconnected {
+    background-color: #6b7280;
+    box-shadow: 0 0 4px rgba(107, 114, 128, 0.3);
+}
+
+/* Service-specific indicator colors */
+.module-connectors .icon-btn[data-service="figma"] .connection-indicator.connected {
+    background-color: #f24e1e;
+    box-shadow: 0 0 4px rgba(242, 78, 30, 0.5);
+}
+
+.module-connectors .icon-btn[data-service="github"] .connection-indicator.connected {
+    background-color: #24292e;
+    box-shadow: 0 0 4px rgba(36, 41, 46, 0.5);
+}
+
+.module-connectors .icon-btn[data-service="notion"] .connection-indicator.connected {
+    background-color: #000;
+    box-shadow: 0 0 4px rgba(0, 0, 0, 0.5);
+}
+
+.module-connectors .icon-btn[data-service="googledrive"] .connection-indicator.connected {
+    background-color: #4285f4;
+    box-shadow: 0 0 4px rgba(66, 133, 244, 0.5);
+}
+
 .module-connectors .assistant-chat-icon {
     background-color: var(--text-accent);
     color: var(--text-on-primary);

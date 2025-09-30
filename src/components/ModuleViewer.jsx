@@ -90,6 +90,7 @@ export default function ModuleViewer() {
     const activeModuleId = useStore.use.activeModuleId();
     const modules = useStore.use.modules();
     const showKnowledgeSection = useStore.use.showKnowledgeSection();
+    const connectedServices = useStore.use.connectedServices();
     const actions = useStore.use.actions();
 
     if (!activeModuleId) {
@@ -125,15 +126,25 @@ export default function ModuleViewer() {
                     {module.resources.map(resource => {
                         const Icon = resourceIcons[resource.type];
                         const hasUrl = resource.url && resource.url.trim() !== '';
+                        const isConnected = connectedServices?.[resource.type]?.connected || false;
                         return (
-                            <button 
+                            <button
                                 key={resource.type}
-                                className={c('icon-btn', { 'has-url': hasUrl })}
-                                title={resource.type} 
+                                className={c('icon-btn', {
+                                    'has-url': hasUrl,
+                                    'connected': isConnected
+                                })}
+                                data-service={resource.type}
+                                data-connected={isConnected ? 'true' : 'false'}
+                                title={`${resource.type}${isConnected ? ' (Connected)' : ' (Disconnected)'}`}
                                 aria-label={resource.type}
                                 onClick={() => handleResourceClick(resource.type, resource.url)}
                             >
                                 <Icon size={20} />
+                                <span className={c('connection-indicator', {
+                                    'connected': isConnected,
+                                    'disconnected': !isConnected
+                                })}></span>
                             </button>
                         );
                     })}

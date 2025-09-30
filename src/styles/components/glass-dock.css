@@ -1,0 +1,384 @@
+/* Glass Dock Component Styles */
+
+.glass-dock {
+  position: fixed;
+  z-index: 2000;
+  user-select: none;
+  cursor: grab;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  transform-origin: center bottom;
+  will-change: transform;
+}
+
+.glass-dock.dragging {
+  cursor: grabbing;
+  transform: scale(1.05) rotateX(5deg);
+  transition: none;
+}
+
+.glass-dock:hover {
+  transform: scale(1.02);
+}
+
+.dock-container {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px;
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 24px;
+  box-shadow:
+    0 8px 32px rgba(0, 0, 0, 0.1),
+    0 4px 16px rgba(0, 0, 0, 0.05),
+    inset 0 1px 0 rgba(255, 255, 255, 0.3),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.1);
+  position: relative;
+  overflow: hidden;
+}
+
+/* Glass effect overlay */
+.dock-container::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.15) 0%,
+    rgba(255, 255, 255, 0.05) 50%,
+    rgba(0, 0, 0, 0.05) 100%
+  );
+  border-radius: inherit;
+  pointer-events: none;
+}
+
+.dock-item {
+  position: relative;
+  width: 56px;
+  height: 56px;
+  border-radius: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  overflow: hidden;
+  z-index: 1;
+}
+
+.dock-item::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.1) 0%,
+    rgba(255, 255, 255, 0.02) 100%
+  );
+  border-radius: inherit;
+  transition: opacity 0.3s ease;
+  opacity: 0;
+}
+
+.dock-item:hover::before {
+  opacity: 1;
+}
+
+.dock-item:hover {
+  transform: translateY(-8px) scale(1.1);
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.2);
+  box-shadow:
+    0 12px 24px rgba(0, 0, 0, 0.15),
+    0 6px 12px rgba(0, 0, 0, 0.1),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2);
+}
+
+.dock-item:active {
+  transform: translateY(-4px) scale(1.05);
+  transition: all 0.15s ease;
+}
+
+.dock-item.active {
+  background: rgba(var(--color-accent-rgb, 0, 123, 255), 0.2);
+  border-color: rgba(var(--color-accent-rgb, 0, 123, 255), 0.3);
+  box-shadow:
+    0 0 20px rgba(var(--color-accent-rgb, 0, 123, 255), 0.3),
+    0 4px 12px rgba(0, 0, 0, 0.1),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2);
+}
+
+.dock-item .icon {
+  font-size: 24px;
+  color: var(--color-text-primary, #ffffff);
+  font-family: 'Material Icons', sans-serif;
+  z-index: 2;
+  transition: all 0.3s ease;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+.dock-item:hover .icon {
+  color: #ffffff;
+  text-shadow: 0 2px 12px rgba(0, 0, 0, 0.4);
+}
+
+.dock-item.active .icon {
+  color: #ffffff;
+  text-shadow: 0 2px 12px rgba(var(--color-accent-rgb, 0, 123, 255), 0.5);
+}
+
+/* Active indicator */
+.active-indicator {
+  position: absolute;
+  bottom: -4px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--color-accent, #007bff);
+  box-shadow: 0 0 12px rgba(var(--color-accent-rgb, 0, 123, 255), 0.8);
+  animation: pulse-indicator 2s infinite;
+}
+
+@keyframes pulse-indicator {
+  0%, 100% {
+    opacity: 1;
+    transform: translateX(-50%) scale(1);
+  }
+  50% {
+    opacity: 0.7;
+    transform: translateX(-50%) scale(1.2);
+  }
+}
+
+/* Remove item button */
+.remove-item {
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: rgba(255, 71, 87, 0.9);
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  opacity: 0;
+  transform: scale(0.8);
+  transition: all 0.2s ease;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+.dock-item:hover .remove-item {
+  opacity: 1;
+  transform: scale(1);
+}
+
+.remove-item:hover {
+  background: rgba(255, 71, 87, 1);
+  transform: scale(1.1);
+}
+
+.remove-item .icon {
+  font-size: 12px;
+  color: white;
+  text-shadow: none;
+}
+
+/* Voice command integration */
+.voice-command-dock {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+}
+
+.voice-command-dock .icon {
+  font-size: 24px;
+  color: var(--color-text-primary, #ffffff);
+}
+
+/* Dock handle */
+.dock-handle {
+  position: absolute;
+  top: -12px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 32px;
+  height: 8px;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  cursor: grab;
+}
+
+.glass-dock:hover .dock-handle {
+  opacity: 1;
+}
+
+.dock-handle .icon {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.6);
+  transform: rotate(90deg);
+}
+
+/* Animation states */
+.dock-item.removing {
+  animation: dock-item-remove 0.3s ease forwards;
+}
+
+.dock-item.adding {
+  animation: dock-item-add 0.3s ease forwards;
+}
+
+@keyframes dock-item-remove {
+  0% {
+    opacity: 1;
+    transform: scale(1);
+    width: 56px;
+    margin-right: 8px;
+  }
+  50% {
+    opacity: 0;
+    transform: scale(0.8) rotateZ(180deg);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(0);
+    width: 0;
+    margin-right: 0;
+  }
+}
+
+@keyframes dock-item-add {
+  0% {
+    opacity: 0;
+    transform: scale(0);
+    width: 0;
+    margin-right: 0;
+  }
+  50% {
+    opacity: 0;
+    transform: scale(0.8);
+    width: 56px;
+    margin-right: 8px;
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* Dark mode adjustments */
+@media (prefers-color-scheme: dark) {
+  .dock-container {
+    background: rgba(0, 0, 0, 0.3);
+    border-color: rgba(255, 255, 255, 0.15);
+  }
+
+  .dock-item {
+    background: rgba(255, 255, 255, 0.05);
+    border-color: rgba(255, 255, 255, 0.08);
+  }
+
+  .dock-item:hover {
+    background: rgba(255, 255, 255, 0.1);
+    border-color: rgba(255, 255, 255, 0.15);
+  }
+
+  .dock-handle {
+    background: rgba(255, 255, 255, 0.15);
+  }
+}
+
+/* Mobile responsiveness */
+@media (max-width: 768px) {
+  .dock-container {
+    padding: 8px;
+    gap: 6px;
+    border-radius: 20px;
+  }
+
+  .dock-item {
+    width: 48px;
+    height: 48px;
+    border-radius: 14px;
+  }
+
+  .dock-item .icon {
+    font-size: 20px;
+  }
+
+  .dock-item:hover {
+    transform: translateY(-6px) scale(1.05);
+  }
+
+  .remove-item {
+    width: 18px;
+    height: 18px;
+    top: -6px;
+    right: -6px;
+  }
+
+  .remove-item .icon {
+    font-size: 10px;
+  }
+}
+
+/* Accessibility */
+@media (prefers-reduced-motion: reduce) {
+  .glass-dock,
+  .dock-item,
+  .remove-item {
+    transition: none;
+  }
+
+  .dock-item:hover {
+    transform: none;
+  }
+
+  .active-indicator {
+    animation: none;
+  }
+
+  @keyframes dock-item-remove,
+  @keyframes dock-item-add {
+    animation-duration: 0.1s;
+  }
+}
+
+/* High contrast mode */
+@media (prefers-contrast: high) {
+  .dock-container {
+    background: rgba(0, 0, 0, 0.8);
+    border: 2px solid #ffffff;
+  }
+
+  .dock-item {
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid #ffffff;
+  }
+
+  .dock-item .icon {
+    color: #ffffff;
+  }
+}

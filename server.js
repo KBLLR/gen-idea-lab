@@ -210,6 +210,345 @@ async function findAvailablePort(startPort, maxAttempts = 10) {
   throw new Error(`No available port found starting from ${startPort}`);
 }
 
+// University API proxy endpoints
+app.post('/api/university/auth', requireAuth, async (req, res) => {
+  try {
+    const { googleIdToken } = req.body;
+
+    if (!googleIdToken) {
+      return res.status(400).json({ error: 'Google ID token required' });
+    }
+
+    // Forward authentication to University API
+    const response = await fetch('https://api.app.code.berlin/graphql', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      credentials: 'include',
+      body: JSON.stringify({
+        variables: { code: googleIdToken },
+        operationName: 'googleSignin',
+        query: 'mutation googleSignin($code: String!) { googleSignin(code: $code) { token } }'
+      })
+    });
+
+    const data = await response.json();
+
+    if (data.errors) {
+      return res.status(400).json({ error: data.errors[0].message });
+    }
+
+    const sessionToken = data.data?.googleSignin?.token;
+    if (!sessionToken) {
+      return res.status(400).json({ error: 'No session token received' });
+    }
+
+    // Store university connection
+    const connections = getUserConnections(req.user.email);
+    connections.university = {
+      type: 'university_api',
+      name: 'CODE University',
+      sessionToken: sessionToken,
+      connectedAt: new Date().toISOString()
+    };
+
+    // Forward any set-cookie headers from university API
+    const cookies = response.headers.get('set-cookie');
+    if (cookies) {
+      res.setHeader('set-cookie', cookies);
+    }
+
+    res.json({
+      success: true,
+      sessionToken,
+      message: 'University API connected successfully'
+    });
+  } catch (error) {
+    logger.error('University authentication failed:', error);
+    res.status(500).json({ error: 'Authentication failed', details: error.message });
+  }
+});
+
+app.post('/api/university/refresh', requireAuth, async (req, res) => {
+  try {
+    const response = await fetch('https://api.app.code.berlin/cid_refresh', {
+      method: 'POST',
+      headers: {
+        'Cookie': req.headers.cookie || ''
+      }
+    });
+
+    const data = await response.json();
+
+    if (!data.ok || !data.token) {
+      return res.status(401).json({ error: 'Token refresh failed' });
+    }
+
+    // Update stored connection
+    const connections = getUserConnections(req.user.email);
+    if (connections.university) {
+      connections.university.sessionToken = data.token;
+      connections.university.lastRefresh = new Date().toISOString();
+    }
+
+    res.json({
+      success: true,
+      sessionToken: data.token
+    });
+  } catch (error) {
+    logger.error('University token refresh failed:', error);
+    res.status(500).json({ error: 'Token refresh failed', details: error.message });
+  }
+});
+
+app.post('/api/university/graphql', requireAuth, async (req, res) => {
+  try {
+    const { query, variables, operationName } = req.body;
+    const connections = getUserConnections(req.user.email);
+    const universityConnection = connections.university;
+
+    if (!universityConnection?.sessionToken) {
+      return res.status(401).json({ error: 'University API not connected' });
+    }
+
+    const response = await fetch('https://api.app.code.berlin/graphql', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${universityConnection.sessionToken}`
+      },
+      body: JSON.stringify({
+        query,
+        variables,
+        operationName
+      })
+    });
+
+    const data = await response.json();
+
+    if (data.errors) {
+      // Check if token expired
+      const isTokenError = data.errors.some(error =>
+        error.message.includes('token') ||
+        error.message.includes('unauthorized') ||
+        error.message.includes('expired')
+      );
+
+      if (isTokenError) {
+        return res.status(401).json({ error: 'Token expired', requiresRefresh: true });
+      }
+    }
+
+    res.json(data);
+  } catch (error) {
+    logger.error('University GraphQL request failed:', error);
+    res.status(500).json({ error: 'GraphQL request failed', details: error.message });
+  }
+});
+
+app.delete('/api/university/disconnect', requireAuth, async (req, res) => {
+  try {
+    const connections = getUserConnections(req.user.email);
+    delete connections.university;
+
+    res.json({ success: true, message: 'University API disconnected' });
+  } catch (error) {
+    logger.error('University disconnect failed:', error);
+    res.status(500).json({ error: 'Disconnect failed', details: error.message });
+  }
+});
+
+// In-memory storage for OAuth state (in production, use Redis or proper session store)
+const oauthStates = new Map();
+
+// University OAuth flow endpoints
+app.get('/api/services/university/connect', requireAuth, (req, res) => {
+  // Generate Google OAuth URL for University authentication
+  const googleAuthUrl = 'https://accounts.google.com/o/oauth2/v2/auth';
+  const clientId = '358660676559-02rrefr671bdi1chqtd3l0c44mc8jt9p.apps.googleusercontent.com';
+  const redirectUri = `${process.env.NODE_ENV === 'production' ? 'https://yourdomain.com' : 'http://localhost:8081'}/api/services/university/callback`;
+  const scope = 'openid email profile';
+  const state = `${req.user.email}-${Math.random().toString(36).substring(2, 15)}`;
+
+  const authUrl = `${googleAuthUrl}?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&scope=${encodeURIComponent(scope)}&state=${state}`;
+
+  // Store state for verification with expiration (5 minutes)
+  oauthStates.set(state, {
+    userEmail: req.user.email,
+    createdAt: Date.now(),
+    expires: Date.now() + 5 * 60 * 1000 // 5 minutes
+  });
+
+  // Clean up expired states
+  for (const [key, value] of oauthStates.entries()) {
+    if (Date.now() > value.expires) {
+      oauthStates.delete(key);
+    }
+  }
+
+  res.redirect(authUrl);
+});
+
+app.get('/api/services/university/callback', async (req, res) => {
+  const { code, state, error } = req.query;
+
+  if (error) {
+    return res.send(`
+      <script>
+        window.opener.postMessage({
+          type: 'university-auth-error',
+          error: '${error}'
+        }, '${process.env.NODE_ENV === 'production' ? 'https://yourdomain.com' : 'http://localhost:3000'}');
+        window.close();
+      </script>
+    `);
+  }
+
+  // Verify state and get user info
+  const stateData = oauthStates.get(state);
+  if (!code || !stateData || Date.now() > stateData.expires) {
+    oauthStates.delete(state); // Clean up
+    return res.send(`
+      <script>
+        window.opener.postMessage({
+          type: 'university-auth-error',
+          error: 'Invalid state, missing code, or expired session'
+        }, '${process.env.NODE_ENV === 'production' ? 'https://yourdomain.com' : 'http://localhost:3000'}');
+        window.close();
+      </script>
+    `);
+  }
+
+  const userEmail = stateData.userEmail;
+  oauthStates.delete(state); // Clean up used state
+
+  try {
+    // Exchange code for Google ID token
+    const tokenResponse = await fetch('https://oauth2.googleapis.com/token', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({
+        client_id: '358660676559-02rrefr671bdi1chqtd3l0c44mc8jt9p.apps.googleusercontent.com',
+        client_secret: '', // No client secret needed for this flow
+        code,
+        grant_type: 'authorization_code',
+        redirect_uri: `${process.env.NODE_ENV === 'production' ? 'https://yourdomain.com' : 'http://localhost:8081'}/api/services/university/callback`,
+      })
+    });
+
+    const tokenData = await tokenResponse.json();
+
+    if (!tokenResponse.ok || !tokenData.id_token) {
+      throw new Error(tokenData.error_description || 'Failed to get ID token');
+    }
+
+    // Exchange Google ID token for University session token
+    const universityResponse = await fetch('https://api.app.code.berlin/graphql', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify({
+        variables: { code: tokenData.id_token },
+        operationName: 'googleSignin',
+        query: 'mutation googleSignin($code: String!) { googleSignin(code: $code) { token } }'
+      })
+    });
+
+    const universityData = await universityResponse.json();
+
+    if (universityData.errors || !universityData.data?.googleSignin?.token) {
+      throw new Error(universityData.errors?.[0]?.message || 'University authentication failed');
+    }
+
+    const sessionToken = universityData.data.googleSignin.token;
+
+    // Store university connection
+    const connections = getUserConnections(userEmail);
+    connections.university = {
+      type: 'university_api',
+      connected: true,
+      sessionToken,
+      connectedAt: new Date().toISOString(),
+      lastRefresh: new Date().toISOString()
+    };
+
+    res.send(`
+      <script>
+        window.opener.postMessage({
+          type: 'university-auth-success',
+          sessionToken: '${sessionToken}'
+        }, '${process.env.NODE_ENV === 'production' ? 'https://yourdomain.com' : 'http://localhost:3000'}');
+        window.close();
+      </script>
+    `);
+
+  } catch (error) {
+    logger.error('University OAuth callback failed:', error);
+    res.send(`
+      <script>
+        window.opener.postMessage({
+          type: 'university-auth-error',
+          error: '${error.message}'
+        }, '${process.env.NODE_ENV === 'production' ? 'https://yourdomain.com' : 'http://localhost:3000'}');
+        window.close();
+      </script>
+    `);
+  }
+});
+
+// Test endpoint for University API connection
+app.get('/api/university/test', requireAuth, async (req, res) => {
+  try {
+    const connections = getUserConnections(req.user.email);
+    const universityConnection = connections.university;
+
+    if (!universityConnection?.sessionToken) {
+      return res.status(400).json({
+        error: 'University not connected',
+        message: 'Please connect University service in settings first'
+      });
+    }
+
+    // Test with a simple user query
+    const response = await fetch('https://api.app.code.berlin/graphql', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${universityConnection.sessionToken}`
+      },
+      credentials: 'include',
+      body: JSON.stringify({
+        query: 'query testConnection { me { firstName lastName email } }',
+        operationName: 'testConnection'
+      })
+    });
+
+    const data = await response.json();
+
+    if (data.errors) {
+      return res.status(400).json({
+        error: 'GraphQL error',
+        details: data.errors
+      });
+    }
+
+    res.json({
+      success: true,
+      connection: 'University API connected successfully',
+      user: data.data?.me,
+      tokenValid: true
+    });
+
+  } catch (error) {
+    logger.error('University test failed:', error);
+    res.status(500).json({
+      error: 'Connection test failed',
+      details: error.message
+    });
+  }
+});
+
 // Initialize Google Auth for Gemini API with OAuth2
 let ai;
 
@@ -403,6 +742,12 @@ app.post('/api/services/:service/connect', requireAuth, (req, res) => {
       clientId: process.env.GOOGLE_CLIENT_ID,
       scope: 'https://www.googleapis.com/auth/gmail.readonly',
       authUrl: 'https://accounts.google.com/o/oauth2/v2/auth'
+    },
+    university: {
+      clientId: '358660676559-02rrefr671bdi1chqtd3l0c44mc8jt9p.apps.googleusercontent.com',
+      scope: 'openid email profile',
+      authUrl: 'https://accounts.google.com/o/oauth2/auth',
+      apiBase: 'https://api.app.code.berlin'
     }
   };
   
@@ -498,6 +843,9 @@ app.post('/api/services/:service/connect', requireAuth, (req, res) => {
     authUrl = `${config.authUrl}?client_id=${config.clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&state=${encodeURIComponent(state)}&owner=user`;
   } else if (service === 'figma') {
     authUrl = `${config.authUrl}?client_id=${config.clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=${encodeURIComponent(config.scope)}&response_type=code&state=${encodeURIComponent(state)}`;
+  } else if (service === 'university') {
+    // University uses custom authentication flow
+    return res.json({ authUrl: '/api/services/university/connect', requiresCustomFlow: true });
   }
   
   res.json({ authUrl });
@@ -578,6 +926,9 @@ app.get('/api/services/:service/callback', async (req, res) => {
         })
       });
       tokenResponse = await response.json();
+    } else if (service === 'university') {
+      // University service uses client-side authentication
+      return res.status(400).json({ error: 'University authentication must be handled client-side' });
     } else if (service.startsWith('google') || service === 'gmail') {
       const response = await fetch('https://oauth2.googleapis.com/token', {
         method: 'POST',
@@ -695,6 +1046,33 @@ app.post('/api/services/:service/test', requireAuth, async (req, res) => {
         type: 'local',
         transport: connection.transport || 'http',
         url: connection.url
+      };
+    } else if (service === 'university' && connection.type === 'university_api') {
+      // Test University API connection
+      const response = await fetch('https://api.app.code.berlin/graphql', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${connection.sessionToken}`
+        },
+        body: JSON.stringify({
+          query: 'query currentUser { me { firstName lastName email studentId program semester } }',
+          operationName: 'currentUser'
+        })
+      });
+
+      const data = await response.json();
+      if (data.errors) {
+        throw new Error(`University API test failed: ${data.errors[0].message}`);
+      }
+
+      const user = data.data?.me;
+      testResult.info = {
+        name: `${user.firstName} ${user.lastName}`,
+        email: user.email,
+        studentId: user.studentId,
+        program: user.program,
+        semester: user.semester
       };
     }
 

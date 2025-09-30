@@ -28,6 +28,10 @@ const nodeStyles = {
   'audio-player': { className: 'node-card node-audio-player' },
   'text-renderer': { className: 'node-card node-text-renderer' },
   'file-uploader': { className: 'node-card node-file-uploader' },
+  'google-calendar': { className: 'node-card node-google-calendar' },
+  'google-drive': { className: 'node-card node-google-drive' },
+  'google-photos': { className: 'node-card node-google-photos' },
+  'gmail': { className: 'node-card node-gmail' },
 };
 
 const normalizeNodesForComparison = (nodes = []) =>
@@ -984,6 +988,769 @@ function FileUploaderNode({ data, id }) {
   );
 }
 
+// Google Calendar Node Component
+function GoogleCalendarNode({ data, id }) {
+  const [events, setEvents] = useState([]);
+  const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [showPromptConfig, setShowPromptConfig] = useState(false);
+  const [promptInstructions, setPromptInstructions] = useState(data.promptInstructions || 'Analyze my calendar events and suggest optimal scheduling for new meetings. Focus on finding gaps and avoiding conflicts.');
+  const { updateNode } = React.useContext(NodeUpdateContext);
+  const connectedServices = useStore.use.connectedServices();
+
+  const fetchCalendarEvents = useCallback(async (date) => {
+    if (!connectedServices?.googlecalendar?.connected) return;
+    setIsLoading(true);
+    try {
+      // TODO: Implement calendar API call
+      await new Promise(resolve => setTimeout(resolve, 1000)); // Simulate API call
+      const mockEvents = [
+        { id: 1, title: 'Team Meeting', time: '10:00 AM', duration: '1h' },
+        { id: 2, title: 'Project Review', time: '2:00 PM', duration: '30m' }
+      ];
+      setEvents(mockEvents);
+      updateNode(id, { ...data, events: mockEvents, lastUpdated: new Date().toISOString() });
+    } catch (error) {
+      console.error('Failed to fetch calendar events:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [connectedServices, id, data, updateNode]);
+
+  useEffect(() => {
+    fetchCalendarEvents(selectedDate);
+  }, [selectedDate, fetchCalendarEvents]);
+
+  const handleDoubleClick = () => {
+    setShowPromptConfig(true);
+  };
+
+  const savePromptInstructions = () => {
+    updateNode(id, { ...data, promptInstructions });
+    setShowPromptConfig(false);
+  };
+
+  return (
+    <div className="node-card node-google-calendar" onDoubleClick={handleDoubleClick}>
+      <Handle type="target" position={Position.Left} style={{ background: '#ea4335' }} />
+
+      <div className="node-header">
+        <span className="node-icon" style={{ color: '#ea4335' }}>event</span>
+        <div className="node-title">Google Calendar</div>
+        {data.promptInstructions && <span className="prompt-indicator">💬</span>}
+      </div>
+
+      {showPromptConfig && (
+        <div className="prompt-config-modal">
+          <div className="prompt-config-header">
+            <h4>Calendar Instructions</h4>
+            <button onClick={() => setShowPromptConfig(false)} className="close-btn">×</button>
+          </div>
+          <textarea
+            value={promptInstructions}
+            onChange={(e) => setPromptInstructions(e.target.value)}
+            placeholder="Enter instructions for how the AI should interact with your calendar..."
+            className="prompt-textarea"
+            rows={4}
+          />
+          <div className="prompt-config-actions">
+            <button onClick={savePromptInstructions} className="save-btn">Save Instructions</button>
+            <button onClick={() => setShowPromptConfig(false)} className="cancel-btn">Cancel</button>
+          </div>
+        </div>
+      )}
+
+      {connectedServices?.googlecalendar?.connected ? (
+        <div className="calendar-content">
+          <input
+            type="date"
+            value={selectedDate}
+            onChange={(e) => setSelectedDate(e.target.value)}
+            className="date-input"
+          />
+
+          {isLoading ? (
+            <div className="loading">Loading events...</div>
+          ) : (
+            <div className="events-list">
+              {events.length > 0 ? (
+                events.map(event => (
+                  <div key={event.id} className="event-item">
+                    <span className="event-time">{event.time}</span>
+                    <span className="event-title">{event.title}</span>
+                    <span className="event-duration">{event.duration}</span>
+                  </div>
+                ))
+              ) : (
+                <div className="no-events">No events for this date</div>
+              )}
+            </div>
+          )}
+
+          <button onClick={() => fetchCalendarEvents(selectedDate)} className="refresh-btn">
+            <span className="icon">refresh</span>
+          </button>
+        </div>
+      ) : (
+        <div className="not-connected">
+          <span className="icon">warning</span>
+          Calendar not connected
+        </div>
+      )}
+
+      <Handle type="source" position={Position.Right} style={{ background: '#ea4335' }} />
+      <div className="resize-handle"></div>
+    </div>
+  );
+}
+
+// Google Drive Node Component
+function GoogleDriveNode({ data, id }) {
+  const [files, setFiles] = useState([]);
+  const [currentFolder, setCurrentFolder] = useState('root');
+  const [isLoading, setIsLoading] = useState(false);
+  const [showPromptConfig, setShowPromptConfig] = useState(false);
+  const [promptInstructions, setPromptInstructions] = useState(data.promptInstructions || 'Help me organize my Google Drive files. Suggest folder structures and identify duplicate or outdated files that can be cleaned up.');
+  const { updateNode } = React.useContext(NodeUpdateContext);
+  const connectedServices = useStore.use.connectedServices();
+
+  const fetchDriveFiles = useCallback(async (folderId = 'root') => {
+    if (!connectedServices?.googledrive?.connected) return;
+    setIsLoading(true);
+    try {
+      // TODO: Implement Drive API call
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      const mockFiles = [
+        { id: 1, name: 'Project Docs', type: 'folder', icon: 'folder' },
+        { id: 2, name: 'presentation.pptx', type: 'file', icon: 'description', size: '2.4 MB' },
+        { id: 3, name: 'image.jpg', type: 'file', icon: 'image', size: '856 KB' }
+      ];
+      setFiles(mockFiles);
+      updateNode(id, { ...data, files: mockFiles, currentFolder: folderId });
+    } catch (error) {
+      console.error('Failed to fetch Drive files:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [connectedServices, id, data, updateNode]);
+
+  useEffect(() => {
+    fetchDriveFiles(currentFolder);
+  }, [currentFolder, fetchDriveFiles]);
+
+  const handleDoubleClick = () => {
+    setShowPromptConfig(true);
+  };
+
+  const savePromptInstructions = () => {
+    updateNode(id, { ...data, promptInstructions });
+    setShowPromptConfig(false);
+  };
+
+  return (
+    <div className="node-card node-google-drive" onDoubleClick={handleDoubleClick}>
+      <Handle type="target" position={Position.Left} style={{ background: '#4285f4' }} />
+
+      <div className="node-header">
+        <span className="node-icon" style={{ color: '#4285f4' }}>cloud</span>
+        <div className="node-title">Google Drive</div>
+        {data.promptInstructions && <span className="prompt-indicator">💬</span>}
+      </div>
+
+      {showPromptConfig && (
+        <div className="prompt-config-modal">
+          <div className="prompt-config-header">
+            <h4>Drive Instructions</h4>
+            <button onClick={() => setShowPromptConfig(false)} className="close-btn">×</button>
+          </div>
+          <textarea
+            value={promptInstructions}
+            onChange={(e) => setPromptInstructions(e.target.value)}
+            placeholder="Enter instructions for how the AI should interact with your Google Drive..."
+            className="prompt-textarea"
+            rows={4}
+          />
+          <div className="prompt-config-actions">
+            <button onClick={savePromptInstructions} className="save-btn">Save Instructions</button>
+            <button onClick={() => setShowPromptConfig(false)} className="cancel-btn">Cancel</button>
+          </div>
+        </div>
+      )}
+
+      {connectedServices?.googledrive?.connected ? (
+        <div className="drive-content">
+          {isLoading ? (
+            <div className="loading">Loading files...</div>
+          ) : (
+            <div className="files-list">
+              {files.map(file => (
+                <div key={file.id} className="file-item" onClick={() => file.type === 'folder' && setCurrentFolder(file.id)}>
+                  <span className="file-icon icon">{file.icon}</span>
+                  <div className="file-info">
+                    <span className="file-name">{file.name}</span>
+                    {file.size && <span className="file-size">{file.size}</span>}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          <div className="drive-actions">
+            <button onClick={() => fetchDriveFiles(currentFolder)} className="refresh-btn">
+              <span className="icon">refresh</span>
+            </button>
+            {currentFolder !== 'root' && (
+              <button onClick={() => setCurrentFolder('root')} className="back-btn">
+                <span className="icon">arrow_back</span>
+              </button>
+            )}
+          </div>
+        </div>
+      ) : (
+        <div className="not-connected">
+          <span className="icon">warning</span>
+          Drive not connected
+        </div>
+      )}
+
+      <Handle type="source" position={Position.Right} style={{ background: '#4285f4' }} />
+      <div className="resize-handle"></div>
+    </div>
+  );
+}
+
+// Google Photos Node Component
+function GooglePhotosNode({ data, id }) {
+  const [albums, setAlbums] = useState([]);
+  const [photos, setPhotos] = useState([]);
+  const [selectedAlbum, setSelectedAlbum] = useState(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [showPromptConfig, setShowPromptConfig] = useState(false);
+  const [promptInstructions, setPromptInstructions] = useState(data.promptInstructions || 'Help me organize my photo collection. Identify similar photos, suggest albums to create, and find the best photos from events or trips.');
+  const { updateNode } = React.useContext(NodeUpdateContext);
+  const connectedServices = useStore.use.connectedServices();
+
+  const fetchPhotos = useCallback(async (albumId = null) => {
+    if (!connectedServices?.googlephotos?.connected) return;
+    setIsLoading(true);
+    try {
+      // TODO: Implement Photos API call
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      if (!albumId) {
+        const mockAlbums = [
+          { id: 1, title: 'Recent', count: 24 },
+          { id: 2, title: 'Vacation 2024', count: 156 },
+          { id: 3, title: 'Family', count: 89 }
+        ];
+        setAlbums(mockAlbums);
+      } else {
+        const mockPhotos = [
+          { id: 1, url: 'https://via.placeholder.com/100', title: 'Photo 1' },
+          { id: 2, url: 'https://via.placeholder.com/100', title: 'Photo 2' }
+        ];
+        setPhotos(mockPhotos);
+      }
+      updateNode(id, { ...data, albums, photos, selectedAlbum: albumId });
+    } catch (error) {
+      console.error('Failed to fetch photos:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [connectedServices, id, data, updateNode, albums, photos]);
+
+  useEffect(() => {
+    fetchPhotos(selectedAlbum);
+  }, [selectedAlbum, fetchPhotos]);
+
+  const handleDoubleClick = () => {
+    setShowPromptConfig(true);
+  };
+
+  const savePromptInstructions = () => {
+    updateNode(id, { ...data, promptInstructions });
+    setShowPromptConfig(false);
+  };
+
+  return (
+    <div className="node-card node-google-photos" onDoubleClick={handleDoubleClick}>
+      <Handle type="target" position={Position.Left} style={{ background: '#fbbc04' }} />
+
+      <div className="node-header">
+        <span className="node-icon" style={{ color: '#fbbc04' }}>photo_library</span>
+        <div className="node-title">Google Photos</div>
+        {data.promptInstructions && <span className="prompt-indicator">💬</span>}
+      </div>
+
+      {showPromptConfig && (
+        <div className="prompt-config-modal">
+          <div className="prompt-config-header">
+            <h4>Photos Instructions</h4>
+            <button onClick={() => setShowPromptConfig(false)} className="close-btn">×</button>
+          </div>
+          <textarea
+            value={promptInstructions}
+            onChange={(e) => setPromptInstructions(e.target.value)}
+            placeholder="Enter instructions for how the AI should interact with your Google Photos..."
+            className="prompt-textarea"
+            rows={4}
+          />
+          <div className="prompt-config-actions">
+            <button onClick={savePromptInstructions} className="save-btn">Save Instructions</button>
+            <button onClick={() => setShowPromptConfig(false)} className="cancel-btn">Cancel</button>
+          </div>
+        </div>
+      )}
+
+      {connectedServices?.googlephotos?.connected ? (
+        <div className="photos-content">
+          {selectedAlbum ? (
+            <div className="photos-view">
+              <button onClick={() => setSelectedAlbum(null)} className="back-btn">
+                <span className="icon">arrow_back</span> Back to albums
+              </button>
+              {isLoading ? (
+                <div className="loading">Loading photos...</div>
+              ) : (
+                <div className="photos-grid">
+                  {photos.map(photo => (
+                    <div key={photo.id} className="photo-item">
+                      <img src={photo.url} alt={photo.title} />
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          ) : (
+            <div className="albums-view">
+              {isLoading ? (
+                <div className="loading">Loading albums...</div>
+              ) : (
+                <div className="albums-list">
+                  {albums.map(album => (
+                    <div key={album.id} className="album-item" onClick={() => setSelectedAlbum(album.id)}>
+                      <span className="album-icon icon">photo_album</span>
+                      <div className="album-info">
+                        <span className="album-title">{album.title}</span>
+                        <span className="album-count">{album.count} photos</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      ) : (
+        <div className="not-connected">
+          <span className="icon">warning</span>
+          Photos not connected
+        </div>
+      )}
+
+      <Handle type="source" position={Position.Right} style={{ background: '#fbbc04' }} />
+      <div className="resize-handle"></div>
+    </div>
+  );
+}
+
+// Gmail Node Component
+function GmailNode({ data, id }) {
+  const [messages, setMessages] = useState([]);
+  const [selectedMessage, setSelectedMessage] = useState(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [showPromptConfig, setShowPromptConfig] = useState(false);
+  const [promptInstructions, setPromptInstructions] = useState(data.promptInstructions || 'Help me manage my email efficiently. Prioritize important messages, suggest responses, and identify emails that need follow-up action.');
+  const { updateNode } = React.useContext(NodeUpdateContext);
+  const connectedServices = useStore.use.connectedServices();
+
+  const fetchMessages = useCallback(async () => {
+    if (!connectedServices?.gmail?.connected) return;
+    setIsLoading(true);
+    try {
+      // TODO: Implement Gmail API call
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      const mockMessages = [
+        { id: 1, subject: 'Project Update', sender: 'team@company.com', preview: 'Here\'s the latest update on our project...', unread: true },
+        { id: 2, subject: 'Meeting Tomorrow', sender: 'boss@company.com', preview: 'Don\'t forget about our meeting...', unread: false },
+        { id: 3, subject: 'Weekly Report', sender: 'reports@company.com', preview: 'Your weekly analytics report is ready...', unread: true }
+      ];
+      setMessages(mockMessages);
+      updateNode(id, { ...data, messages: mockMessages, unreadCount: mockMessages.filter(m => m.unread).length });
+    } catch (error) {
+      console.error('Failed to fetch Gmail messages:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [connectedServices, id, data, updateNode]);
+
+  useEffect(() => {
+    fetchMessages();
+  }, [fetchMessages]);
+
+  const handleDoubleClick = () => {
+    setShowPromptConfig(true);
+  };
+
+  const savePromptInstructions = () => {
+    updateNode(id, { ...data, promptInstructions });
+    setShowPromptConfig(false);
+  };
+
+  return (
+    <div className="node-card node-gmail" onDoubleClick={handleDoubleClick}>
+      <Handle type="target" position={Position.Left} style={{ background: '#34a853' }} />
+
+      <div className="node-header">
+        <span className="node-icon" style={{ color: '#34a853' }}>email</span>
+        <div className="node-title">Gmail</div>
+        {data.unreadCount > 0 && <span className="unread-badge">{data.unreadCount}</span>}
+        {data.promptInstructions && <span className="prompt-indicator">💬</span>}
+      </div>
+
+      {showPromptConfig && (
+        <div className="prompt-config-modal">
+          <div className="prompt-config-header">
+            <h4>Gmail Instructions</h4>
+            <button onClick={() => setShowPromptConfig(false)} className="close-btn">×</button>
+          </div>
+          <textarea
+            value={promptInstructions}
+            onChange={(e) => setPromptInstructions(e.target.value)}
+            placeholder="Enter instructions for how the AI should interact with your Gmail..."
+            className="prompt-textarea"
+            rows={4}
+          />
+          <div className="prompt-config-actions">
+            <button onClick={savePromptInstructions} className="save-btn">Save Instructions</button>
+            <button onClick={() => setShowPromptConfig(false)} className="cancel-btn">Cancel</button>
+          </div>
+        </div>
+      )}
+
+      {connectedServices?.gmail?.connected ? (
+        <div className="gmail-content">
+          {selectedMessage ? (
+            <div className="message-view">
+              <button onClick={() => setSelectedMessage(null)} className="back-btn">
+                <span className="icon">arrow_back</span> Back to inbox
+              </button>
+              <div className="message-details">
+                <h4>{selectedMessage.subject}</h4>
+                <p className="sender">From: {selectedMessage.sender}</p>
+                <p className="preview">{selectedMessage.preview}</p>
+              </div>
+            </div>
+          ) : (
+            <div className="messages-view">
+              {isLoading ? (
+                <div className="loading">Loading messages...</div>
+              ) : (
+                <div className="messages-list">
+                  {messages.map(message => (
+                    <div key={message.id} className={`message-item ${message.unread ? 'unread' : ''}`} onClick={() => setSelectedMessage(message)}>
+                      <div className="message-sender">{message.sender}</div>
+                      <div className="message-subject">{message.subject}</div>
+                      <div className="message-preview">{message.preview}</div>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              <button onClick={fetchMessages} className="refresh-btn">
+                <span className="icon">refresh</span>
+              </button>
+            </div>
+          )}
+        </div>
+      ) : (
+        <div className="not-connected">
+          <span className="icon">warning</span>
+          Gmail not connected
+        </div>
+      )}
+
+      <Handle type="source" position={Position.Right} style={{ background: '#34a853' }} />
+      <div className="resize-handle"></div>
+    </div>
+  );
+}
+
+// University Student Data Node Component
+function UniversityStudentNode({ data, id }) {
+  const [studentData, setStudentData] = useState(null);
+  const [showPromptConfig, setShowPromptConfig] = useState(false);
+  const [promptInstructions, setPromptInstructions] = useState(data.promptInstructions || 'Analyze my academic progress and suggest areas for improvement. Focus on course performance, assignment completion, and semester planning.');
+  const [isLoading, setIsLoading] = useState(false);
+  const { updateNode } = React.useContext(NodeUpdateContext);
+  const connectedServices = useStore.use.connectedServices();
+
+  const fetchStudentData = useCallback(async () => {
+    if (!connectedServices?.university?.connected) return;
+    setIsLoading(true);
+    try {
+      const response = await fetch('/api/university/graphql', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          query: `query studentData {
+            me {
+              firstName
+              lastName
+              email
+              studentId
+              program
+              semester
+              enrollments {
+                course {
+                  name
+                  code
+                  credits
+                }
+                grade
+                status
+              }
+            }
+          }`,
+          operationName: 'studentData'
+        })
+      });
+
+      const data = await response.json();
+      if (data.data?.me) {
+        setStudentData(data.data.me);
+        updateNode(id, { ...data, studentData: data.data.me, lastUpdated: new Date().toISOString() });
+      }
+    } catch (error) {
+      console.error('Failed to fetch student data:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [connectedServices, id, updateNode]);
+
+  useEffect(() => {
+    fetchStudentData();
+  }, [fetchStudentData]);
+
+  const handleDoubleClick = () => {
+    setShowPromptConfig(true);
+  };
+
+  const savePromptInstructions = () => {
+    updateNode(id, { ...data, promptInstructions });
+    setShowPromptConfig(false);
+  };
+
+  return (
+    <div className="node-card node-university-student" onDoubleClick={handleDoubleClick}>
+      <Handle type="target" position={Position.Left} style={{ background: '#ff6b35' }} />
+
+      <div className="node-header">
+        <span className="node-icon" style={{ color: '#ff6b35' }}>school</span>
+        <div className="node-title">Student Profile</div>
+        {data.promptInstructions && <span className="prompt-indicator">💬</span>}
+      </div>
+
+      {showPromptConfig && (
+        <div className="prompt-config-modal">
+          <div className="prompt-config-header">
+            <h4>Student Data Instructions</h4>
+            <button onClick={() => setShowPromptConfig(false)} className="close-btn">×</button>
+          </div>
+          <textarea
+            value={promptInstructions}
+            onChange={(e) => setPromptInstructions(e.target.value)}
+            placeholder="Enter instructions for how the AI should analyze your student data..."
+            className="prompt-textarea"
+            rows={4}
+          />
+          <div className="prompt-config-actions">
+            <button onClick={savePromptInstructions} className="save-btn">Save Instructions</button>
+            <button onClick={() => setShowPromptConfig(false)} className="cancel-btn">Cancel</button>
+          </div>
+        </div>
+      )}
+
+      {connectedServices?.university?.connected ? (
+        <div className="university-content">
+          {isLoading ? (
+            <div className="loading">Loading student data...</div>
+          ) : studentData ? (
+            <div className="student-profile">
+              <div className="student-info">
+                <h4>{studentData.firstName} {studentData.lastName}</h4>
+                <p>ID: {studentData.studentId}</p>
+                <p>{studentData.program} - Semester {studentData.semester}</p>
+              </div>
+
+              <div className="courses-summary">
+                <h5>Current Courses ({studentData.enrollments?.length || 0})</h5>
+                {studentData.enrollments?.slice(0, 3).map((enrollment, index) => (
+                  <div key={index} className="course-item">
+                    <span className="course-code">{enrollment.course.code}</span>
+                    <span className="course-name">{enrollment.course.name}</span>
+                    <span className="course-grade">{enrollment.grade || 'In Progress'}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : (
+            <div className="no-data">No student data available</div>
+          )}
+
+          <button onClick={fetchStudentData} className="refresh-btn">
+            <span className="icon">refresh</span>
+          </button>
+        </div>
+      ) : (
+        <div className="not-connected">
+          <span className="icon">warning</span>
+          University not connected
+        </div>
+      )}
+
+      <Handle type="source" position={Position.Right} style={{ background: '#ff6b35' }} />
+      <div className="resize-handle"></div>
+    </div>
+  );
+}
+
+// University Courses Node Component
+function UniversityCoursesNode({ data, id }) {
+  const [courses, setCourses] = useState([]);
+  const [selectedCourse, setSelectedCourse] = useState(null);
+  const [showPromptConfig, setShowPromptConfig] = useState(false);
+  const [promptInstructions, setPromptInstructions] = useState(data.promptInstructions || 'Analyze my course performance and suggest study strategies. Focus on improving grades and time management for assignments.');
+  const [isLoading, setIsLoading] = useState(false);
+  const { updateNode } = React.useContext(NodeUpdateContext);
+  const connectedServices = useStore.use.connectedServices();
+
+  const fetchCourses = useCallback(async () => {
+    if (!connectedServices?.university?.connected) return;
+    setIsLoading(true);
+    try {
+      const response = await fetch('/api/university/graphql', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          query: `query studentCourses {
+            me {
+              enrollments {
+                course {
+                  id
+                  name
+                  code
+                  credits
+                  semester
+                  instructor {
+                    firstName
+                    lastName
+                  }
+                }
+                grade
+                status
+              }
+            }
+          }`,
+          operationName: 'studentCourses'
+        })
+      });
+
+      const data = await response.json();
+      if (data.data?.me?.enrollments) {
+        setCourses(data.data.me.enrollments);
+        updateNode(id, { ...data, courses: data.data.me.enrollments, lastUpdated: new Date().toISOString() });
+      }
+    } catch (error) {
+      console.error('Failed to fetch courses:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [connectedServices, id, updateNode]);
+
+  useEffect(() => {
+    fetchCourses();
+  }, [fetchCourses]);
+
+  const handleDoubleClick = () => {
+    setShowPromptConfig(true);
+  };
+
+  const savePromptInstructions = () => {
+    updateNode(id, { ...data, promptInstructions });
+    setShowPromptConfig(false);
+  };
+
+  return (
+    <div className="node-card node-university-courses" onDoubleClick={handleDoubleClick}>
+      <Handle type="target" position={Position.Left} style={{ background: '#4a90e2' }} />
+
+      <div className="node-header">
+        <span className="node-icon" style={{ color: '#4a90e2' }}>book</span>
+        <div className="node-title">Course Enrollments</div>
+        {data.promptInstructions && <span className="prompt-indicator">💬</span>}
+      </div>
+
+      {showPromptConfig && (
+        <div className="prompt-config-modal">
+          <div className="prompt-config-header">
+            <h4>Courses Instructions</h4>
+            <button onClick={() => setShowPromptConfig(false)} className="close-btn">×</button>
+          </div>
+          <textarea
+            value={promptInstructions}
+            onChange={(e) => setPromptInstructions(e.target.value)}
+            placeholder="Enter instructions for how the AI should analyze your course data..."
+            className="prompt-textarea"
+            rows={4}
+          />
+          <div className="prompt-config-actions">
+            <button onClick={savePromptInstructions} className="save-btn">Save Instructions</button>
+            <button onClick={() => setShowPromptConfig(false)} className="cancel-btn">Cancel</button>
+          </div>
+        </div>
+      )}
+
+      {connectedServices?.university?.connected ? (
+        <div className="university-content">
+          {isLoading ? (
+            <div className="loading">Loading courses...</div>
+          ) : (
+            <div className="courses-list">
+              {courses.map((enrollment, index) => (
+                <div key={index} className="course-enrollment" onClick={() => setSelectedCourse(enrollment)}>
+                  <div className="course-header">
+                    <span className="course-code">{enrollment.course.code}</span>
+                    <span className="course-credits">{enrollment.course.credits} ECTS</span>
+                  </div>
+                  <div className="course-name">{enrollment.course.name}</div>
+                  <div className="course-details">
+                    <span className="instructor">
+                      {enrollment.course.instructor?.firstName} {enrollment.course.instructor?.lastName}
+                    </span>
+                    <span className="grade">{enrollment.grade || enrollment.status}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          <button onClick={fetchCourses} className="refresh-btn">
+            <span className="icon">refresh</span>
+          </button>
+        </div>
+      ) : (
+        <div className="not-connected">
+          <span className="icon">warning</span>
+          University not connected
+        </div>
+      )}
+
+      <Handle type="source" position={Position.Right} style={{ background: '#4a90e2' }} />
+      <div className="resize-handle"></div>
+    </div>
+  );
+}
+
 const nodeTypes = {
   default: LabelNode,
   'model-provider': ModelProviderNode,
@@ -993,6 +1760,12 @@ const nodeTypes = {
   'audio-player': AudioPlayerNode,
   'text-renderer': TextRendererNode,
   'file-uploader': FileUploaderNode,
+  'google-calendar': GoogleCalendarNode,
+  'google-drive': GoogleDriveNode,
+  'google-photos': GooglePhotosNode,
+  'gmail': GmailNode,
+  'university-student': UniversityStudentNode,
+  'university-courses': UniversityCoursesNode,
 };
 
 // Note: nodeStyles now include source and model-provider

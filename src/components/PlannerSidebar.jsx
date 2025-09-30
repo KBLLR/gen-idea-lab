@@ -59,13 +59,31 @@ function AgentToolsList() {
 function SourcesList(connectedServices) {
   // External data sources/connectors
   return [
-    { id: 'github', label: 'GitHub', kind: 'source', connected: connectedServices?.github?.connected || false },
-    { id: 'notion', label: 'Notion', kind: 'source', connected: connectedServices?.notion?.connected || false },
-    { id: 'figma', label: 'Figma', kind: 'source', connected: connectedServices?.figma?.connected || false },
-    { id: 'googledrive', label: 'Google Drive', kind: 'source', connected: connectedServices?.googledrive?.connected || false },
-    { id: 'googlephotos', label: 'Google Photos', kind: 'source', connected: connectedServices?.googlephotos?.connected || false },
-    { id: 'googlecalendar', label: 'Google Calendar', kind: 'source', connected: connectedServices?.googlecalendar?.connected || false },
-    { id: 'gmail', label: 'Gmail', kind: 'source', connected: connectedServices?.gmail?.connected || false },
+    { id: 'github', label: 'GitHub', kind: 'source', icon: 'code', connected: connectedServices?.github?.connected || false },
+    { id: 'notion', label: 'Notion', kind: 'source', icon: 'description', connected: connectedServices?.notion?.connected || false },
+    { id: 'figma', label: 'Figma', kind: 'source', icon: 'design_services', connected: connectedServices?.figma?.connected || false },
+    { id: 'googledrive', label: 'Google Drive', kind: 'source', icon: 'cloud', connected: connectedServices?.googledrive?.connected || false },
+    { id: 'googlephotos', label: 'Google Photos', kind: 'source', icon: 'photo_library', connected: connectedServices?.googlephotos?.connected || false },
+    { id: 'googlecalendar', label: 'Google Calendar', kind: 'source', icon: 'event', connected: connectedServices?.googlecalendar?.connected || false },
+    { id: 'gmail', label: 'Gmail', kind: 'source', icon: 'email', connected: connectedServices?.gmail?.connected || false },
+  ];
+}
+
+function GoogleServicesList(connectedServices) {
+  // Interactive Google service components for workflows
+  return [
+    { id: 'google-calendar', label: 'Calendar Events', kind: 'google-calendar', icon: 'event', connected: connectedServices?.googlecalendar?.connected || false, meta: { description: 'View and manage calendar events in workflows' } },
+    { id: 'google-drive', label: 'Drive Files', kind: 'google-drive', icon: 'cloud', connected: connectedServices?.googledrive?.connected || false, meta: { description: 'Browse and access Google Drive files' } },
+    { id: 'google-photos', label: 'Photo Albums', kind: 'google-photos', icon: 'photo_library', connected: connectedServices?.googlephotos?.connected || false, meta: { description: 'View Google Photos albums and images' } },
+    { id: 'gmail', label: 'Email Messages', kind: 'gmail', icon: 'email', connected: connectedServices?.gmail?.connected || false, meta: { description: 'View and manage Gmail messages' } },
+  ];
+}
+
+function UniversityServicesList(connectedServices) {
+  // University (CODE University Learning Platform) components for workflows
+  return [
+    { id: 'university-student', label: 'Student Profile', kind: 'university-student', icon: 'person', connected: connectedServices?.university?.connected || false, meta: { description: 'View student information, program, and semester details' } },
+    { id: 'university-courses', label: 'Courses & Grades', kind: 'university-courses', icon: 'school', connected: connectedServices?.university?.connected || false, meta: { description: 'Access course enrollments, grades, and assignments' } },
   ];
 }
 
@@ -142,6 +160,8 @@ const ACCORDION_SECTIONS = [
   { id: 'tasks', title: 'Tasks' },
   { id: 'tools', title: 'Tools (Agent)' },
   { id: 'media-components', title: 'Media Components' },
+  { id: 'google-services', title: 'Google Services' },
+  { id: 'university-services', title: '<CODE>' },
   { id: 'sources', title: 'Sources' },
   { id: 'model-providers', title: 'Model Providers' },
   { id: 'workflows', title: 'Workflows' },
@@ -155,10 +175,25 @@ function DraggableItem({ item }) {
     e.dataTransfer.effectAllowed = 'copy';
   };
 
-  const showConnectionStatus = item.kind === 'source' || item.kind === 'model-provider';
+  const showConnectionStatus = item.kind === 'source' || item.kind === 'model-provider' || item.kind === 'google-calendar' || item.kind === 'google-drive' || item.kind === 'google-photos' || item.kind === 'gmail' || item.kind === 'university-student' || item.kind === 'university-courses';
+
+  // Create data attributes for styling connected services
+  const dataAttributes = {};
+  if (showConnectionStatus) {
+    dataAttributes['data-connected'] = item.connected ? 'true' : 'false';
+    if (item.id) {
+      dataAttributes['data-service'] = item.id;
+    }
+  }
 
   return (
-    <div className="planner-item" draggable onDragStart={onDragStart} title={item.label}>
+    <div
+      className="planner-item"
+      draggable
+      onDragStart={onDragStart}
+      title={item.label}
+      {...dataAttributes}
+    >
       <span className="icon">{item.icon || 'drag_indicator'}</span>
       <span className="label">{item.label}</span>
       {showConnectionStatus && (
@@ -177,6 +212,8 @@ export default function PlannerSidebar() {
     tasks: false,
     tools: false,
     'media-components': true,
+    'google-services': true,
+    'university-services': true,
     sources: false,
     'model-providers': false,
     workflows: false,
@@ -190,6 +227,8 @@ export default function PlannerSidebar() {
   const tasks = useTasksList();
   const tools = AgentToolsList();
   const mediaComponents = MediaComponentsList();
+  const googleServices = GoogleServicesList(connectedServices);
+  const universityServices = UniversityServicesList(connectedServices);
   const sources = SourcesList(connectedServices);
   const modelProviders = ModelProvidersList(connectedServices);
   const workflows = WorkflowsList(customWorkflows);
@@ -209,6 +248,8 @@ export default function PlannerSidebar() {
     tasks,
     tools,
     'media-components': mediaComponents,
+    'google-services': googleServices,
+    'university-services': universityServices,
     sources,
     'model-providers': modelProviders,
     workflows,
