@@ -4,7 +4,7 @@
 */
 import useStore from '../lib/store';
 import { personalities } from '../lib/assistant/personalities';
-import { toggleAssistant, updateModuleResourceUrl } from '../lib/actions';
+import { toggleModuleChat, updateModuleResourceUrl } from '../lib/actions';
 import ModuleKnowledgeSection from './ModuleKnowledgeSection';
 import c from 'clsx';
 
@@ -155,13 +155,13 @@ export default function ModuleViewer() {
                         title="Module Knowledge Base"
                         aria-label="Module Knowledge Base"
                     >
-                        <span className="icon">library_books</span>
+                        <span className="icon">database</span>
                     </button>
                     <button
                         className="icon-btn assistant-chat-icon"
-                        onClick={toggleAssistant}
-                        title={`Chat with ${personality.name}`}
-                        aria-label={`Chat with ${personality.name}`}
+                        onClick={toggleModuleChat}
+                        title={`Toggle chat with ${personality.name}`}
+                        aria-label={`Toggle chat with ${personality.name}`}
                     >
                         <span className="icon">chat</span>
                     </button>

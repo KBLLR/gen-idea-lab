@@ -61,6 +61,9 @@ const store = immer((set, get) => ({
   // Glass Dock state
   dockPosition: { x: 20, y: window.innerHeight - 100 },
   dockDimensions: { width: 0, height: 0 },
+  dockMode: 'chat', // 'chat' | 'node'
+  activeNodeId: null,
+  currentNodeConfig: null,
 
   // Authentication state
   user: null,
@@ -83,6 +86,7 @@ const store = immer((set, get) => ({
   isAssistantOpen: false,
   isAssistantLoading: false,
   assistantHistories: {}, // Keep lightweight for now, migrate gradually
+  showModuleChat: false, // Control visibility of third column module agents chat
 
   // Orchestrator Chat State
   isOrchestratorOpen: false,
@@ -96,9 +100,6 @@ const store = immer((set, get) => ({
     }
   ],
 
-  // Floating Orchestrator State
-  isFloatingOrchestratorOpen: false,
-  floatingOrchestratorPosition: { x: 20, y: 20 },
   orchestratorHasConversation: false, // Track if user has started chatting
 
   // Workflow State
@@ -353,9 +354,8 @@ const store = immer((set, get) => ({
       state.isOrchestratorOpen = open;
 
       if (open) {
-        // Ensure the main orchestrator chat is visible when opened from global UI controls
+        // Ensure the main module agents chat is visible when opened from global UI controls
         state.activeApp = 'ideaLab';
-        state.isFloatingOrchestratorOpen = false;
       }
     }),
 
@@ -377,6 +377,73 @@ const store = immer((set, get) => ({
 
     setDockDimensions: (dimensions) => set((state) => {
       state.dockDimensions = dimensions;
+    }),
+
+    // Dock mode actions
+    setDockMode: (mode) => set((state) => {
+      state.dockMode = mode;
+    }),
+
+    setActiveNodeId: (id) => set((state) => {
+      state.activeNodeId = id;
+    }),
+
+    setCurrentNodeConfig: (config) => set((state) => {
+      state.currentNodeConfig = config;
+    }),
+
+    becomePlannerNode: (config) => {
+      // If editing existing node, use the provided nodeId, otherwise create new one
+      const nodeId = config.nodeId || `ai-agent-${Date.now()}`;
+      const isNewNode = !config.nodeId;
+
+      set((state) => {
+        state.dockMode = 'node';
+        state.activeNodeId = nodeId;
+        state.currentNodeConfig = config;
+        state.activeApp = 'planner'; // Switch to planner app
+
+        // Add node to planner graph if it's a new node
+        if (isNewNode) {
+          const graph = state.plannerGraph || { nodes: [], edges: [], title: '' };
+
+          // Calculate position - center of visible area or offset from existing nodes
+          const existingNodes = graph.nodes || [];
+          let xPos = 100;
+          let yPos = 100;
+
+          // If there are existing nodes, offset from the last one
+          if (existingNodes.length > 0) {
+            const lastNode = existingNodes[existingNodes.length - 1];
+            xPos = (lastNode.position?.x || 100) + 250;
+            yPos = lastNode.position?.y || 100;
+          }
+
+          // Create the new AI agent node
+          const newNode = {
+            id: nodeId,
+            type: 'ai-agent',
+            position: { x: xPos, y: yPos },
+            data: {
+              nodeName: config.nodeName || 'AI Agent',
+              inputs: config.inputs || [],
+              outputs: config.outputs || [],
+              settings: config.settings || {},
+            },
+          };
+
+          graph.nodes.push(newNode);
+          state.plannerGraph = graph;
+        }
+      });
+
+      return nodeId;
+    },
+
+    returnToChat: () => set((state) => {
+      state.dockMode = 'chat';
+      state.activeNodeId = null;
+      state.currentNodeConfig = null;
     }),
 
     setImageProvider: (provider) => set((state) => {
@@ -434,15 +501,6 @@ const store = immer((set, get) => ({
 
     setWorkflowAutoTitleModel: (model) => set((state) => {
       state.workflowAutoTitleModel = model;
-    }),
-
-    // Floating Orchestrator actions
-    toggleFloatingOrchestrator: () => set((state) => {
-      state.isFloatingOrchestratorOpen = !state.isFloatingOrchestratorOpen;
-    }),
-
-    setFloatingOrchestratorPosition: (position) => set((state) => {
-      state.floatingOrchestratorPosition = position;
     }),
 
     setOrchestratorHasConversation: (hasConversation) => set((state) => {
@@ -584,7 +642,6 @@ export default createSelectorFunctions(
         workflowAutoTitleModel: state.workflowAutoTitleModel,
         orchestratorHasConversation: state.orchestratorHasConversation,
         orchestratorSavedSessions: state.orchestratorSavedSessions,
-        floatingOrchestratorPosition: state.floatingOrchestratorPosition,
         assistantHistories: state.assistantHistories,
         archivaEntries: state.archivaEntries,
         connectedServices: state.connectedServices,

@@ -11,7 +11,9 @@ import { getVoicePersonality } from '../lib/voice/voicePersonalities';
 import { useLiveAPI } from '../lib/voice';
 import { AudioRecorder } from '../lib/voice';
 import { AVAILABLE_VOICES, DEFAULT_VOICE } from '../lib/voice';
+import NodeModePanel from './NodeModePanel';
 import '../styles/components/glass-dock.css';
+import '../styles/components/node-mode-panel.css';
 
 const DOCK_ITEM_SIZE = 56;
 const DOCK_PADDING = 12;
@@ -21,6 +23,7 @@ export default function GlassDock() {
   const [position, setPosition] = useState({ x: 20, y: window.innerHeight - 100 });
   const [isDragging, setIsDragging] = useState(false);
   const [isVisible, setIsVisible] = useState(true);
+  const [isMinimized, setIsMinimized] = useState(true);
   const [dockItems, setDockItems] = useState([]);
   const [isVoiceListening, setIsVoiceListening] = useState(false);
   const [voiceStatus, setVoiceStatus] = useState('');
@@ -61,6 +64,12 @@ export default function GlassDock() {
   const activeModuleId = useStore((state) => state.activeModuleId);
   const isLiveVoiceChatOpen = useStore((state) => state.isLiveVoiceChatOpen);
 
+  // Dock mode state
+  const dockMode = useStore((state) => state.dockMode);
+  const activeNodeId = useStore((state) => state.activeNodeId);
+  const currentNodeConfig = useStore((state) => state.currentNodeConfig);
+  const returnToChat = useStore((state) => state.actions.returnToChat);
+
   // Live API setup
   const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
   const { client, setConfig, connect, disconnect, connected, volume } = useLiveAPI({
@@ -71,6 +80,21 @@ export default function GlassDock() {
   useEffect(() => {
     setDockPosition(position);
   }, [position, setDockPosition]);
+
+  // Handle minimized state and positioning
+  useEffect(() => {
+    // Expand when voice chat opens or entering node mode
+    if (isLiveVoiceChatOpen || dockMode === 'node') {
+      setIsMinimized(false);
+    }
+  }, [isLiveVoiceChatOpen, dockMode]);
+
+  // Position dock at bottom-left when minimized
+  useEffect(() => {
+    if (isMinimized) {
+      setPosition({ x: 20, y: window.innerHeight - 80 });
+    }
+  }, [isMinimized]);
 
   // Setup voice commands
   useEffect(() => {
@@ -399,6 +423,15 @@ export default function GlassDock() {
           setIsSystemInfoOpen(true);
           result = { success: true, message: 'System info opened' };
           break;
+        case 'become_planner_node':
+          const nodeId = useStore.getState().actions.becomePlannerNode(args);
+          result = {
+            success: true,
+            message: `Transformed into planner node: ${args.nodeName || 'AI Agent'}`,
+            nodeId
+          };
+          addMessage('system', `Now in node mode. Configure your AI agent node.`);
+          break;
         default:
           result = { success: false, error: `Unknown function: ${name}` };
       }
@@ -450,6 +483,45 @@ export default function GlassDock() {
             name: 'show_system_info',
             description: 'Show system information modal',
             parameters: { type: 'object', properties: {} }
+          },
+          {
+            name: 'become_planner_node',
+            description: 'Transform the orchestrator into a workflow node in the planner. Use this when the user wants to add AI processing as a step in an automated workflow.',
+            parameters: {
+              type: 'object',
+              properties: {
+                nodeName: {
+                  type: 'string',
+                  description: 'Name for the AI agent node',
+                  default: 'AI Agent'
+                },
+                inputs: {
+                  type: 'array',
+                  description: 'Input ports configuration',
+                  items: {
+                    type: 'object',
+                    properties: {
+                      id: { type: 'string' },
+                      type: { type: 'string', enum: ['text', 'number', 'object', 'array', 'any'] },
+                      label: { type: 'string' }
+                    }
+                  }
+                },
+                outputs: {
+                  type: 'array',
+                  description: 'Output ports configuration',
+                  items: {
+                    type: 'object',
+                    properties: {
+                      id: { type: 'string' },
+                      type: { type: 'string', enum: ['text', 'number', 'object', 'array', 'any'] },
+                      label: { type: 'string' }
+                    }
+                  }
+                }
+              },
+              required: []
+            }
           }
         ]
       }
@@ -689,49 +761,11 @@ Use this context to provide more relevant and specific answers about what the us
     }
   }, [isDragging, handleMouseMove, handleMouseUp]);
 
-  // Auto-hide/show dock
+  // Auto-hide/show dock - DISABLED
+  // Keep dock always visible
   useEffect(() => {
-    let hideTimeout;
-
-    const handleMouseMove = (e) => {
-      const { width, height } = getDockDimensions();
-      const dockRect = {
-        left: position.x,
-        top: position.y,
-        right: position.x + width,
-        bottom: position.y + height
-      };
-
-      // Check if mouse is near dock (with some padding)
-      const padding = 50;
-      const isNearDock = (
-        e.clientX >= dockRect.left - padding &&
-        e.clientX <= dockRect.right + padding &&
-        e.clientY >= dockRect.top - padding &&
-        e.clientY <= dockRect.bottom + padding
-      );
-
-      clearTimeout(hideTimeout);
-
-      if (isNearDock || isLiveVoiceChatOpen) {
-        setIsVisible(true);
-      } else {
-        hideTimeout = setTimeout(() => {
-          // Don't hide if voice chat is open
-          if (!isLiveVoiceChatOpen) {
-            setIsVisible(false);
-          }
-        }, 2000);
-      }
-    };
-
-    document.addEventListener('mousemove', handleMouseMove);
-
-    return () => {
-      document.removeEventListener('mousemove', handleMouseMove);
-      clearTimeout(hideTimeout);
-    };
-  }, [position, getDockDimensions, isLiveVoiceChatOpen]);
+    setIsVisible(true);
+  }, []);
 
   const handleItemClick = (item, isSecondary = false) => {
     if (isSecondary && item.secondaryAction) {
@@ -769,10 +803,31 @@ Use this context to provide more relevant and specific answers about what the us
 
   if (!isVisible) return null;
 
+  // Minimized view - single orchestrator icon
+  if (isMinimized && dockMode === 'chat' && !isLiveVoiceChatOpen) {
+    return (
+      <div
+        className="glass-dock minimized"
+        style={{
+          left: `${position.x}px`,
+          top: `${position.y}px`,
+          width: '64px',
+          height: '64px'
+        }}
+        onClick={() => setIsMinimized(false)}
+        title="Click to open Orchestrator"
+      >
+        <div className="minimized-icon">
+          <span className="icon">psychology</span>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div
       ref={dockRef}
-      className={`glass-dock ${isDragging ? 'dragging' : ''} ${isLiveVoiceChatOpen ? 'voice-chat-expanded' : ''}`}
+      className={`glass-dock ${isDragging ? 'dragging' : ''} ${isLiveVoiceChatOpen ? 'voice-chat-expanded' : ''} ${dockMode === 'node' ? 'node-mode' : 'chat-mode'}`}
       style={{
         left: `${position.x}px`,
         top: `${position.y}px`,
@@ -783,8 +838,17 @@ Use this context to provide more relevant and specific answers about what the us
       }}
       onMouseDown={handleMouseDown}
     >
+      {/* Node Mode Panel */}
+      {dockMode === 'node' && (
+        <NodeModePanel
+          nodeId={activeNodeId}
+          config={currentNodeConfig}
+          onReturnToChat={returnToChat}
+        />
+      )}
+
       {/* Expandable Voice Chat Section */}
-      {isLiveVoiceChatOpen && (
+      {dockMode === 'chat' && isLiveVoiceChatOpen && (
         <div
           className="voice-chat-section"
           onClick={(e) => e.stopPropagation()}
@@ -990,20 +1054,6 @@ Use this context to provide more relevant and specific answers about what the us
         </div>
       )}
 
-      {currentPersonality && (
-        <div className="personality-indicator">
-          <div className="personality-info">
-            <span className="personality-name">
-              {currentPersonality.name === 'Puck' ? '🎭 Puck' : `🎓 ${currentPersonality.name}`}
-            </span>
-            {currentPersonality.knowledge_base?.primary_domain && (
-              <span className="personality-domain">
-                {currentPersonality.knowledge_base.primary_domain}
-              </span>
-            )}
-          </div>
-        </div>
-      )}
 
       {showCapabilitiesInfo && (
         <div className="capabilities-info-panel" onClick={(e) => e.stopPropagation()}>

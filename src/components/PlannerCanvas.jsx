@@ -1751,6 +1751,168 @@ function UniversityCoursesNode({ data, id }) {
   );
 }
 
+// AI Agent Node Component (Orchestrator as Node)
+function AIAgentNode({ data, id }) {
+  const [isEditing, setIsEditing] = useState(false);
+  const [nodeName, setNodeName] = useState(data.nodeName || 'AI Agent');
+  const { updateNode } = React.useContext(NodeUpdateContext);
+  const setNodes = useStore.use.actions().setNodes;
+
+  // Extract ports from data
+  const inputs = data.inputs || [];
+  const outputs = data.outputs || [];
+  const settings = data.settings || {};
+
+  const handleNameChange = useCallback((e) => {
+    setNodeName(e.target.value);
+  }, []);
+
+  const handleNameBlur = useCallback(() => {
+    setIsEditing(false);
+    updateNode(id, { nodeName });
+  }, [id, nodeName, updateNode]);
+
+  const handleNameKeyPress = useCallback((e) => {
+    if (e.key === 'Enter') {
+      setIsEditing(false);
+      updateNode(id, { nodeName });
+    }
+  }, [id, nodeName, updateNode]);
+
+  const handleEdit = useCallback(() => {
+    // Switch back to node mode in GlassDock to edit configuration
+    const store = useStore.getState();
+    store.actions.becomePlannerNode({
+      nodeName,
+      inputs,
+      outputs,
+      settings,
+      nodeId: id, // Pass existing ID for editing
+    });
+  }, [id, nodeName, inputs, outputs, settings]);
+
+  const handleDelete = useCallback(() => {
+    // Remove this node from the canvas
+    useStore.setState((state) => {
+      const plannerGraph = state.plannerGraph || { nodes: [], edges: [] };
+      plannerGraph.nodes = plannerGraph.nodes.filter(n => n.id !== id);
+      // Also remove any edges connected to this node
+      plannerGraph.edges = plannerGraph.edges.filter(
+        e => e.source !== id && e.target !== id
+      );
+    });
+  }, [id]);
+
+  return (
+    <div className="node-card node-ai-agent">
+      {/* Input handles (left side) */}
+      {inputs.map((input, index) => (
+        <Handle
+          key={`input-${index}`}
+          type="target"
+          position={Position.Left}
+          id={input.id || `input-${index}`}
+          style={{
+            background: '#9333ea',
+            width: 10,
+            height: 10,
+            border: '2px solid #fff',
+            top: `${(100 / (inputs.length + 1)) * (index + 1)}%`,
+          }}
+          title={input.label || input.name}
+        />
+      ))}
+
+      <div className="node-header ai-agent-header">
+        <span className="node-icon" style={{ color: '#9333ea' }}>psychology</span>
+        {isEditing ? (
+          <input
+            type="text"
+            value={nodeName}
+            onChange={handleNameChange}
+            onBlur={handleNameBlur}
+            onKeyPress={handleNameKeyPress}
+            className="node-name-input"
+            autoFocus
+          />
+        ) : (
+          <div
+            className="node-title"
+            onDoubleClick={() => setIsEditing(true)}
+            title="Double-click to edit name"
+          >
+            {nodeName}
+          </div>
+        )}
+      </div>
+
+      {/* Port labels */}
+      <div className="ai-agent-ports">
+        {inputs.length > 0 && (
+          <div className="ports-section">
+            <div className="ports-label">Inputs:</div>
+            {inputs.map((input, index) => (
+              <div key={`input-label-${index}`} className="port-item">
+                {input.label || input.name || `Input ${index + 1}`}
+              </div>
+            ))}
+          </div>
+        )}
+        {outputs.length > 0 && (
+          <div className="ports-section">
+            <div className="ports-label">Outputs:</div>
+            {outputs.map((output, index) => (
+              <div key={`output-label-${index}`} className="port-item">
+                {output.label || output.name || `Output ${index + 1}`}
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Settings indicator */}
+      {settings && Object.keys(settings).length > 0 && (
+        <div className="ai-agent-settings">
+          <span className="icon" style={{ fontSize: '14px' }}>settings</span>
+          <span className="settings-text">
+            {settings.screenAwareness && 'Screen • '}
+            {settings.conversationHistory && 'History • '}
+            {settings.maxTokens && `${settings.maxTokens} tokens`}
+          </span>
+        </div>
+      )}
+
+      {/* Action buttons */}
+      <div className="ai-agent-actions">
+        <button onClick={handleEdit} className="btn-icon" title="Edit Configuration">
+          <span className="icon">edit</span>
+        </button>
+        <button onClick={handleDelete} className="btn-icon btn-delete" title="Delete Node">
+          <span className="icon">delete</span>
+        </button>
+      </div>
+
+      {/* Output handles (right side) */}
+      {outputs.map((output, index) => (
+        <Handle
+          key={`output-${index}`}
+          type="source"
+          position={Position.Right}
+          id={output.id || `output-${index}`}
+          style={{
+            background: '#9333ea',
+            width: 10,
+            height: 10,
+            border: '2px solid #fff',
+            top: `${(100 / (outputs.length + 1)) * (index + 1)}%`,
+          }}
+          title={output.label || output.name}
+        />
+      ))}
+    </div>
+  );
+}
+
 const nodeTypes = {
   default: LabelNode,
   'model-provider': ModelProviderNode,
@@ -1766,6 +1928,7 @@ const nodeTypes = {
   'gmail': GmailNode,
   'university-student': UniversityStudentNode,
   'university-courses': UniversityCoursesNode,
+  'ai-agent': AIAgentNode,
 };
 
 // Note: nodeStyles now include source and model-provider

@@ -48,19 +48,6 @@ export const switchApp = (direction) => {
     }
 
     const newApp = apps[nextIndex];
-    const wasInIdeaLab = state.activeApp === 'ideaLab';
-    const goingToIdeaLab = newApp === 'ideaLab';
-
-    // If switching away from ideaLab and user has had a conversation, show floating orchestrator
-    if (wasInIdeaLab && !goingToIdeaLab && state.orchestratorHasConversation) {
-      state.isFloatingOrchestratorOpen = true;
-    }
-
-    // If switching back to ideaLab, hide floating orchestrator
-    if (goingToIdeaLab && state.isFloatingOrchestratorOpen) {
-      state.isFloatingOrchestratorOpen = false;
-    }
-
     state.activeApp = newApp;
   });
 };
@@ -355,7 +342,6 @@ export const restoreOrchestratorSession = (sessionId) => {
     set(state => {
         state.orchestratorHistory = session.history || [];
         state.orchestratorHasConversation = true;
-        state.isFloatingOrchestratorOpen = false; // ensure main chat reflects restored
     });
 };
 
@@ -376,6 +362,12 @@ export const clearOrchestratorSessions = () => {
 export const toggleAssistant = () => {
     set(state => {
         state.isAssistantOpen = !state.isAssistantOpen;
+    });
+};
+
+export const toggleModuleChat = () => {
+    set(state => {
+        state.showModuleChat = !state.showModuleChat;
     });
 };
 

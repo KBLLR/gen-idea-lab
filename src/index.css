@@ -243,6 +243,10 @@ main.three-column .middle-column {
   flex: 1 1 auto;
   min-width: 280px;
 }
+main:not(.three-column) .middle-column {
+  flex: 1 1 auto;
+  border-right: none;
+}
 .right-column {
   display: flex;
   flex-direction: column;
@@ -1036,7 +1040,9 @@ main.workflows-layout .right-column {
     text-overflow: ellipsis;
 }
 
-.orchestrator-chat-container {
+/* Module Agents Chat & Orchestrator Chat - Shared Styles */
+.orchestrator-chat-container,
+.module-agents-chat-container {
     display: flex;
     flex-direction: column;
     height: 100%;
@@ -1044,8 +1050,39 @@ main.workflows-layout .right-column {
     padding: 0;
 }
 
-/* Orchestrator Header */
-.orchestrator-header {
+/* Module agents empty state */
+.module-agents-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    gap: 16px;
+    padding: 40px;
+    text-align: center;
+}
+
+.module-agents-empty h3 {
+    margin: 0;
+    font-size: 20px;
+    color: var(--text-primary);
+}
+
+.module-agents-empty p {
+    margin: 0;
+    font-size: 14px;
+    color: var(--text-secondary);
+}
+
+.module-agents-empty .hint {
+    font-size: 12px;
+    color: var(--text-tertiary);
+    max-width: 400px;
+}
+
+/* Chat Headers */
+.orchestrator-header,
+.module-agents-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -1054,45 +1091,52 @@ main.workflows-layout .right-column {
     backdrop-filter: blur(12px);
     border-bottom: 1px solid var(--border-primary);
     position: relative;
-    z-index: 300; /* Ensure header dropdowns overlay chat messages */
+    z-index: 300;
 }
 
-[data-theme="light"] .orchestrator-header {
+[data-theme="light"] .orchestrator-header,
+[data-theme="light"] .module-agents-header {
     background: rgba(255, 255, 255, 0.8);
 }
 
-.orchestrator-header-info {
+.orchestrator-header-info,
+.module-agents-header-info {
     display: flex;
     flex-direction: column;
     gap: 4px;
 }
 
-.orchestrator-title {
+.orchestrator-title,
+.module-agents-title {
     display: flex;
     align-items: center;
     gap: 12px;
 }
 
-.orchestrator-icon {
+.orchestrator-icon,
+.module-agent-icon {
     font-size: 24px;
     color: var(--text-accent);
 }
 
-.orchestrator-title h2 {
+.orchestrator-title h2,
+.module-agents-title h2 {
     font-size: 18px;
     font-weight: 600;
     color: var(--text-primary);
     margin: 0;
 }
 
-.orchestrator-subtitle {
+.orchestrator-subtitle,
+.module-agents-subtitle {
     font-size: 12px;
     color: var(--text-secondary);
     margin: 0;
     padding-left: 36px;
 }
 
-.orchestrator-header-actions {
+.orchestrator-header-actions,
+.module-agents-header-actions {
     position: relative;
     display: flex;
     align-items: center;

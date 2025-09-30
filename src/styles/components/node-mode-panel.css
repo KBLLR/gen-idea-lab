@@ -1,0 +1,439 @@
+/* Node Mode Panel Styles */
+
+.glass-dock.node-mode {
+  width: 380px !important;
+  height: auto !important;
+  min-height: 500px;
+  max-height: 700px;
+}
+
+.node-mode-panel {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  width: 100%;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 24px;
+  overflow: hidden;
+}
+
+.node-mode-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 16px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.node-mode-header .icon {
+  font-size: 22px;
+  color: rgba(59, 130, 246, 0.9);
+  flex-shrink: 0;
+}
+
+.node-name-input {
+  flex: 1;
+  background: transparent;
+  border: none;
+  color: rgba(255, 255, 255, 0.95);
+  font-size: 16px;
+  font-weight: 600;
+  outline: none;
+  padding: 4px 8px;
+  border-radius: 6px;
+  transition: background 0.2s;
+}
+
+.node-name-input:focus {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.mode-badge {
+  padding: 4px 10px;
+  background: rgba(59, 130, 246, 0.2);
+  color: #3b82f6;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  flex-shrink: 0;
+}
+
+.node-mode-header .icon-btn {
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.1);
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s;
+  flex-shrink: 0;
+}
+
+.node-mode-header .icon-btn:hover {
+  background: rgba(255, 71, 87, 0.2);
+}
+
+.node-mode-header .icon-btn .icon {
+  font-size: 18px;
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.node-mode-content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.config-section {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.config-section h4 {
+  margin: 0 0 8px 0;
+  font-size: 12px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.7);
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+}
+
+.port-config {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 10px;
+  margin-bottom: 6px;
+  transition: all 0.2s;
+}
+
+.port-config:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.port-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+}
+
+.port-dot.input-port {
+  background: #94a3b8;
+}
+
+.port-dot.output-port {
+  background: #3b82f6;
+}
+
+.port-config input[type="text"] {
+  flex: 1;
+  background: transparent;
+  border: none;
+  color: rgba(255, 255, 255, 0.95);
+  font-size: 13px;
+  outline: none;
+  padding: 4px 6px;
+  border-radius: 4px;
+  transition: background 0.2s;
+}
+
+.port-config input[type="text"]:focus {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.port-config select {
+  padding: 6px 10px;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 6px;
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  outline: none;
+  transition: all 0.2s;
+}
+
+.port-config select:hover {
+  background: rgba(255, 255, 255, 0.15);
+  border-color: rgba(255, 255, 255, 0.25);
+}
+
+.port-config select:focus {
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1);
+}
+
+.port-config .icon-btn.remove-port {
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  background: transparent;
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  opacity: 0.5;
+  transition: all 0.2s;
+}
+
+.port-config .icon-btn.remove-port:hover {
+  opacity: 1;
+  background: rgba(255, 71, 87, 0.2);
+  border-radius: 6px;
+}
+
+.port-config .icon-btn.remove-port .icon {
+  font-size: 16px;
+  color: #ff4757;
+}
+
+.add-port-btn {
+  width: 100%;
+  padding: 10px;
+  background: transparent;
+  border: 1px dashed rgba(255, 255, 255, 0.25);
+  border-radius: 10px;
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.add-port-btn:hover {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 255, 255, 0.4);
+  color: rgba(255, 255, 255, 0.9);
+  border-style: solid;
+}
+
+.checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.checkbox-label:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.checkbox-label input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+  accent-color: #3b82f6;
+}
+
+.number-label {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 12px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 8px;
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.number-label input[type="number"] {
+  width: 100px;
+  padding: 6px 10px;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 6px;
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 13px;
+  outline: none;
+  transition: all 0.2s;
+}
+
+.number-label input[type="number"]:focus {
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1);
+}
+
+.node-mode-footer {
+  display: flex;
+  gap: 8px;
+  padding: 14px 16px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.test-node-btn,
+.save-btn,
+.return-btn {
+  flex: 1;
+  padding: 10px 16px;
+  border: none;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+.test-node-btn {
+  background: rgba(59, 130, 246, 0.2);
+  color: #3b82f6;
+  border: 1px solid rgba(59, 130, 246, 0.3);
+}
+
+.save-btn {
+  background: rgba(34, 197, 94, 0.2);
+  color: #22c55e;
+  border: 1px solid rgba(34, 197, 94, 0.3);
+}
+
+.return-btn {
+  background: rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 0.9);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+.test-node-btn:hover {
+  background: rgba(59, 130, 246, 0.3);
+  border-color: rgba(59, 130, 246, 0.5);
+  transform: translateY(-1px);
+}
+
+.save-btn:hover {
+  background: rgba(34, 197, 94, 0.3);
+  border-color: rgba(34, 197, 94, 0.5);
+  transform: translateY(-1px);
+}
+
+.return-btn:hover {
+  background: rgba(255, 255, 255, 0.15);
+  border-color: rgba(255, 255, 255, 0.25);
+  transform: translateY(-1px);
+}
+
+.test-node-btn:active,
+.save-btn:active,
+.return-btn:active {
+  transform: translateY(0);
+}
+
+.test-node-btn .icon,
+.save-btn .icon,
+.return-btn .icon {
+  font-size: 16px;
+}
+
+/* Scrollbar styling */
+.node-mode-content::-webkit-scrollbar {
+  width: 6px;
+}
+
+.node-mode-content::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.node-mode-content::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 3px;
+}
+
+.node-mode-content::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+/* Dark theme overrides */
+[data-theme="dark"] .node-mode-panel {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+/* Light theme overrides */
+[data-theme="light"] .node-mode-panel {
+  background: rgba(0, 0, 0, 0.02);
+}
+
+[data-theme="light"] .node-name-input,
+[data-theme="light"] .port-config input[type="text"],
+[data-theme="light"] .checkbox-label,
+[data-theme="light"] .number-label {
+  color: rgba(0, 0, 0, 0.9);
+}
+
+[data-theme="light"] .config-section h4 {
+  color: rgba(0, 0, 0, 0.7);
+}
+
+[data-theme="light"] .port-config,
+[data-theme="light"] .checkbox-label,
+[data-theme="light"] .number-label {
+  background: rgba(0, 0, 0, 0.05);
+}
+
+[data-theme="light"] .add-port-btn {
+  color: rgba(0, 0, 0, 0.6);
+  border-color: rgba(0, 0, 0, 0.2);
+}
+
+[data-theme="light"] .add-port-btn:hover {
+  color: rgba(0, 0, 0, 0.9);
+  border-color: rgba(0, 0, 0, 0.4);
+}
+
+/* Animations */
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.node-mode-panel {
+  animation: slideIn 0.3s ease-out;
+}
+
+/* Mobile responsiveness */
+@media (max-width: 768px) {
+  .glass-dock.node-mode {
+    width: calc(100vw - 32px) !important;
+    max-width: 380px;
+  }
+
+  .node-mode-footer {
+    flex-direction: column;
+  }
+
+  .test-node-btn,
+  .save-btn,
+  .return-btn {
+    width: 100%;
+  }
+}

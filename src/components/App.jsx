@@ -13,8 +13,7 @@ import AppSwitcher from './AppSwitcher.jsx'
 import ModeSelector from './ModeSelector.jsx'
 import BoothViewer from './BoothViewer.jsx'
 import UserBar from './UserBar.jsx'
-import OrchestratorChat from './OrchestratorChat.jsx'
-import FloatingOrchestrator from './FloatingOrchestrator.jsx'
+import ModuleAgentsChat from './ModuleAgentsChat.jsx'
 import ArchivaDashboard from './ArchivaDashboard.jsx'
 import ArchivaSidebar from './ArchivaSidebar.jsx'
 import ArchivaEntryForm from './ArchivaEntryForm.jsx'
@@ -66,6 +65,7 @@ export default function App() {
   const theme = useStore.use.theme()
   const activeModuleId = useStore.use.activeModuleId();
   const isAssistantOpen = useStore.use.isAssistantOpen();
+  const showModuleChat = useStore.use.showModuleChat();
   const activeEntryId = useStore.use.activeEntryId();
   const isAuthenticated = useStore.use.isAuthenticated();
   const isCheckingAuth = useStore.use.isCheckingAuth();
@@ -163,7 +163,7 @@ export default function App() {
   const renderRightColumnContent = () => {
     switch (activeApp) {
       case 'ideaLab':
-        return <OrchestratorChat />;
+        return showModuleChat ? <ModuleAgentsChat /> : null;
       case 'imageBooth':
         return <BoothViewer />;
       case 'archiva':
@@ -196,7 +196,8 @@ export default function App() {
     );
   }
 
-  const isThreeColumnLayout = activeApp === 'ideaLab' && activeModuleId;
+  const hasModuleSelected = activeApp === 'ideaLab' && activeModuleId;
+  const isThreeColumnLayout = hasModuleSelected && showModuleChat;
 
   return (
     <main data-theme={theme} className={c({
@@ -228,14 +229,14 @@ export default function App() {
         title="Drag to resize left panel"
       />
 
-      {isThreeColumnLayout && (
+      {hasModuleSelected && (
         <div className="middle-column">
           <ModuleViewer />
         </div>
       )}
 
-      {isThreeColumnLayout && (
-        <div 
+      {hasModuleSelected && showModuleChat && (
+        <div
           className="column-resizer"
           onMouseDown={handleResizerMouseDown}
           role="separator"
@@ -244,12 +245,14 @@ export default function App() {
         />
       )}
 
-      <div 
-        className="right-column" 
-        style={isThreeColumnLayout ? { width: `${rightColumnWidth}px` } : {}}
-      >
-        {renderRightColumnContent()}
-      </div>
+      {(activeApp !== 'ideaLab' || showModuleChat) && (
+        <div
+          className="right-column"
+          style={isThreeColumnLayout ? { width: `${rightColumnWidth}px` } : {}}
+        >
+          {renderRightColumnContent()}
+        </div>
+      )}
     </main>
   )
 }
