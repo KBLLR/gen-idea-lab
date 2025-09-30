@@ -79,6 +79,7 @@ const store = immer((set, get) => ({
   assistantHistories: {}, // Keep lightweight for now, migrate gradually
 
   // Orchestrator Chat State
+  isOrchestratorOpen: false,
   isOrchestratorLoading: false,
   orchestratorModel: 'gemini-2.0-flash-exp', // Default orchestrator model
   workflowAutoTitleModel: 'gemma3:4b-it-qat', // Default model for workflow auto-titling
@@ -342,6 +343,16 @@ const store = immer((set, get) => ({
     },
 
     // UI Actions
+    setIsOrchestratorOpen: (open) => set((state) => {
+      state.isOrchestratorOpen = open;
+
+      if (open) {
+        // Ensure the main orchestrator chat is visible when opened from global UI controls
+        state.activeApp = 'ideaLab';
+        state.isFloatingOrchestratorOpen = false;
+      }
+    }),
+
     setIsSettingsOpen: (open) => set((state) => {
       state.isSettingsOpen = open;
     }),
