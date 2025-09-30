@@ -8,6 +8,9 @@ import useStore from '../lib/store';
 import { voiceCommands } from '../lib/voiceCommands';
 import { enhancedVoiceSystem } from '../lib/voice/enhancedVoiceSystem';
 import { getVoicePersonality } from '../lib/voice/voicePersonalities';
+import { useLiveAPI } from '../lib/voice';
+import { AudioRecorder } from '../lib/voice';
+import { AVAILABLE_VOICES, DEFAULT_VOICE } from '../lib/voice';
 import '../styles/components/glass-dock.css';
 
 const DOCK_ITEM_SIZE = 56;
@@ -26,9 +29,25 @@ export default function GlassDock() {
   const [showSubtitles, setShowSubtitles] = useState(false);
   const [currentPersonality, setCurrentPersonality] = useState(null);
   const [useEnhancedVoice, setUseEnhancedVoice] = useState(false);
-  const [dockDimensions, setDockDimensions] = useState({ width: 0, height: 0 });
+  const [showCapabilitiesInfo, setShowCapabilitiesInfo] = useState(false);
+  const [localDockDimensions, setLocalDockDimensions] = useState({ width: 0, height: 0 });
   const dockRef = useRef(null);
   const dragRef = useRef({ startX: 0, startY: 0, offsetX: 0, offsetY: 0 });
+
+  // Live Voice Chat state
+  const [selectedVoice, setSelectedVoice] = useState(DEFAULT_VOICE);
+  const [inputTranscript, setInputTranscript] = useState('');
+  const [outputTranscript, setOutputTranscript] = useState('');
+  const [isRecording, setIsRecording] = useState(false);
+  const [micVolume, setMicVolume] = useState(0);
+  const [speakerVolume, setSpeakerVolume] = useState(0);
+  const [messages, setMessages] = useState([]);
+  const [showVoiceSelector, setShowVoiceSelector] = useState(false);
+  const [voiceChatWidth, setVoiceChatWidth] = useState(340);
+  const [voiceChatHeight, setVoiceChatHeight] = useState(420);
+  const recorderRef = useRef(null);
+  const messagesEndRef = useRef(null);
+  const resizeRef = useRef(null);
 
   // Store actions
   const setIsOrchestratorOpen = useStore((state) => state.actions.setIsOrchestratorOpen);
@@ -36,9 +55,22 @@ export default function GlassDock() {
   const setIsSystemInfoOpen = useStore((state) => state.actions.setIsSystemInfoOpen);
   const setIsLiveVoiceChatOpen = useStore((state) => state.actions.setIsLiveVoiceChatOpen);
   const setActiveApp = useStore((state) => state.actions.setActiveApp);
+  const setDockPosition = useStore((state) => state.actions.setDockPosition);
+  const setDockDimensions = useStore((state) => state.actions.setDockDimensions);
   const activeApp = useStore((state) => state.activeApp);
   const activeModuleId = useStore((state) => state.activeModuleId);
   const isLiveVoiceChatOpen = useStore((state) => state.isLiveVoiceChatOpen);
+
+  // Live API setup
+  const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
+  const { client, setConfig, connect, disconnect, connected, volume } = useLiveAPI({
+    apiKey,
+  });
+
+  // Sync position to store
+  useEffect(() => {
+    setDockPosition(position);
+  }, [position, setDockPosition]);
 
   // Setup voice commands
   useEffect(() => {
@@ -143,6 +175,111 @@ export default function GlassDock() {
     };
   }, []);
 
+  // Update speaker volume
+  useEffect(() => {
+    setSpeakerVolume(volume);
+  }, [volume]);
+
+  // Setup Live API event listeners
+  useEffect(() => {
+    if (!client) return;
+
+    const onOpen = () => {
+      addMessage('system', 'Connected to Gemini Live');
+    };
+
+    const onClose = (event) => {
+      addMessage('system', 'Disconnected from Gemini Live');
+      setIsRecording(false);
+
+      if (recorderRef.current) {
+        recorderRef.current.stop();
+        recorderRef.current = null;
+      }
+    };
+
+    const onContent = (content) => {
+      if (content.modelTurn?.parts) {
+        content.modelTurn.parts.forEach(part => {
+          if (part.text) {
+            addMessage('assistant', part.text);
+          }
+        });
+      }
+    };
+
+    const onToolCall = (toolCall) => {
+      const functionCall = toolCall.functionCalls?.[0];
+      if (functionCall) {
+        addMessage('system', `Calling function: ${functionCall.name}`);
+        handleToolCall(functionCall);
+      }
+    };
+
+    const onInputTranscription = (text, isFinal) => {
+      if (isFinal) {
+        setInputTranscript(text);
+        addMessage('user', text);
+      }
+    };
+
+    const onOutputTranscription = (text, isFinal) => {
+      setOutputTranscript(text);
+    };
+
+    const onError = (error) => {
+      console.error('[GlassDock] Live API error:', error);
+      addMessage('error', `Error: ${error.message || error.type || 'Connection error'}`);
+
+      if (recorderRef.current) {
+        recorderRef.current.stop();
+        recorderRef.current = null;
+      }
+      setIsRecording(false);
+    };
+
+    client.on('open', onOpen);
+    client.on('close', onClose);
+    client.on('content', onContent);
+    client.on('toolcall', onToolCall);
+    client.on('inputTranscription', onInputTranscription);
+    client.on('outputTranscription', onOutputTranscription);
+    client.on('error', onError);
+
+    return () => {
+      client.off('open', onOpen);
+      client.off('close', onClose);
+      client.off('content', onContent);
+      client.off('toolcall', onToolCall);
+      client.off('inputTranscription', onInputTranscription);
+      client.off('outputTranscription', onOutputTranscription);
+      client.off('error', onError);
+    };
+  }, [client]);
+
+  // Auto-scroll messages
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages]);
+
+  // Periodically update screen context when awareness is enabled
+  useEffect(() => {
+    if (!isScreenAware) return;
+
+    // Update context immediately
+    window.screenContext = extractDOMContext();
+
+    // Set up periodic updates every 5 seconds
+    const intervalId = setInterval(() => {
+      if (isScreenAware) {
+        window.screenContext = extractDOMContext();
+        console.log('[Screen Awareness] Context refreshed');
+      }
+    }, 5000);
+
+    return () => clearInterval(intervalId);
+  }, [isScreenAware, activeApp, activeModuleId]);
+
   // Toggle voice listening
   const toggleVoiceListening = async () => {
     if (isVoiceListening) {
@@ -160,16 +297,253 @@ export default function GlassDock() {
     }
   };
 
+  // DOM context extraction for screen awareness
+  const extractDOMContext = () => {
+    const context = {
+      url: window.location.href,
+      title: document.title,
+      activeApp: activeApp,
+      activeModule: activeModuleId,
+      timestamp: new Date().toISOString(),
+      visibleText: '',
+      headings: [],
+      buttons: [],
+      inputs: []
+    };
+
+    // Get visible text content
+    const bodyText = document.body.innerText || document.body.textContent;
+    context.visibleText = bodyText.substring(0, 2000); // Limit to first 2000 chars
+
+    // Extract headings
+    const headings = document.querySelectorAll('h1, h2, h3, h4, h5, h6');
+    context.headings = Array.from(headings).slice(0, 10).map(h => ({
+      level: h.tagName.toLowerCase(),
+      text: h.textContent.trim()
+    }));
+
+    // Extract visible buttons
+    const buttons = document.querySelectorAll('button:not([style*="display: none"])');
+    context.buttons = Array.from(buttons).slice(0, 15).map(btn =>
+      btn.textContent.trim() || btn.getAttribute('title') || btn.getAttribute('aria-label') || ''
+    ).filter(text => text);
+
+    // Extract input fields
+    const inputs = document.querySelectorAll('input, textarea, select');
+    context.inputs = Array.from(inputs).slice(0, 10).map(input => ({
+      type: input.type || input.tagName.toLowerCase(),
+      placeholder: input.placeholder || '',
+      label: input.getAttribute('aria-label') || input.name || ''
+    }));
+
+    return context;
+  };
+
   // Toggle screen awareness
   const toggleScreenAwareness = () => {
-    setIsScreenAware(!isScreenAware);
-    // TODO: Implement screen capture/awareness functionality
-    console.log('Screen awareness toggled:', !isScreenAware);
+    const newState = !isScreenAware;
+    setIsScreenAware(newState);
+
+    if (newState) {
+      // Extract DOM context when enabling
+      const context = extractDOMContext();
+      console.log('[Screen Awareness] Enabled - Context:', context);
+
+      // Store context for AI to use
+      window.screenContext = context;
+
+      // Don't add message - will show eye icon instead
+    } else {
+      console.log('[Screen Awareness] Disabled');
+      window.screenContext = null;
+    }
   };
 
   // Toggle subtitles display
   const toggleSubtitles = () => {
     setShowSubtitles(!showSubtitles);
+  };
+
+  // Live Voice Chat functions
+  const addMessage = (role, content) => {
+    const newMessage = { role, content, timestamp: Date.now(), id: Date.now() + Math.random() };
+    setMessages(prev => [...prev, newMessage]);
+
+    // Auto-remove system messages after 3 seconds
+    if (role === 'system') {
+      setTimeout(() => {
+        setMessages(prev => prev.filter(msg => msg.id !== newMessage.id));
+      }, 3000);
+    }
+  };
+
+  const handleToolCall = async (functionCall) => {
+    const { name, args } = functionCall;
+    let result = { success: false };
+
+    try {
+      switch (name) {
+        case 'switch_app':
+          setActiveApp(args.appName);
+          result = { success: true, message: `Switched to ${args.appName}` };
+          break;
+        case 'open_settings':
+          setIsSettingsOpen(true);
+          result = { success: true, message: 'Settings opened' };
+          break;
+        case 'open_orchestrator':
+          setIsOrchestratorOpen(true);
+          result = { success: true, message: 'Orchestrator opened' };
+          break;
+        case 'show_system_info':
+          setIsSystemInfoOpen(true);
+          result = { success: true, message: 'System info opened' };
+          break;
+        default:
+          result = { success: false, error: `Unknown function: ${name}` };
+      }
+    } catch (error) {
+      result = { success: false, error: error.message };
+    }
+
+    if (client && connected) {
+      client.sendToolResponse({
+        functionResponses: [{
+          id: functionCall.id,
+          name: functionCall.name,
+          response: result
+        }]
+      });
+    }
+  };
+
+  const getAvailableTools = () => {
+    return [
+      {
+        functionDeclarations: [
+          {
+            name: 'switch_app',
+            description: 'Switch to a different app in the GenBooth interface',
+            parameters: {
+              type: 'object',
+              properties: {
+                appName: {
+                  type: 'string',
+                  enum: ['ideaLab', 'imageBooth', 'archiva', 'planner', 'workflows'],
+                  description: 'The name of the app to switch to'
+                }
+              },
+              required: ['appName']
+            }
+          },
+          {
+            name: 'open_settings',
+            description: 'Open the settings modal',
+            parameters: { type: 'object', properties: {} }
+          },
+          {
+            name: 'open_orchestrator',
+            description: 'Open the orchestrator chat',
+            parameters: { type: 'object', properties: {} }
+          },
+          {
+            name: 'show_system_info',
+            description: 'Show system information modal',
+            parameters: { type: 'object', properties: {} }
+          }
+        ]
+      }
+    ];
+  };
+
+  const handleConnect = async () => {
+    if (connected) {
+      if (recorderRef.current) {
+        recorderRef.current.stop();
+        recorderRef.current = null;
+      }
+      disconnect();
+      setIsRecording(false);
+      return;
+    }
+
+    try {
+      // Build system instruction with optional screen context
+      let systemInstructionText = `You are a helpful AI assistant integrated into GenBooth Idea Lab.
+You can help users with:
+- Navigation between apps (planner, archiva, idea lab, image booth, workflows)
+- Opening settings and system information
+- Answering questions about their work
+- Providing creative suggestions
+
+Be concise, friendly, and helpful. Match the personality of the selected voice.`;
+
+      // Add screen context if awareness is enabled
+      if (isScreenAware && window.screenContext) {
+        const ctx = window.screenContext;
+        systemInstructionText += `\n\nCURRENT SCREEN CONTEXT:
+- Active App: ${ctx.activeApp}
+- Page Title: ${ctx.title}
+- Visible Headings: ${ctx.headings.map(h => h.text).join(', ')}
+- Available Actions: ${ctx.buttons.slice(0, 8).join(', ')}
+
+Use this context to provide more relevant and specific answers about what the user is currently viewing.`;
+      }
+
+      const config = {
+        responseModalities: ['AUDIO'],
+        speechConfig: {
+          voiceConfig: {
+            prebuiltVoiceConfig: {
+              voiceName: selectedVoice
+            }
+          }
+        },
+        systemInstruction: {
+          parts: [{
+            text: systemInstructionText
+          }]
+        },
+        tools: getAvailableTools(),
+      };
+
+      await connect(config);
+
+      if (!recorderRef.current) {
+        recorderRef.current = new AudioRecorder(16000);
+
+        recorderRef.current.on('data', (base64Audio) => {
+          if (client && client.status === 'connected') {
+            client.sendRealtimeInput([{
+              mimeType: 'audio/pcm;rate=16000',
+              data: base64Audio
+            }]);
+          }
+        });
+
+        recorderRef.current.on('volume', (volume) => {
+          setMicVolume(volume);
+        });
+      }
+
+      await recorderRef.current.start();
+      setIsRecording(true);
+    } catch (error) {
+      console.error('[GlassDock] Connection failed:', error);
+      addMessage('error', `Failed to connect: ${error.message}`);
+
+      if (recorderRef.current) {
+        recorderRef.current.stop();
+        recorderRef.current = null;
+      }
+      setIsRecording(false);
+    }
+  };
+
+  const clearChat = () => {
+    setMessages([]);
+    setInputTranscript('');
+    setOutputTranscript('');
   };
 
   // Initialize dock items
@@ -190,9 +564,35 @@ export default function GlassDock() {
         id: 'live-voice-chat',
         icon: 'forum',
         label: 'Live Voice Chat (Gemini)',
-        action: () => setIsLiveVoiceChatOpen(!isLiveVoiceChatOpen),
+        action: async () => {
+          if (!isLiveVoiceChatOpen) {
+            // Open and connect
+            setIsLiveVoiceChatOpen(true);
+            // Wait a tick for panel to open
+            setTimeout(() => handleConnect(), 100);
+          } else if (connected) {
+            // Disconnect but keep panel open
+            disconnect();
+            if (recorderRef.current) {
+              recorderRef.current.stop();
+              recorderRef.current = null;
+            }
+            setIsRecording(false);
+          } else {
+            // Connect when panel is open but disconnected
+            await handleConnect();
+          }
+        },
         type: 'action',
-        isActive: isLiveVoiceChatOpen
+        isActive: isLiveVoiceChatOpen || connected
+      },
+      {
+        id: 'capabilities-info',
+        icon: 'info',
+        label: 'Voice Commands & Capabilities',
+        action: () => setShowCapabilitiesInfo(!showCapabilitiesInfo),
+        type: 'action',
+        isActive: showCapabilitiesInfo
       },
       {
         id: 'subtitles',
@@ -212,7 +612,7 @@ export default function GlassDock() {
       }
     ];
     setDockItems(items);
-  }, [isVoiceListening, voiceStatus, showSubtitles, isScreenAware, isLiveVoiceChatOpen]);
+  }, [isVoiceListening, voiceStatus, showSubtitles, isScreenAware, isLiveVoiceChatOpen, showCapabilitiesInfo]);
 
   // Calculate dock dimensions
   const getDockDimensions = useCallback(() => {
@@ -244,6 +644,8 @@ export default function GlassDock() {
   // Drag handlers
   const handleMouseDown = useCallback((e) => {
     if (e.target.closest('.dock-item')) return; // Don't drag when clicking items
+    if (e.target.closest('.voice-chat-section')) return; // Don't drag when interacting with voice chat
+    if (e.target.closest('.voice-chat-resize-handle')) return; // Don't drag when resizing
 
     setIsDragging(true);
     const rect = dockRef.current.getBoundingClientRect();
@@ -311,11 +713,14 @@ export default function GlassDock() {
 
       clearTimeout(hideTimeout);
 
-      if (isNearDock) {
+      if (isNearDock || isLiveVoiceChatOpen) {
         setIsVisible(true);
       } else {
         hideTimeout = setTimeout(() => {
-          setIsVisible(false);
+          // Don't hide if voice chat is open
+          if (!isLiveVoiceChatOpen) {
+            setIsVisible(false);
+          }
         }, 2000);
       }
     };
@@ -326,7 +731,7 @@ export default function GlassDock() {
       document.removeEventListener('mousemove', handleMouseMove);
       clearTimeout(hideTimeout);
     };
-  }, [position, getDockDimensions]);
+  }, [position, getDockDimensions, isLiveVoiceChatOpen]);
 
   const handleItemClick = (item, isSecondary = false) => {
     if (isSecondary && item.secondaryAction) {
@@ -367,15 +772,168 @@ export default function GlassDock() {
   return (
     <div
       ref={dockRef}
-      className={`glass-dock ${isDragging ? 'dragging' : ''}`}
+      className={`glass-dock ${isDragging ? 'dragging' : ''} ${isLiveVoiceChatOpen ? 'voice-chat-expanded' : ''}`}
       style={{
         left: `${position.x}px`,
         top: `${position.y}px`,
-        width: `${width}px`,
-        height: `${height}px`
+        ...(isLiveVoiceChatOpen ? {} : {
+          width: `${width}px`,
+          height: `${height}px`
+        })
       }}
       onMouseDown={handleMouseDown}
     >
+      {/* Expandable Voice Chat Section */}
+      {isLiveVoiceChatOpen && (
+        <div
+          className="voice-chat-section"
+          onClick={(e) => e.stopPropagation()}
+          style={{
+            width: `${voiceChatWidth}px`,
+            maxHeight: `${voiceChatHeight}px`
+          }}
+        >
+          <div className="voice-chat-header-minimal">
+            <div className="status-light-container">
+              <div className={`status-light ${connected ? 'online' : 'offline'}`}>
+                {connected && <div className="status-pulse"></div>}
+              </div>
+            </div>
+            <button
+              className="icon-btn close-btn"
+              onClick={(e) => {
+                e.stopPropagation();
+                if (connected) {
+                  disconnect();
+                  if (recorderRef.current) {
+                    recorderRef.current.stop();
+                    recorderRef.current = null;
+                  }
+                  setIsRecording(false);
+                }
+                setIsLiveVoiceChatOpen(false);
+              }}
+              title="Close & Disconnect"
+            >
+              <span className="icon">close</span>
+            </button>
+          </div>
+
+          {/* System Messages Overlay (top) */}
+          <div className="system-messages-overlay">
+            {messages.filter(msg => msg.role === 'system').map((msg) => (
+              <div key={msg.id} className="system-message-toast">
+                {msg.content}
+              </div>
+            ))}
+          </div>
+
+          {/* Display Canvas */}
+          <div className="voice-chat-canvas">
+            {connected ? (
+              <div className="voice-visualization">
+                <div className="voice-waves-container">
+                  <div className="voice-waves">
+                    <div className={`wave ${isRecording ? 'active' : ''}`}></div>
+                    <div className={`wave ${isRecording ? 'active' : ''}`}></div>
+                    <div className={`wave ${isRecording ? 'active' : ''}`}></div>
+                    <div className={`wave ${isRecording ? 'active' : ''}`}></div>
+                    <div className={`wave ${isRecording ? 'active' : ''}`}></div>
+                  </div>
+                  {isScreenAware && (
+                    <>
+                      <span className="awareness-plus">+</span>
+                      <svg className="eye-icon blinking" width="32" height="32" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M12 5C7 5 2.73 8.11 1 12.5C2.73 16.89 7 20 12 20C17 20 21.27 16.89 23 12.5C21.27 8.11 17 5 12 5Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                        <circle cx="12" cy="12.5" r="3" stroke="currentColor" strokeWidth="2" fill="currentColor"/>
+                      </svg>
+                    </>
+                  )}
+                </div>
+                <div className="voice-status-text">
+                  {isRecording ? 'Listening...' : 'Ready to listen'}
+                </div>
+              </div>
+            ) : (
+              <div className="voice-connect-prompt">
+                <span className="icon">mic</span>
+                <p>Click the dock icon to connect</p>
+                <span className="voice-name">Voice: {selectedVoice}</span>
+              </div>
+            )}
+
+            <div className="voice-chat-messages">
+              {messages.filter(msg => msg.role !== 'system').map((msg) => (
+                <div key={msg.id} className={`message message-${msg.role}`}>
+                  <div className="message-content">{msg.content}</div>
+                </div>
+              ))}
+              {inputTranscript && !messages.find(m => m.content === inputTranscript) && (
+                <div className="message message-user message-transcribing">
+                  <div className="message-content">{inputTranscript}</div>
+                </div>
+              )}
+              {outputTranscript && (
+                <div className="message message-assistant message-transcribing">
+                  <div className="message-content">{outputTranscript}</div>
+                </div>
+              )}
+              <div ref={messagesEndRef} />
+            </div>
+          </div>
+
+          {/* Resize handle */}
+          <div
+            className="voice-chat-resize-handle"
+            onMouseDown={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+
+              const startX = e.clientX;
+              const startY = e.clientY;
+              const startWidth = voiceChatWidth;
+              const startHeight = voiceChatHeight;
+
+              const handleMouseMove = (moveEvent) => {
+                moveEvent.preventDefault();
+                moveEvent.stopPropagation();
+                const deltaX = moveEvent.clientX - startX;
+                const deltaY = moveEvent.clientY - startY;
+                const newWidth = Math.max(300, Math.min(startWidth + deltaX, 600));
+                const newHeight = Math.max(350, Math.min(startHeight + deltaY, 600));
+                setVoiceChatWidth(newWidth);
+                setVoiceChatHeight(newHeight);
+              };
+
+              const handleMouseUp = (upEvent) => {
+                upEvent.preventDefault();
+                upEvent.stopPropagation();
+                window.removeEventListener('mousemove', handleMouseMove);
+                window.removeEventListener('mouseup', handleMouseUp);
+                document.body.style.cursor = '';
+                document.body.style.userSelect = '';
+              };
+
+              document.body.style.cursor = 'nwse-resize';
+              document.body.style.userSelect = 'none';
+              window.addEventListener('mousemove', handleMouseMove);
+              window.addEventListener('mouseup', handleMouseUp);
+            }}
+            title="Drag to resize"
+          >
+            <span className="icon">open_in_full</span>
+          </div>
+
+          {!apiKey && (
+            <div className="api-key-warning">
+              <span className="icon">warning</span>
+              <span>GEMINI_API_KEY not configured</span>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Dock Items (Bottom Row) */}
       <div className="dock-container">
         {visibleItems.map((item, index) => (
           <div
@@ -443,6 +1001,76 @@ export default function GlassDock() {
                 {currentPersonality.knowledge_base.primary_domain}
               </span>
             )}
+          </div>
+        </div>
+      )}
+
+      {showCapabilitiesInfo && (
+        <div className="capabilities-info-panel" onClick={(e) => e.stopPropagation()}>
+          <div className="capabilities-header">
+            <div className="capabilities-title">
+              <span className="icon">help</span>
+              <h4>Voice Commands & Capabilities</h4>
+            </div>
+            <button
+              className="icon-btn close-btn"
+              onClick={(e) => {
+                e.stopPropagation();
+                setShowCapabilitiesInfo(false);
+              }}
+              title="Close"
+            >
+              <span className="icon">close</span>
+            </button>
+          </div>
+
+          <div className="capabilities-content">
+            <div className="capabilities-section">
+              <div className="section-title">
+                <span className="icon">mic</span>
+                <h5>Voice Commands</h5>
+              </div>
+              <ul className="command-list">
+                <li><code>open [app name]</code> - Switch to an app</li>
+                <li><code>show settings</code> - Open settings</li>
+                <li><code>open chat</code> - Open orchestrator</li>
+                <li><code>show help</code> - Display help</li>
+                <li><code>system info</code> - Show system information</li>
+              </ul>
+            </div>
+
+            <div className="capabilities-section">
+              <div className="section-title">
+                <span className="icon">forum</span>
+                <h5>Live Voice Chat</h5>
+              </div>
+              <ul className="command-list">
+                <li>Real-time voice conversation with Gemini AI</li>
+                <li>Multiple voice personalities to choose from</li>
+                <li>Can navigate apps and open settings</li>
+                <li>Provides creative suggestions and answers</li>
+                <li>Transcribes your speech in real-time</li>
+              </ul>
+            </div>
+
+            <div className="capabilities-section">
+              <div className="section-title">
+                <span className="icon">visibility</span>
+                <h5>Screen Awareness</h5>
+              </div>
+              <ul className="command-list">
+                <li>Reads current page content (headings, buttons, text)</li>
+                <li>Knows which app and module you're viewing</li>
+                <li>Provides context-aware responses</li>
+                <li>Updates automatically every 5 seconds</li>
+                <li>Toggle on/off from dock for privacy</li>
+              </ul>
+            </div>
+
+            <div className="capabilities-tip">
+              <span className="icon">lightbulb</span>
+              <p>Tip: Use Voice Commands for quick actions, or Live Voice Chat for natural conversations. Toggle Screen Awareness anytime for context!</p>
+            </div>
           </div>
         </div>
       )}

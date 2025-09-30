@@ -24,6 +24,8 @@ dist-ssr
 *.sw?
 
 .env
+.env.bak
+
 
 .vercel
 
@@ -32,3 +34,11 @@ templates
 !src/lib/archiva/templates/
 goals
 docs
+
+# env files (block all variants)
+.env
+.env.*
+*.env
+*.env.*
+.env.local
+.env.bak

@@ -58,6 +58,10 @@ const store = immer((set, get) => ({
   isLiveVoiceChatOpen: false,
   theme: 'dark',
 
+  // Glass Dock state
+  dockPosition: { x: 20, y: window.innerHeight - 100 },
+  dockDimensions: { width: 0, height: 0 },
+
   // Authentication state
   user: null,
   isAuthenticated: false,
@@ -365,6 +369,14 @@ const store = immer((set, get) => ({
 
     setIsLiveVoiceChatOpen: (open) => set((state) => {
       state.isLiveVoiceChatOpen = open;
+    }),
+
+    setDockPosition: (position) => set((state) => {
+      state.dockPosition = position;
+    }),
+
+    setDockDimensions: (dimensions) => set((state) => {
+      state.dockDimensions = dimensions;
     }),
 
     setImageProvider: (provider) => set((state) => {

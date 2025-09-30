@@ -2810,7 +2810,9 @@ async function startServer() {
       logger.info(`Server listening at http://localhost:${serverPort}`);
     });
   } catch (error) {
-    logger.error('Failed to start server:', error.message);
+    logger.error('Failed to start server:', error);
+    console.error('Full error details:', error);
+    console.error('Error stack:', error.stack);
     process.exit(1);
   }
 }

@@ -12,7 +12,7 @@ export const DEFAULT_LIVE_API_MODEL =
 /**
  * Default voice for the assistant
  */
-export const DEFAULT_VOICE = 'Zephyr';
+export const DEFAULT_VOICE = 'Puck';
 
 /**
  * Available voice options for Gemini Live API

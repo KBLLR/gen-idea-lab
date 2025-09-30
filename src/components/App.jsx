@@ -24,8 +24,6 @@ import ModuleViewer from './ModuleViewer.jsx'
 import Assistant from './Assistant.jsx'
 import PlannerSidebar from './PlannerSidebar.jsx'
 import PlannerCanvas from './PlannerCanvas.jsx'
-import VoiceCommand from './VoiceCommand.jsx'
-import LiveVoiceChat from './LiveVoiceChat.jsx'
 import GlassDock from './GlassDock.jsx'
 import SystemInfoModal from './SystemInfoModal.jsx'
 import { personalities } from '../lib/assistant/personalities'
@@ -209,8 +207,6 @@ export default function App() {
       {isSettingsOpen && <SettingsModal />}
       {isSystemInfoOpen && <SystemInfoModal isOpen={isSystemInfoOpen} onClose={() => setIsSystemInfoOpen(false)} />}
       <GlassDock />
-      <VoiceCommand />
-      <LiveVoiceChat />
 
       <div 
         className="left-column"
