@@ -154,7 +154,30 @@ function MediaComponentsList() {
   ];
 }
 
+function TopicsList() {
+  // Project topics and research areas
+  // TODO: Connect to actual topics from store or database
+  return [
+    { id: 'topic-ai-ml', label: 'AI & Machine Learning', kind: 'topic', icon: 'psychology', meta: { description: 'Artificial intelligence and machine learning projects' } },
+    { id: 'topic-web-dev', label: 'Web Development', kind: 'topic', icon: 'web', meta: { description: 'Web application development topics' } },
+    { id: 'topic-data-science', label: 'Data Science', kind: 'topic', icon: 'analytics', meta: { description: 'Data analysis and visualization topics' } },
+    { id: 'topic-design', label: 'Design & UX', kind: 'topic', icon: 'palette', meta: { description: 'User experience and interface design' } },
+  ];
+}
+
+function IdeasList() {
+  // Individual ideas and concepts
+  // TODO: Connect to actual ideas from store or database
+  return [
+    { id: 'idea-chatbot', label: 'Build a chatbot', kind: 'idea', icon: 'chat', meta: { description: 'Create an intelligent conversational agent' } },
+    { id: 'idea-dashboard', label: 'Analytics dashboard', kind: 'idea', icon: 'dashboard', meta: { description: 'Design a data visualization dashboard' } },
+    { id: 'idea-mobile-app', label: 'Mobile app prototype', kind: 'idea', icon: 'phone_android', meta: { description: 'Prototype a mobile application' } },
+  ];
+}
+
 const ACCORDION_SECTIONS = [
+  { id: 'topics', title: 'Topics' },
+  { id: 'ideas', title: 'Ideas' },
   { id: 'modules', title: 'Modules' },
   { id: 'assistants', title: 'Assistants' },
   { id: 'tasks', title: 'Tasks' },
@@ -207,21 +230,26 @@ function DraggableItem({ item }) {
 
 export default function PlannerSidebar() {
   const [open, setOpen] = useState({
-    modules: true,
-    assistants: true,
+    topics: false,
+    ideas: false,
+    modules: false,
+    assistants: false,
     tasks: false,
     tools: false,
-    'media-components': true,
-    'google-services': true,
-    'university-services': true,
+    'media-components': false,
+    'google-services': false,
+    'university-services': false,
     sources: false,
     'model-providers': false,
     workflows: false,
+    'archiva-templates': false,
     connectors: false
   });
   const connectedServices = useStore.use.connectedServices();
   const customWorkflows = useStore.use.customWorkflows?.() || {};
 
+  const topics = TopicsList();
+  const ideas = IdeasList();
   const modulesList = useModulesList();
   const assistants = useAssistants();
   const tasks = useTasksList();
@@ -243,6 +271,8 @@ export default function PlannerSidebar() {
   const archivaTemplates = ArchivAITemplatesList();
 
   const sectionData = {
+    topics,
+    ideas,
     modules: modulesList,
     assistants,
     tasks,
@@ -267,7 +297,7 @@ export default function PlannerSidebar() {
           </button>
           {open[sec.id] && (
             <div className="accordion-body">
-              {sectionData[sec.id].length === 0 ? (
+              {!sectionData[sec.id] || sectionData[sec.id].length === 0 ? (
                 <div className="empty">No items</div>
               ) : (
                 sectionData[sec.id].map(item => (

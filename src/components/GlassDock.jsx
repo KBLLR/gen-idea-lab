@@ -63,6 +63,7 @@ export default function GlassDock() {
   const activeApp = useStore((state) => state.activeApp);
   const activeModuleId = useStore((state) => state.activeModuleId);
   const isLiveVoiceChatOpen = useStore((state) => state.isLiveVoiceChatOpen);
+  const orchestratorNarration = useStore((state) => state.orchestratorNarration);
 
   // Dock mode state
   const dockMode = useStore((state) => state.dockMode);
@@ -86,8 +87,15 @@ export default function GlassDock() {
     // Expand when voice chat opens or entering node mode
     if (isLiveVoiceChatOpen || dockMode === 'node') {
       setIsMinimized(false);
+
+      // Center the dock when voice chat opens
+      if (isLiveVoiceChatOpen) {
+        const centerX = (window.innerWidth - voiceChatWidth) / 2;
+        const centerY = (window.innerHeight - voiceChatHeight) / 2;
+        setPosition({ x: centerX, y: centerY });
+      }
     }
-  }, [isLiveVoiceChatOpen, dockMode]);
+  }, [isLiveVoiceChatOpen, dockMode, voiceChatWidth, voiceChatHeight]);
 
   // Position dock at bottom-left when minimized
   useEffect(() => {
@@ -699,19 +707,27 @@ Use this context to provide more relevant and specific answers about what the us
   // Handle window resize
   useEffect(() => {
     const handleResize = () => {
-      const { width, height } = getDockDimensions();
-      const maxX = window.innerWidth - width;
-      const maxY = window.innerHeight - height;
+      // If voice chat is open, re-center the dock
+      if (isLiveVoiceChatOpen) {
+        const centerX = (window.innerWidth - voiceChatWidth) / 2;
+        const centerY = (window.innerHeight - voiceChatHeight) / 2;
+        setPosition({ x: centerX, y: centerY });
+      } else {
+        // Otherwise, just keep it within bounds
+        const { width, height } = getDockDimensions();
+        const maxX = window.innerWidth - width;
+        const maxY = window.innerHeight - height;
 
-      setPosition(prev => ({
-        x: Math.min(prev.x, maxX),
-        y: Math.min(prev.y, maxY)
-      }));
+        setPosition(prev => ({
+          x: Math.min(prev.x, maxX),
+          y: Math.min(prev.y, maxY)
+        }));
+      }
     };
 
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
-  }, [getDockDimensions]);
+  }, [getDockDimensions, isLiveVoiceChatOpen, voiceChatWidth, voiceChatHeight]);
 
   // Drag handlers
   const handleMouseDown = useCallback((e) => {
@@ -1049,7 +1065,7 @@ Use this context to provide more relevant and specific answers about what the us
       {showSubtitles && (
         <div className="subtitle-area">
           <div className="subtitle-text">
-            Subtitles will appear here...
+            {orchestratorNarration || 'Orchestrator narration will appear here...'}
           </div>
         </div>
       )}

@@ -102,6 +102,10 @@ const store = immer((set, get) => ({
 
   orchestratorHasConversation: false, // Track if user has started chatting
 
+  // Orchestrator Narration (for workflow execution commentary)
+  orchestratorNarration: '', // Current narration message
+  orchestratorNarrationHistory: [], // Array of narration messages
+
   // Workflow State
   workflowHistory: {}, // Track completed and in-progress workflows
   activeWorkflow: null, // Currently running workflow
@@ -359,6 +363,25 @@ const store = immer((set, get) => ({
       }
     }),
 
+    setOrchestratorNarration: (message) => set((state) => {
+      state.orchestratorNarration = message;
+      if (message) {
+        state.orchestratorNarrationHistory.push({
+          message,
+          timestamp: Date.now()
+        });
+        // Keep only last 50 messages
+        if (state.orchestratorNarrationHistory.length > 50) {
+          state.orchestratorNarrationHistory = state.orchestratorNarrationHistory.slice(-50);
+        }
+      }
+    }),
+
+    clearOrchestratorNarration: () => set((state) => {
+      state.orchestratorNarration = '';
+      state.orchestratorNarrationHistory = [];
+    }),
+
     setIsSettingsOpen: (open) => set((state) => {
       state.isSettingsOpen = open;
     }),
@@ -405,10 +428,13 @@ const store = immer((set, get) => ({
 
         // Add node to planner graph if it's a new node
         if (isNewNode) {
-          const graph = state.plannerGraph || { nodes: [], edges: [], title: '' };
+          // Ensure plannerGraph exists
+          if (!state.plannerGraph) {
+            state.plannerGraph = { nodes: [], edges: [], title: '' };
+          }
 
           // Calculate position - center of visible area or offset from existing nodes
-          const existingNodes = graph.nodes || [];
+          const existingNodes = state.plannerGraph.nodes || [];
           let xPos = 100;
           let yPos = 100;
 
@@ -429,11 +455,14 @@ const store = immer((set, get) => ({
               inputs: config.inputs || [],
               outputs: config.outputs || [],
               settings: config.settings || {},
+              state: 'idle', // idle | processing | complete | error
+              result: null,
+              error: null,
             },
           };
 
-          graph.nodes.push(newNode);
-          state.plannerGraph = graph;
+          // Use immer's push directly on state
+          state.plannerGraph.nodes.push(newNode);
         }
       });
 

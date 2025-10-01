@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
 */
 import c from 'clsx'
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { selectModule, checkAuthStatus } from '../lib/actions'
 import useStore from '../lib/store'
 import WelcomeScreen from './WelcomeScreen.jsx'
@@ -25,8 +25,10 @@ import PlannerSidebar from './PlannerSidebar.jsx'
 import PlannerCanvas from './PlannerCanvas.jsx'
 import GlassDock from './GlassDock.jsx'
 import SystemInfoModal from './SystemInfoModal.jsx'
+import CommandPalette from './CommandPalette.jsx'
 import { personalities } from '../lib/assistant/personalities'
 import { modulesByDiscipline } from '../lib/modules'
+import '../styles/components/command-palette.css'
 
 const ModuleSelector = () => {
   const activeModuleId = useStore.use.activeModuleId()
@@ -76,10 +78,35 @@ export default function App() {
   const setRightColumnWidth = useStore.use.actions().setRightColumnWidth;
   const leftColumnWidth = useStore.use.leftColumnWidth();
   const setLeftColumnWidth = useStore.use.actions().setLeftColumnWidth;
+  const setIsLiveVoiceChatOpen = useStore.use.actions().setIsLiveVoiceChatOpen;
+  const isLiveVoiceChatOpen = useStore.use.isLiveVoiceChatOpen();
+
+  // Command Palette state
+  const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
 
   useEffect(() => {
     checkAuthStatus();
   }, []);
+
+  // Keyboard shortcuts
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      // Cmd+K (or Ctrl+K on Windows) for Command Palette
+      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+        e.preventDefault();
+        setIsCommandPaletteOpen(prev => !prev);
+      }
+
+      // Cmd+Shift+V (or Ctrl+Shift+V on Windows) for Voice Chat toggle
+      if ((e.metaKey || e.ctrlKey) && e.shiftKey && e.key === 'v') {
+        e.preventDefault();
+        setIsLiveVoiceChatOpen(!isLiveVoiceChatOpen);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isLiveVoiceChatOpen, setIsLiveVoiceChatOpen]);
 
   const handleStart = () => {
     useStore.setState({ isWelcomeScreenOpen: false });
@@ -207,6 +234,7 @@ export default function App() {
       {isAssistantOpen && <Assistant />}
       {isSettingsOpen && <SettingsModal />}
       {isSystemInfoOpen && <SystemInfoModal isOpen={isSystemInfoOpen} onClose={() => setIsSystemInfoOpen(false)} />}
+      <CommandPalette isOpen={isCommandPaletteOpen} onClose={() => setIsCommandPaletteOpen(false)} />
       <GlassDock />
 
       <div 

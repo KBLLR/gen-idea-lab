@@ -1998,6 +1998,31 @@ app.post('/api/rag/upsert', requireAuth, async (req, res) => {
     db[userKey] = db[userKey] || {};
     db[userKey][moduleId] = db[userKey][moduleId] || [];
 
+
+// --- Placeholder Routes for ResourceManager ---
+
+// Endpoint to get a resource index
+app.get('/api/modules/:moduleId/resources/:resourceType/index', requireAuth, (req, res) => {
+  const { moduleId, resourceType } = req.params;
+  logger.info(`Serving placeholder index for ${moduleId}/${resourceType}`);
+  res.json({ recent: [], total: 0, items: [] });
+});
+
+// Endpoint to get a specific resource
+app.get('/api/modules/:moduleId/resources/:resourceType/:resourceId', requireAuth, (req, res) => {
+  const { moduleId, resourceType, resourceId } = req.params;
+  logger.info(`Serving placeholder resource for ${moduleId}/${resourceType}/${resourceId}`);
+  res.json({ id: resourceId, content: `Placeholder content for ${resourceId}` });
+});
+
+// Endpoint for resource search
+app.get('/api/modules/:moduleId/resources/:resourceType/search', requireAuth, (req, res) => {
+  const { moduleId, resourceType, q } = req.params;
+  logger.info(`Serving placeholder search results for ${moduleId}/${resourceType} with query "${q}"`);
+  res.json([]);
+});
+
+
     const now = new Date().toISOString();
     embJson.vectors.forEach((vec, i) => {
       const item = {

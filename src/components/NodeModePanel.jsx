@@ -21,11 +21,13 @@ export default function NodeModePanel({ nodeId, config, onReturnToChat }) {
   });
 
   const setCurrentNodeConfig = useStore(state => state.actions.setCurrentNodeConfig);
-  const activeNodeId = useStore(state => state.activeNodeId);
   const plannerGraph = useStore(state => state.plannerGraph);
   const setPlannerGraph = useStore(state => state.actions.setPlannerGraph);
 
   const handleSaveConfig = () => {
+    console.log('[NodeModePanel] Saving config for node:', nodeId);
+    console.log('[NodeModePanel] Current plannerGraph:', plannerGraph);
+
     const updatedConfig = {
       nodeName,
       inputs,
@@ -36,25 +38,39 @@ export default function NodeModePanel({ nodeId, config, onReturnToChat }) {
     setCurrentNodeConfig(updatedConfig);
 
     // If we're editing an existing node, update it in the planner graph
-    if (activeNodeId && plannerGraph) {
-      const graph = { ...plannerGraph };
-      const nodeIndex = graph.nodes.findIndex(n => n.id === activeNodeId);
+    if (nodeId && plannerGraph) {
+      const nodeIndex = plannerGraph.nodes.findIndex(n => n.id === nodeId);
+      console.log('[NodeModePanel] Found node at index:', nodeIndex);
 
       if (nodeIndex !== -1) {
-        // Update the node data
-        graph.nodes[nodeIndex] = {
-          ...graph.nodes[nodeIndex],
-          data: {
-            ...graph.nodes[nodeIndex].data,
-            nodeName,
-            inputs,
-            outputs,
-            settings
+        // Create a deep copy of the graph with updated node
+        const updatedNodes = plannerGraph.nodes.map((node, idx) => {
+          if (idx === nodeIndex) {
+            return {
+              ...node,
+              data: {
+                ...node.data,
+                nodeName,
+                inputs,
+                outputs,
+                settings,
+                state: 'idle' // Reset state to idle
+              }
+            };
           }
-        };
-        setPlannerGraph(graph);
+          return node;
+        });
+
+        setPlannerGraph({
+          ...plannerGraph,
+          nodes: updatedNodes,
+          edges: [...plannerGraph.edges]
+        });
       }
     }
+
+    // Return to chat mode after saving
+    onReturnToChat();
   };
 
   const handleTestNode = async () => {
@@ -230,14 +246,38 @@ export default function NodeModePanel({ nodeId, config, onReturnToChat }) {
       </div>
 
       <div className="node-mode-footer">
-        <button className="test-node-btn" onClick={handleTestNode}>
+        <button
+          type="button"
+          className="test-node-btn"
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            handleTestNode();
+          }}
+        >
           <span className="icon">play_arrow</span>
           Test Node
         </button>
-        <button className="save-btn" onClick={handleSaveConfig}>
+        <button
+          type="button"
+          className="save-btn"
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            handleSaveConfig();
+          }}
+        >
           Save Configuration
         </button>
-        <button className="return-btn" onClick={onReturnToChat}>
+        <button
+          type="button"
+          className="return-btn"
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            onReturnToChat();
+          }}
+        >
           Return to Chat Mode
         </button>
       </div>

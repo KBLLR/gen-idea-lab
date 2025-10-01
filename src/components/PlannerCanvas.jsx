@@ -1762,6 +1762,27 @@ function AIAgentNode({ data, id }) {
   const inputs = data.inputs || [];
   const outputs = data.outputs || [];
   const settings = data.settings || {};
+  const state = data.state || 'idle'; // idle | processing | complete | error
+  const error = data.error;
+
+  // Get state styling
+  const getStateColor = () => {
+    switch (state) {
+      case 'processing': return '#3b82f6'; // blue
+      case 'complete': return '#10b981'; // green
+      case 'error': return '#ef4444'; // red
+      default: return '#9333ea'; // purple (idle)
+    }
+  };
+
+  const getStateIcon = () => {
+    switch (state) {
+      case 'processing': return 'pending';
+      case 'complete': return 'check_circle';
+      case 'error': return 'error';
+      default: return 'psychology';
+    }
+  };
 
   const handleNameChange = useCallback((e) => {
     setNodeName(e.target.value);
@@ -1804,7 +1825,7 @@ function AIAgentNode({ data, id }) {
   }, [id]);
 
   return (
-    <div className="node-card node-ai-agent">
+    <div className={`node-card node-ai-agent node-state-${state}`} style={{ borderColor: getStateColor() }}>
       {/* Input handles (left side) */}
       {inputs.map((input, index) => (
         <Handle
@@ -1813,7 +1834,7 @@ function AIAgentNode({ data, id }) {
           position={Position.Left}
           id={input.id || `input-${index}`}
           style={{
-            background: '#9333ea',
+            background: getStateColor(),
             width: 10,
             height: 10,
             border: '2px solid #fff',
@@ -1824,7 +1845,8 @@ function AIAgentNode({ data, id }) {
       ))}
 
       <div className="node-header ai-agent-header">
-        <span className="node-icon" style={{ color: '#9333ea' }}>psychology</span>
+        <span className="node-icon" style={{ color: getStateColor() }}>{getStateIcon()}</span>
+        {state === 'processing' && <span className="state-indicator processing-spinner"></span>}
         {isEditing ? (
           <input
             type="text"
@@ -1882,12 +1904,20 @@ function AIAgentNode({ data, id }) {
         </div>
       )}
 
+      {/* Error display */}
+      {state === 'error' && error && (
+        <div className="ai-agent-error">
+          <span className="icon" style={{ color: '#ef4444' }}>error</span>
+          <span className="error-text">{error}</span>
+        </div>
+      )}
+
       {/* Action buttons */}
       <div className="ai-agent-actions">
-        <button onClick={handleEdit} className="btn-icon" title="Edit Configuration">
+        <button onClick={handleEdit} className="btn-icon" title="Edit Configuration" disabled={state === 'processing'}>
           <span className="icon">edit</span>
         </button>
-        <button onClick={handleDelete} className="btn-icon btn-delete" title="Delete Node">
+        <button onClick={handleDelete} className="btn-icon btn-delete" title="Delete Node" disabled={state === 'processing'}>
           <span className="icon">delete</span>
         </button>
       </div>
@@ -1900,7 +1930,7 @@ function AIAgentNode({ data, id }) {
           position={Position.Right}
           id={output.id || `output-${index}`}
           style={{
-            background: '#9333ea',
+            background: getStateColor(),
             width: 10,
             height: 10,
             border: '2px solid #fff',
@@ -1944,6 +1974,7 @@ function PlannerCanvasInner() {
   const [titleError, setTitleError] = useState(null);
   const [configModalNode, setConfigModalNode] = useState(null);
   const [isConfigModalOpen, setIsConfigModalOpen] = useState(false);
+  const [isExecuting, setIsExecuting] = useState(false);
   const setActiveApp = useStore.use.actions().setActiveApp;
   const addCustomWorkflow = useStore.use.actions().addCustomWorkflow;
   const workflowAutoTitleModel = useStore.use.workflowAutoTitleModel();
@@ -2359,6 +2390,70 @@ function PlannerCanvasInner() {
     setActiveApp('workflows');
   }, [buildWorkflowFromGraph, addCustomWorkflow, setActiveApp]);
 
+  const setOrchestratorNarration = useStore((state) => state.actions.setOrchestratorNarration);
+
+  const onRunWorkflow = useCallback(async () => {
+    if (isExecuting) return;
+
+    setIsExecuting(true);
+
+    try {
+      // Callback to display orchestrator narration with voice
+      const addOrchestratorMessage = (message) => {
+        console.log(`[Orchestrator] ${message}`);
+
+        // Update store so Glass Dock can display it
+        setOrchestratorNarration(message);
+
+        // Use Web Speech API for text-to-speech
+        if ('speechSynthesis' in window) {
+          // Cancel any ongoing speech to avoid overlap
+          window.speechSynthesis.cancel();
+
+          const utterance = new SpeechSynthesisUtterance(message);
+          utterance.rate = 1.1; // Slightly faster for better flow
+          utterance.pitch = 1.0;
+          utterance.volume = 0.9;
+
+          // Get voices (may need a small delay for them to load)
+          const getVoiceAndSpeak = () => {
+            const voices = window.speechSynthesis.getVoices();
+
+            if (voices.length === 0) {
+              // Voices not loaded yet, wait for them
+              window.speechSynthesis.addEventListener('voiceschanged', () => {
+                getVoiceAndSpeak();
+              }, { once: true });
+              return;
+            }
+
+            // Try to find a good voice (prefer female, English)
+            const preferredVoice = voices.find(v =>
+              v.lang.startsWith('en') && (v.name.includes('Female') || v.name.includes('Samantha'))
+            ) || voices.find(v => v.lang.startsWith('en'));
+
+            if (preferredVoice) {
+              utterance.voice = preferredVoice;
+            }
+
+            window.speechSynthesis.speak(utterance);
+          };
+
+          getVoiceAndSpeak();
+        }
+      };
+
+      // Import the workflow execution engine
+      const { executeWorkflow } = await import('../lib/workflowEngine');
+      await executeWorkflow(nodes, edges, setNodes, addOrchestratorMessage);
+    } catch (error) {
+      console.error('Workflow execution failed:', error);
+      alert(`Workflow execution failed: ${error.message}`);
+    } finally {
+      setIsExecuting(false);
+    }
+  }, [nodes, edges, isExecuting, setNodes, setOrchestratorNarration]);
+
   const onExport = useCallback(() => {
     const data = { version: 1, nodes, edges };
     const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
@@ -2540,6 +2635,10 @@ function PlannerCanvasInner() {
       </div>
 
       <div className="planner-toolbar">
+        <button className="btn btn-success btn-sm" onClick={onRunWorkflow} disabled={isExecuting}>
+          <span className="icon">{isExecuting ? 'pending' : 'play_arrow'}</span>
+          {isExecuting ? 'Running...' : 'Run Workflow'}
+        </button>
         <button className="btn btn-secondary btn-sm" onClick={clear}>
           <span className="icon">delete</span> Clear
         </button>
