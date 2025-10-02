@@ -5,7 +5,6 @@
 import EventEmitter from 'eventemitter3';
 import { DEFAULT_LIVE_API_MODEL } from './constants.js';
 import { base64ToArrayBuffer } from './utils.js';
-import Cookies from 'js-cookie';
 
 /**
  * GenAI Live Proxy Client for real-time audio conversation via backend proxy
@@ -57,16 +56,11 @@ export class GenAIProxyClient extends EventEmitter {
     this._status = 'connecting';
 
     try {
-      // Get auth token from cookies
-      const authToken = Cookies.get('auth_token');
-      if (!authToken) {
-        throw new Error('Authentication required. Please log in.');
-      }
-
       // Determine WebSocket URL
+      // Note: auth_token cookie is httpOnly and will be sent automatically by the browser
       const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
       const host = window.location.host;
-      const wsUrl = `${protocol}//${host}/ws/live-api?token=${encodeURIComponent(authToken)}`;
+      const wsUrl = `${protocol}//${host}/ws/live-api`;
 
       console.log('[GenAIProxyClient] Connecting to:', wsUrl);
 
