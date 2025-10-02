@@ -17,6 +17,9 @@ This playbook gives Claude Code (claude.ai/code) the context it needs when joini
 - All AI provider calls flow through the Express proxy at `/api/proxy`; never call third-party APIs directly from the client.
 - When adding new tokens/styles, update the Style Dictionary config under `tokens/` and rebuild with `npm run tokens:build`.
 - Tests rely on the Jest ESM flag (`NODE_OPTIONS=--experimental-vm-modules`). Keep imports ESM-compatible.
+- **ArchivAI Templates**: Workflow data requires `steps` array for template validation. AI mock data generation loads example templates from `/templates/archivai/` and uses Gemini to generate realistic content matching field schemas.
+- **Screen Awareness**: `GlassDock.jsx:extractDOMContext()` uses content-based app detection to auto-sync store state with actual page content.
+- **Web Search**: Assistant `search_web` tool uses Ollama API with `OLLAMA_API_KEY` environment variable fallback if user hasn't connected their own key.
 
 ## Observability & Ops
 - Health endpoint: `GET /healthz`
