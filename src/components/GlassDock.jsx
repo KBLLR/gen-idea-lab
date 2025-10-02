@@ -71,6 +71,7 @@ export default function GlassDock() {
   const activeNodeId = useStore((state) => state.activeNodeId);
   const currentNodeConfig = useStore((state) => state.currentNodeConfig);
   const returnToChat = useStore((state) => state.actions.returnToChat);
+  const isAuthenticated = useStore((state) => state.isAuthenticated);
 
   // Live API setup - uses secure backend proxy (no API key needed on frontend)
   const { client, setConfig, connect, disconnect, connected, volume } = useLiveAPI({});
@@ -564,6 +565,13 @@ export default function GlassDock() {
       }
       disconnect();
       setIsRecording(false);
+      return;
+    }
+
+    // Check authentication before connecting
+    if (!isAuthenticated) {
+      console.warn('[GlassDock] Cannot connect to Live Voice: User not authenticated');
+      alert('Please log in with Google to use Live Voice features.\n\nThe Live Voice feature requires authentication to securely connect to the Gemini API through our backend proxy.');
       return;
     }
 
