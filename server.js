@@ -713,11 +713,15 @@ app.get('/api/services', requireAuth, async (req, res) => {
 });
 
 // Generic OAuth initiation endpoint
+// For setup instructions, see: docs/service-connections-setup.md
+// For Google services: docs/google-services-integration.md
 app.post('/api/services/:service/connect', requireAuth, async (req, res) => {
   const { service } = req.params;
   const { apiKey, url } = req.body;
-  
+
   // OAuth services configuration
+  // Environment variables required: GITHUB_CLIENT_ID, GITHUB_CLIENT_SECRET, NOTION_CLIENT_ID, etc.
+  // Redirect URIs must match those configured in each OAuth app
   const oauthConfigs = {
     github: {
       clientId: process.env.GITHUB_CLIENT_ID,
@@ -869,6 +873,8 @@ app.get('/auth/notion/callback', async (req, res) => {
 });
 
 // OAuth callback handler
+// Handles OAuth redirects for all services (GitHub, Notion, Figma, Google services)
+// See docs/service-connections-setup.md for redirect URI configuration
 app.get('/api/services/:service/callback', async (req, res) => {
   const { service } = req.params;
   const { code, state, error } = req.query;
