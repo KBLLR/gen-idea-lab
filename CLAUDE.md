@@ -41,3 +41,13 @@ This playbook gives Claude Code (claude.ai/code) the context it needs when joini
 - Summarize significant architectural findings in `reports/` (markdown, short + actionable).
 - When shipping changes, update both human-facing docs (`README.md`, `docs/`) and the orchestrator prompts (`src/lib/assistant/`).
 - Keep PRs small and cohesive—link back to the priority item you are addressing.
+
+## Changelog Update (Before Commit & Push)
+- Append a one-sentence entry to `CHANGELOG.md` with today’s date and a concise summary of what changed. If the change is substantial, also update `docs/IMPLEMENTATION_NOTES.md`.
+
+Example:
+```
+echo "$(date +%F): Short description of the change." >> CHANGELOG.md
+git add CHANGELOG.md docs/IMPLEMENTATION_NOTES.md
+git add -A && git commit -m "chore(changelog): update for <feature/area>" && git push
+```

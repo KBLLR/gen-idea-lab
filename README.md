@@ -34,6 +34,7 @@ GenBooth Idea Lab is a comprehensive educational platform designed for CODE Univ
 - [Service Integrations](#service-integrations)
 - [API Reference](#api-reference)
 - [Troubleshooting](#troubleshooting)
+ - [Changelog](#changelog)
 
 ---
 
@@ -334,6 +335,12 @@ curl http://localhost:8081/api/services
 5. Integrate with external tools (GitHub, Notion, Figma)
 
 ---
+
+## Changelog
+
+### 2025-10-02
+- ArchivAI & VizGen improvements: Markdown rendering (sanitized), mock persistence to `data/archivai-mock`, centered canvas, consistent headers, collapsible bottom drawer for history/gallery.
+- See detailed implementation notes: `docs/IMPLEMENTATION_NOTES.md`.
 
 ## License
 SPDX-License-Identifier: Apache-2.0

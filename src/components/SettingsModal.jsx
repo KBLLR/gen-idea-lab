@@ -328,6 +328,9 @@ function ServiceConnector({ service }) {
     const connectService = useStore((state) => state.actions.connectService);
     const disconnectService = useStore((state) => state.actions.disconnectService);
     const toggleService = useStore((state) => state.actions.toggleService);
+    // Use generic selector to avoid missing selector keys during HMR
+    const serviceConfig = useStore((state) => state.serviceConfig || {});
+    const fetchServiceConfig = useStore((state) => state.actions.fetchServiceConfig);
     const [isConnecting, setIsConnecting] = useState(false);
     const [showApiKeyInput, setShowApiKeyInput] = useState(false);
     const [showUrlInput, setShowUrlInput] = useState(false);
@@ -343,10 +346,16 @@ function ServiceConnector({ service }) {
     const [error, setError] = useState('');
     
     const isConnected = connectedServices[service.id]?.connected || false;
+    const cfg = serviceConfig?.[service.id];
+    const isConfigured = cfg ? !!cfg.configured : true; // default true if not reported
     const hasStoredCredentials = !!serviceCredentials[service.id];
     const Icon = service.icon;
 
     const handleConnect = async () => {
+        if (!isConfigured) {
+            setError('Service not configured on server. See setup instructions below.');
+            return;
+        }
         setError('');
 
         // Special handling for University service - uses client-side Google Identity Services
@@ -506,6 +515,25 @@ function ServiceConnector({ service }) {
                         )}
                     </div>
                     <p className="service-description">{service.description}</p>
+                    {!isConfigured && (
+                        <div className="service-warning" style={{ color: '#f59e0b', fontSize: 12 }}>
+                            Not configured on server. Missing: {(cfg?.missing || []).join(', ') || 'environment variables'}
+                            {cfg?.redirectUri && (
+                                <>
+                                    <br />Set Redirect URI to: <code>{cfg.redirectUri}</code>
+                                </>
+                            )}
+                            <br />
+                            <button
+                              type="button"
+                              className="retry-btn"
+                              onClick={() => fetchServiceConfig()}
+                              style={{ marginTop: 6 }}
+                            >
+                              Recheck configuration
+                            </button>
+                        </div>
+                    )}
                     {service.helpText && (
                         <p className="service-help">{service.helpText}</p>
                     )}
@@ -729,9 +757,9 @@ function ServiceConnector({ service }) {
                     <button
                         className="connect-btn"
                         onClick={handleConnect}
-                        disabled={isConnecting}
-                    >
-                        {isConnecting ? 'Connecting...' : 'Connect'}
+                        disabled={isConnecting || !isConfigured}
+                        >
+                        {isConfigured ? (isConnecting ? 'Connecting...' : 'Connect') : 'Not Configured'}
                     </button>
                 )}
             </div>
@@ -822,12 +850,14 @@ export default function SettingsModal() {
     const user = useStore.use.user();
     const setIsSettingsOpen = useStore((state) => state.actions.setIsSettingsOpen);
     const fetchConnectedServices = useStore((state) => state.actions.fetchConnectedServices);
+    const fetchServiceConfig = useStore((state) => state.actions.fetchServiceConfig);
     
     useEffect(() => {
         if (isSettingsOpen) {
             fetchConnectedServices();
+            fetchServiceConfig();
         }
-    }, [isSettingsOpen, fetchConnectedServices]);
+    }, [isSettingsOpen, fetchConnectedServices, fetchServiceConfig]);
 
     if (!isSettingsOpen) return null;
 

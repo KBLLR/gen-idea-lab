@@ -3,13 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
 */
 import { setInputImage } from '../lib/actions';
-
-export const fileToBase64 = (file) => new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.readAsDataURL(file);
-    reader.onload = () => resolve(reader.result);
-    reader.onerror = reject;
-});
+import { fileToBase64 } from '../lib/fileUtils';
 
 export default function ImageUploader() {
     const handleFileChange = async (event) => {

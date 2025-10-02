@@ -62,19 +62,16 @@ function SourcesList(connectedServices) {
     { id: 'github', label: 'GitHub', kind: 'source', icon: 'code', connected: connectedServices?.github?.connected || false },
     { id: 'notion', label: 'Notion', kind: 'source', icon: 'description', connected: connectedServices?.notion?.connected || false },
     { id: 'figma', label: 'Figma', kind: 'source', icon: 'design_services', connected: connectedServices?.figma?.connected || false },
-    { id: 'googledrive', label: 'Google Drive', kind: 'source', icon: 'cloud', connected: connectedServices?.googledrive?.connected || false },
-    { id: 'googlephotos', label: 'Google Photos', kind: 'source', icon: 'photo_library', connected: connectedServices?.googlephotos?.connected || false },
-    { id: 'googlecalendar', label: 'Google Calendar', kind: 'source', icon: 'event', connected: connectedServices?.googlecalendar?.connected || false },
-    { id: 'gmail', label: 'Gmail', kind: 'source', icon: 'email', connected: connectedServices?.gmail?.connected || false },
+    // Note: Google integrations are listed under "Google Services" panels, not here.
   ];
 }
 
 function GoogleServicesList(connectedServices) {
   // Interactive Google service components for workflows
   return [
-    { id: 'google-calendar', label: 'Calendar Events', kind: 'google-calendar', icon: 'event', connected: connectedServices?.googlecalendar?.connected || false, meta: { description: 'View and manage calendar events in workflows' } },
-    { id: 'google-drive', label: 'Drive Files', kind: 'google-drive', icon: 'cloud', connected: connectedServices?.googledrive?.connected || false, meta: { description: 'Browse and access Google Drive files' } },
-    { id: 'google-photos', label: 'Photo Albums', kind: 'google-photos', icon: 'photo_library', connected: connectedServices?.googlephotos?.connected || false, meta: { description: 'View Google Photos albums and images' } },
+    { id: 'google-calendar', label: 'Calendar Events', kind: 'google-calendar', icon: 'event', connected: connectedServices?.googleCalendar?.connected || false, meta: { description: 'View and manage calendar events in workflows' } },
+    { id: 'google-drive', label: 'Drive Files', kind: 'google-drive', icon: 'cloud', connected: connectedServices?.googleDrive?.connected || false, meta: { description: 'Browse and access Google Drive files' } },
+    { id: 'google-photos', label: 'Photo Albums', kind: 'google-photos', icon: 'photo_library', connected: connectedServices?.googlePhotos?.connected || false, meta: { description: 'View Google Photos albums and images' } },
     { id: 'gmail', label: 'Email Messages', kind: 'gmail', icon: 'email', connected: connectedServices?.gmail?.connected || false, meta: { description: 'View and manage Gmail messages' } },
   ];
 }
@@ -193,6 +190,11 @@ const ACCORDION_SECTIONS = [
 ];
 
 function DraggableItem({ item }) {
+  const connectService = useStore((state) => state.actions.connectService);
+  const setIsSettingsOpen = useStore((state) => state.actions.setIsSettingsOpen);
+  // Use generic selector to avoid HMR hook ordering issues
+  const serviceConfig = useStore((state) => state.serviceConfig || {});
+
   const onDragStart = (e) => {
     e.dataTransfer.setData('application/x-planner', JSON.stringify(item));
     e.dataTransfer.effectAllowed = 'copy';
@@ -209,6 +211,47 @@ function DraggableItem({ item }) {
     }
   }
 
+  const normalizeServiceId = (id) => {
+    const map = {
+      googledrive: 'googleDrive',
+      googlephotos: 'googlePhotos',
+      googlecalendar: 'googleCalendar',
+      'google-drive': 'googleDrive',
+      'google-photos': 'googlePhotos',
+      'google-calendar': 'googleCalendar',
+    };
+    return map[id] || id;
+  };
+
+  const handleQuickConnect = async (e) => {
+    e.stopPropagation();
+    // Try OAuth services directly; API-key services open Settings
+    const serviceId = normalizeServiceId(item.id);
+    const oauthServices = new Set(['github', 'notion', 'figma', 'googleDrive', 'googlePhotos', 'googleCalendar', 'gmail', 'university']);
+    const apiKeyServices = new Set(['openai', 'claude', 'gemini']);
+
+    const cfg = serviceConfig?.[serviceId];
+    if (cfg && cfg.configured === false) {
+      // Open settings where user can see missing env and instructions
+      setIsSettingsOpen(true);
+      return;
+    }
+
+    if (oauthServices.has(serviceId)) {
+      try {
+        await connectService(serviceId);
+      } catch (err) {
+        console.warn('Quick connect failed, opening Settings:', err?.message);
+        setIsSettingsOpen(true);
+      }
+      return;
+    }
+
+    if (apiKeyServices.has(serviceId) || item.kind === 'model-provider') {
+      setIsSettingsOpen(true);
+    }
+  };
+
   return (
     <div
       className="planner-item"
@@ -219,6 +262,11 @@ function DraggableItem({ item }) {
     >
       <span className="icon">{item.icon || 'drag_indicator'}</span>
       <span className="label">{item.label}</span>
+      {showConnectionStatus && !item.connected && (
+        <button className="connect-cta" onClick={handleQuickConnect} title="Connect this service">
+          Connect
+        </button>
+      )}
       {showConnectionStatus && (
         <span className={`connection-status ${item.connected ? 'connected' : 'disconnected'}`}
               title={item.connected ? 'Connected' : 'Disconnected'}>

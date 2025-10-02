@@ -30,9 +30,9 @@ export default function UserBar() {
         <div className="user-bar">
             <div className="user-info">
                 {user.picture ? (
-                    <img 
-                        src={user.picture} 
-                        alt={user.name} 
+                    <img
+                        src={user.picture}
+                        alt={user.name}
                         className="user-avatar"
                     />
                 ) : (
@@ -43,28 +43,32 @@ export default function UserBar() {
                     <p className="user-email">{user.email}</p>
                 </div>
             </div>
-            <div className="user-actions">
-                <button 
-                    className="icon-btn icon" 
-                    onClick={handleSettingsClick}
-                    title="Settings"
-                >
-                    settings
-                </button>
-                <button 
-                    className="icon-btn icon" 
-                    onClick={toggleTheme} 
-                    title={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
-                >
-                    {theme === 'dark' ? 'light_mode' : 'dark_mode'}
-                </button>
-                <button 
-                    className="icon-btn icon" 
-                    onClick={handleLogout}
-                    title="Logout"
-                >
-                    logout
-                </button>
+            <div className="user-controls-wrapper">
+                <div className="user-actions">
+                    <button
+                        className="action-btn"
+                        onClick={handleSettingsClick}
+                        title="Settings"
+                    >
+                        <span className="icon">settings</span>
+                    </button>
+                    <div className="action-divider"></div>
+                    <button
+                        className="action-btn"
+                        onClick={toggleTheme}
+                        title={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
+                    >
+                        <span className="icon">{theme === 'dark' ? 'light_mode' : 'dark_mode'}</span>
+                    </button>
+                    <div className="action-divider"></div>
+                    <button
+                        className="action-btn logout-btn"
+                        onClick={handleLogout}
+                        title="Logout"
+                    >
+                        <span className="icon">logout</span>
+                    </button>
+                </div>
             </div>
         </div>
     );

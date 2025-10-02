@@ -25,7 +25,12 @@ export function useAvailableModels() {
         throw new Error(`Failed to fetch models: ${response.statusText}`);
       }
 
-      const data = await response.json();
+      let data;
+      try {
+        data = await response.json();
+      } catch (e) {
+        throw new Error('Invalid JSON response from models API');
+      }
       setModels(data.models || []);
     } catch (err) {
       console.error('Error fetching available models:', err);

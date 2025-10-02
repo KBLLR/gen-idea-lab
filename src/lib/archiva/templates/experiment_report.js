@@ -1,4 +1,21 @@
 import { helpers, fm } from '../renderer.js';
+import { marked } from 'marked';
+import DOMPurify from 'dompurify';
+
+function mdToHtml(md) {
+  if (!md) return '';
+  try {
+    const raw = marked.parse(String(md));
+    return DOMPurify.sanitize(raw);
+  } catch {
+    return String(md)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/\"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+  }
+}
 
 function escapeHtml(value) {
   return String(value ?? '')
@@ -54,14 +71,18 @@ export function render(format = 'md', data = {}) {
   })), format);
 
   if (format === 'html') {
+    const hypothesisHtml = mdToHtml(data.hypothesis || 'Not documented');
+    const discussionHtml = data.discussion ? mdToHtml(data.discussion) : '';
+    const limitationsHtml = data.limitations ? mdToHtml(data.limitations) : '';
+
     const sections = [
       `<header><h1>${escapeHtml(data.title || 'Experiment Report')}</h1></header>`,
-      renderSection('Hypothesis', `<p>${escapeHtml(data.hypothesis || 'Not documented')}</p>`, format),
+      renderSection('Hypothesis', `<div class="markdown-content">${hypothesisHtml}</div>`, format),
       renderSection('Inputs', renderInputs(data.inputs, format), format),
       renderSection('Environment & Settings', renderMetaTable(data.meta?.env, format), format),
       stepsTable ? renderSection('Execution Steps', stepsTable, format) : '',
-      data.discussion ? renderSection('Discussion', `<p>${escapeHtml(data.discussion)}</p>`, format) : '',
-      data.limitations ? renderSection('Limitations', `<p>${escapeHtml(data.limitations)}</p>`, format) : ''
+      discussionHtml ? renderSection('Discussion', `<div class="markdown-content">${discussionHtml}</div>`, format) : '',
+      limitationsHtml ? renderSection('Limitations', `<div class="markdown-content">${limitationsHtml}</div>`, format) : ''
     ].filter(Boolean);
     return sections.join('');
   }

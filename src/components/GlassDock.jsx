@@ -8,6 +8,7 @@ import useStore from '../lib/store';
 import { voiceCommands } from '../lib/voiceCommands';
 import { enhancedVoiceSystem } from '../lib/voice/enhancedVoiceSystem';
 import { getVoicePersonality } from '../lib/voice/voicePersonalities';
+import { voiceFunctionManager } from '../lib/voice/voiceFunctionManager';
 import { useLiveAPI } from '../lib/voice';
 import { AudioRecorder } from '../lib/voice';
 import { AVAILABLE_VOICES, DEFAULT_VOICE } from '../lib/voice';
@@ -94,6 +95,9 @@ export default function GlassDock() {
         const centerY = (window.innerHeight - voiceChatHeight) / 2;
         setPosition({ x: centerX, y: centerY });
       }
+    } else if (dockMode === 'chat') {
+      // Minimize when voice chat closes (and not in node mode)
+      setIsMinimized(true);
     }
   }, [isLiveVoiceChatOpen, dockMode, voiceChatWidth, voiceChatHeight]);
 
@@ -103,6 +107,24 @@ export default function GlassDock() {
       setPosition({ x: 20, y: window.innerHeight - 80 });
     }
   }, [isMinimized]);
+
+  // Keyboard shortcut: Escape to minimize
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape' && !isMinimized && dockMode === 'chat') {
+        e.preventDefault();
+        console.log('[GlassDock] Escape pressed - minimizing dock');
+        setIsMinimized(true);
+        // Also close voice chat if it's open
+        if (isLiveVoiceChatOpen) {
+          setIsLiveVoiceChatOpen(false);
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isMinimized, dockMode, isLiveVoiceChatOpen, setIsLiveVoiceChatOpen]);
 
   // Setup voice commands
   useEffect(() => {
@@ -331,11 +353,30 @@ export default function GlassDock() {
 
   // DOM context extraction for screen awareness
   const extractDOMContext = () => {
+    // Detect actual app from DOM if state is stale
+    const bodyText = document.body.innerText || document.body.textContent;
+    let detectedApp = activeApp;
+
+    // Smart app detection based on page content
+    if (bodyText.includes('ArchivAI') || bodyText.includes('TEMPLATES') && (bodyText.includes('Code Notebook') || bodyText.includes('Design Sketchbook'))) {
+      detectedApp = 'archiva';
+    } else if (bodyText.includes('VizGen') || bodyText.includes('Generate') && bodyText.includes('Input Image')) {
+      detectedApp = 'imageBooth';
+    } else if (bodyText.includes('PlannerAI') || bodyText.includes('workflow graph')) {
+      detectedApp = 'planner';
+    }
+
+    // Sync detected app back to store if different
+    if (detectedApp !== activeApp) {
+      console.log(`[Screen Awareness] Detected app mismatch: store="${activeApp}" detected="${detectedApp}" - syncing...`);
+      setActiveApp(detectedApp);
+    }
+
     const context = {
       url: window.location.href,
       title: document.title,
-      activeApp: activeApp,
-      activeModule: activeModuleId,
+      activeApp: detectedApp,
+      activeModule: detectedApp === 'ideaLab' ? activeModuleId : null,
       timestamp: new Date().toISOString(),
       visibleText: '',
       headings: [],
@@ -344,7 +385,6 @@ export default function GlassDock() {
     };
 
     // Get visible text content
-    const bodyText = document.body.innerText || document.body.textContent;
     context.visibleText = bodyText.substring(0, 2000); // Limit to first 2000 chars
 
     // Extract headings
@@ -410,130 +450,113 @@ export default function GlassDock() {
   };
 
   const handleToolCall = async (functionCall) => {
-    const { name, args } = functionCall;
-    let result = { success: false };
+    const { name, args, id } = functionCall;
+
+    console.log('[GlassDock] Tool call received:', name, args);
+
+    // Get context for tool execution
+    const context = {
+      activeModuleId,
+      activeApp,
+      conversationId: `voice_${Date.now()}`,
+      isVoice: true
+    };
 
     try {
-      switch (name) {
-        case 'switch_app':
-          setActiveApp(args.appName);
-          result = { success: true, message: `Switched to ${args.appName}` };
-          break;
-        case 'open_settings':
-          setIsSettingsOpen(true);
-          result = { success: true, message: 'Settings opened' };
-          break;
-        case 'open_orchestrator':
-          setIsOrchestratorOpen(true);
-          result = { success: true, message: 'Orchestrator opened' };
-          break;
-        case 'show_system_info':
-          setIsSystemInfoOpen(true);
-          result = { success: true, message: 'System info opened' };
-          break;
-        case 'become_planner_node':
-          const nodeId = useStore.getState().actions.becomePlannerNode(args);
-          result = {
-            success: true,
-            message: `Transformed into planner node: ${args.nodeName || 'AI Agent'}`,
-            nodeId
-          };
-          addMessage('system', `Now in node mode. Configure your AI agent node.`);
-          break;
-        default:
-          result = { success: false, error: `Unknown function: ${name}` };
-      }
-    } catch (error) {
-      result = { success: false, error: error.message };
-    }
+      // Use voiceFunctionManager for robust tool execution with fallbacks
+      const result = await voiceFunctionManager.executeFunction(
+        name,
+        args,
+        context,
+        id
+      );
 
-    if (client && connected) {
-      client.sendToolResponse({
-        functionResponses: [{
-          id: functionCall.id,
-          name: functionCall.name,
-          response: result
-        }]
-      });
+      // Show system message for UI actions
+      if (result.success && result.message) {
+        addMessage('system', result.message);
+      }
+
+      // If it's the become_planner_node action, show additional message
+      if (name === 'become_planner_node' && result.success) {
+        addMessage('system', `Now in node mode. Configure your AI agent node.`);
+      }
+
+      // Send tool response back to Gemini
+      if (client && connected) {
+        client.sendToolResponse({
+          functionResponses: [{
+            id: functionCall.id,
+            name: functionCall.name,
+            response: result
+          }]
+        });
+      }
+
+      console.log(`[GlassDock] Tool ${name} completed:`, result);
+    } catch (error) {
+      console.error('[GlassDock] Tool execution error:', error);
+
+      // Send error response
+      if (client && connected) {
+        client.sendToolResponse({
+          functionResponses: [{
+            id: functionCall.id,
+            name: functionCall.name,
+            response: {
+              success: false,
+              error: error.message || 'Tool execution failed'
+            }
+          }]
+        });
+      }
     }
   };
 
-  const getAvailableTools = () => {
-    return [
-      {
+  const getAvailableTools = async () => {
+    const context = {
+      activeModuleId,
+      activeApp,
+      isOrchestrator: true
+    };
+
+    try {
+      // Get all available tools from voiceFunctionManager
+      const allTools = await voiceFunctionManager.getAllAvailableTools(context);
+
+      console.log(`[GlassDock] Loaded ${allTools.length} tools for Gemini Live API`);
+
+      // Format for Gemini Live API
+      return [{
+        functionDeclarations: allTools.map(tool => ({
+          name: tool.name,
+          description: tool.description,
+          parameters: tool.parameters
+        }))
+      }];
+    } catch (error) {
+      console.error('[GlassDock] Failed to load tools:', error);
+
+      // Fallback to minimal set
+      return [{
         functionDeclarations: [
           {
             name: 'switch_app',
-            description: 'Switch to a different app in the GenBooth interface',
+            description: 'Switch to a different app',
             parameters: {
-              type: 'object',
+              type: 'OBJECT',
               properties: {
                 appName: {
-                  type: 'string',
+                  type: 'STRING',
                   enum: ['ideaLab', 'imageBooth', 'archiva', 'planner', 'workflows'],
-                  description: 'The name of the app to switch to'
+                  description: 'App name'
                 }
               },
               required: ['appName']
             }
-          },
-          {
-            name: 'open_settings',
-            description: 'Open the settings modal',
-            parameters: { type: 'object', properties: {} }
-          },
-          {
-            name: 'open_orchestrator',
-            description: 'Open the orchestrator chat',
-            parameters: { type: 'object', properties: {} }
-          },
-          {
-            name: 'show_system_info',
-            description: 'Show system information modal',
-            parameters: { type: 'object', properties: {} }
-          },
-          {
-            name: 'become_planner_node',
-            description: 'Transform the orchestrator into a workflow node in the planner. Use this when the user wants to add AI processing as a step in an automated workflow.',
-            parameters: {
-              type: 'object',
-              properties: {
-                nodeName: {
-                  type: 'string',
-                  description: 'Name for the AI agent node',
-                  default: 'AI Agent'
-                },
-                inputs: {
-                  type: 'array',
-                  description: 'Input ports configuration',
-                  items: {
-                    type: 'object',
-                    properties: {
-                      id: { type: 'string' },
-                      type: { type: 'string', enum: ['text', 'number', 'object', 'array', 'any'] },
-                      label: { type: 'string' }
-                    }
-                  }
-                },
-                outputs: {
-                  type: 'array',
-                  description: 'Output ports configuration',
-                  items: {
-                    type: 'object',
-                    properties: {
-                      id: { type: 'string' },
-                      type: { type: 'string', enum: ['text', 'number', 'object', 'array', 'any'] },
-                      label: { type: 'string' }
-                    }
-                  }
-                }
-              },
-              required: []
-            }
           }
         ]
-      }
-    ];
+      }];
+    }
   };
 
   const handleConnect = async () => {
@@ -570,6 +593,9 @@ Be concise, friendly, and helpful. Match the personality of the selected voice.`
 Use this context to provide more relevant and specific answers about what the user is currently viewing.`;
       }
 
+      // Load tools asynchronously
+      const tools = await getAvailableTools();
+
       const config = {
         responseModalities: ['AUDIO'],
         speechConfig: {
@@ -584,8 +610,13 @@ Use this context to provide more relevant and specific answers about what the us
             text: systemInstructionText
           }]
         },
-        tools: getAvailableTools(),
+        tools: tools,
       };
+
+      console.log('[GlassDock] Connecting with config:', {
+        voice: selectedVoice,
+        toolCount: tools[0]?.functionDeclarations?.length || 0
+      });
 
       await connect(config);
 

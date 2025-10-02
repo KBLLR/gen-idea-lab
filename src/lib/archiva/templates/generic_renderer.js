@@ -1,4 +1,23 @@
 import { helpers, fm } from '../renderer.js';
+import { marked } from 'marked';
+import DOMPurify from 'dompurify';
+
+// Convert Markdown -> sanitized HTML for client preview rendering
+function mdToHtml(md) {
+  if (!md) return '';
+  try {
+    const raw = marked.parse(String(md));
+    return DOMPurify.sanitize(raw);
+  } catch {
+    // If conversion fails, fall back to escaped text
+    return String(md)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/\"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+  }
+}
 
 function escapeHtml(value) {
   return String(value ?? '')
@@ -28,7 +47,7 @@ function renderField(field, value, format = 'md') {
       case 'markdown':
         return `<section>
           <h3>${escapeHtml(label)}</h3>
-          <div class="markdown-content">${fieldValue}</div>
+          <div class="markdown-content">${mdToHtml(fieldValue)}</div>
         </section>`;
 
       case 'date':

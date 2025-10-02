@@ -9,6 +9,173 @@
  */
 
 /**
+ * Execute AI completion via unified chat endpoint
+ * Supports: Gemini, OpenAI, Claude, Ollama
+ */
+async function executeAICompletion({ model, prompt, systemPrompt, settings = {} }) {
+  const requestBody = {
+    model: model,
+    messages: [
+      {
+        role: 'user',
+        content: prompt
+      }
+    ],
+    systemPrompt: systemPrompt,
+    enableThinking: settings.enableThinking || false,
+    thinkingBudget: settings.thinkingBudget || 'medium'
+  };
+
+  const response = await fetch('/api/chat', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(requestBody),
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error || `API request failed with status: ${response.status}`);
+  }
+
+  const data = await response.json();
+  return data.response || data.text || '';
+}
+
+/**
+ * Execute AI completion with tool support
+ * Handles multi-turn conversation for tool calling
+ */
+async function executeAICompletionWithTools({ model, prompt, systemPrompt, settings = {} }) {
+  // Import tools
+  const { WORKFLOW_TOOLS, executeTool } = await import('./workflowTools.js');
+
+  // Get available tools as array
+  const availableTools = Object.values(WORKFLOW_TOOLS);
+
+  // Detect provider from model
+  let provider = 'gemini';
+  if (model.startsWith('gpt-')) provider = 'openai';
+  else if (model.startsWith('claude-')) provider = 'claude';
+  else if (model.includes('ollama') || model.includes('llama') || model.includes('qwen') || model.includes('gpt-oss')) provider = 'ollama';
+
+  // First request with tools
+  const requestBody = {
+    model,
+    messages: [
+      {
+        role: 'user',
+        content: prompt
+      }
+    ],
+    systemPrompt,
+    tools: availableTools,
+    provider // Pass provider for proper tool formatting
+  };
+
+  const response = await fetch('/api/chat/tools', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(requestBody),
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error || `API request with tools failed: ${response.status}`);
+  }
+
+  const data = await response.json();
+
+  // Check if AI wants to use tools
+  if (data.toolCalls && data.toolCalls.length > 0) {
+    console.log('[Tool Calling] AI requested tools:', data.toolCalls.map(tc => tc.name));
+
+    // Execute all tool calls
+    const toolResults = [];
+    for (const toolCall of data.toolCalls) {
+      try {
+        const result = await executeTool(toolCall.name, toolCall.args);
+        toolResults.push({
+          toolCallId: toolCall.id,
+          name: toolCall.name,
+          result
+        });
+      } catch (error) {
+        toolResults.push({
+          toolCallId: toolCall.id,
+          name: toolCall.name,
+          result: {
+            success: false,
+            error: error.message
+          }
+        });
+      }
+    }
+
+    // Send tool results back to AI for final response
+    const followupBody = {
+      model,
+      messages: [
+        {
+          role: 'user',
+          content: prompt
+        },
+        {
+          role: 'assistant',
+          toolCalls: data.toolCalls
+        },
+        {
+          role: 'tool',
+          toolResults
+        }
+      ],
+      systemPrompt,
+      provider
+    };
+
+    const followupResponse = await fetch('/api/chat/tools', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(followupBody),
+    });
+
+    if (!followupResponse.ok) {
+      const error = await followupResponse.json();
+      throw new Error(error.error || `Follow-up request failed: ${followupResponse.status}`);
+    }
+
+    const followupData = await followupResponse.json();
+
+    return {
+      response: followupData.response || followupData.text || '',
+      toolCalls: data.toolCalls,
+      toolResults
+    };
+  }
+
+  // No tools used, return direct response
+  return {
+    response: data.response || data.text || '',
+    toolCalls: []
+  };
+}
+
+/**
+ * Get default model based on provider preference
+ */
+function getDefaultModel(settings = {}) {
+  const provider = settings.provider || 'gemini';
+
+  const defaultModels = {
+    gemini: 'gemini-2.5-flash',
+    openai: 'gpt-4o-mini',
+    claude: 'claude-3-5-haiku-20241022',
+    ollama: 'gpt-oss:20b' // Ollama default model
+  };
+
+  return settings.model || defaultModels[provider] || defaultModels.gemini;
+}
+
+/**
  * Resolve execution order using topological sort
  * @param {Array} nodes - All nodes in the workflow
  * @param {Array} edges - All edges connecting nodes
@@ -108,33 +275,132 @@ function getNodeInputs(node, edges, executionResults) {
  * @returns {Promise<Object>} - Execution result with outputs
  */
 async function executeAIAgentNode(node, inputs) {
-  const { nodeName, settings } = node.data;
+  const { nodeName, settings = {} } = node.data;
+  const startTime = Date.now();
 
-  // Simulate AI processing
-  await new Promise(resolve => setTimeout(resolve, 2000 + Math.random() * 1000));
+  try {
+    // Get the model to use
+    const model = getDefaultModel(settings);
 
-  // For now, return mock data
-  // TODO: Integrate with actual Gemini Live API
-  const outputs = {};
+    // Determine if tools are enabled
+    const enableTools = settings.enableTools !== false; // Default true
 
-  node.data.outputs.forEach((output, index) => {
-    const portId = output.id || `output-${index}`;
-    outputs[portId] = {
-      type: output.type,
-      value: `Result from ${nodeName} (processed inputs: ${JSON.stringify(inputs)})`,
-      timestamp: new Date().toISOString(),
+    // Build system instruction
+    let systemInstruction = `You are an AI agent named "${nodeName}". Your role is to process input data and generate the requested outputs.`;
+
+    if (enableTools) {
+      systemInstruction += '\n\nYou have access to tools that can help you complete tasks. Use them when necessary.';
+    }
+
+    // Build the prompt from inputs
+    let promptText = '';
+
+    // Add input data to the prompt
+    if (Object.keys(inputs).length > 0) {
+      promptText += 'Input data:\n';
+      Object.entries(inputs).forEach(([key, value]) => {
+        const actualValue = value?.value || value;
+        promptText += `- ${key}: ${JSON.stringify(actualValue)}\n`;
+      });
+      promptText += '\n';
+    }
+
+    // Add task instruction based on outputs
+    if (node.data.outputs && node.data.outputs.length > 0) {
+      promptText += 'Your task is to process the input data and generate the following outputs:\n';
+      node.data.outputs.forEach((output) => {
+        promptText += `- ${output.label} (${output.type}): A ${output.type} value\n`;
+      });
+      promptText += '\n';
+    }
+
+    promptText += 'Please provide a structured response with the requested outputs.';
+
+    let aiResponse;
+    let toolCalls = [];
+
+    if (enableTools) {
+      // Execute with tool support
+      const result = await executeAICompletionWithTools({
+        model,
+        prompt: promptText,
+        systemPrompt: systemInstruction,
+        settings
+      });
+
+      aiResponse = result.response;
+      toolCalls = result.toolCalls || [];
+    } else {
+      // Execute without tools
+      aiResponse = await executeAICompletion({
+        model,
+        prompt: promptText,
+        systemPrompt: systemInstruction,
+        settings: {
+          temperature: settings.temperature || 0.7,
+          maxTokens: settings.maxTokens || 2000,
+          enableThinking: settings.enableThinking || false,
+          thinkingBudget: settings.thinkingBudget || 'medium'
+        }
+      });
+    }
+
+    // Map AI response to outputs
+    const outputs = {};
+
+    node.data.outputs.forEach((output, index) => {
+      const portId = output.id || `output-${index}`;
+
+      // For now, use the full AI response for each output
+      // In a more sophisticated implementation, we could parse the response
+      // to extract specific values for each output
+      let outputValue = aiResponse;
+
+      // Try to convert to appropriate type
+      if (output.type === 'number') {
+        const num = parseFloat(aiResponse);
+        outputValue = isNaN(num) ? aiResponse : num;
+      } else if (output.type === 'object' || output.type === 'array') {
+        try {
+          outputValue = JSON.parse(aiResponse);
+        } catch {
+          outputValue = aiResponse;
+        }
+      }
+
+      outputs[portId] = {
+        type: output.type,
+        value: outputValue,
+        timestamp: new Date().toISOString(),
+      };
+    });
+
+    // Determine provider name from model
+    let providerName = 'Unknown';
+    if (model.startsWith('gpt-')) providerName = 'OpenAI';
+    else if (model.startsWith('claude-')) providerName = 'Claude';
+    else if (model.startsWith('gemini-')) providerName = 'Gemini';
+    else providerName = 'Ollama';
+
+    return {
+      success: true,
+      outputs,
+      metadata: {
+        nodeName,
+        provider: providerName,
+        model,
+        settings,
+        executionTime: Date.now() - startTime,
+        promptUsed: promptText,
+        rawResponse: aiResponse,
+        toolCalls: toolCalls.length > 0 ? toolCalls : undefined
+      },
     };
-  });
 
-  return {
-    success: true,
-    outputs,
-    metadata: {
-      nodeName,
-      settings,
-      executionTime: Date.now(),
-    },
-  };
+  } catch (error) {
+    console.error(`AI Agent "${nodeName}" execution failed:`, error);
+    throw new Error(`AI Agent execution failed: ${error.message}`);
+  }
 }
 
 /**
@@ -175,18 +441,67 @@ async function executeIdeaNode(node, inputs) {
  * Execute a Tool node
  */
 async function executeToolNode(node, inputs) {
-  await new Promise(resolve => setTimeout(resolve, 1000));
-
   const toolId = node.data.id || node.id;
-  const outputs = {
-    'output-0': {
-      type: 'any',
-      value: `Tool executed: ${toolId} with inputs: ${JSON.stringify(inputs)}`,
-      timestamp: new Date().toISOString(),
-    }
-  };
 
-  return { success: true, outputs, metadata: { nodeType: 'tool', toolId } };
+  try {
+    // Import tool execution system
+    const { executeTool } = await import('./workflowTools.js');
+
+    // Prepare tool arguments from inputs
+    const toolArgs = {};
+    Object.entries(inputs).forEach(([key, value]) => {
+      const actualValue = value?.value || value;
+      // Remove port prefixes like 'input-0', 'input-1'
+      const cleanKey = key.replace(/^(input|output)-\d+/, key).replace(/^(input|output)_/, '');
+      toolArgs[cleanKey] = actualValue;
+    });
+
+    // Execute the tool
+    const result = await executeTool(toolId, toolArgs);
+
+    // Map result to outputs
+    const outputs = {
+      'output-0': {
+        type: 'object',
+        value: result,
+        timestamp: new Date().toISOString(),
+      }
+    };
+
+    return {
+      success: result.success,
+      outputs,
+      metadata: {
+        nodeType: 'tool',
+        toolId,
+        executionTime: Date.now(),
+        toolResult: result
+      }
+    };
+  } catch (error) {
+    console.error(`Tool ${toolId} execution failed:`, error);
+
+    const outputs = {
+      'output-0': {
+        type: 'object',
+        value: {
+          success: false,
+          error: error.message
+        },
+        timestamp: new Date().toISOString(),
+      }
+    };
+
+    return {
+      success: false,
+      outputs,
+      metadata: {
+        nodeType: 'tool',
+        toolId,
+        error: error.message
+      }
+    };
+  }
 }
 
 /**

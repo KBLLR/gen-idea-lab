@@ -63,6 +63,22 @@
   flex: 1;
 }
 
+/* Inline connect button for quick service setup */
+.planner-item .connect-cta {
+  margin-left: auto;
+  font-size: 12px;
+  padding: 4px 8px;
+  border-radius: 999px;
+  border: 1px solid var(--border-secondary);
+  background: var(--surface-secondary);
+  color: var(--text-primary);
+  cursor: pointer;
+}
+
+.planner-item .connect-cta:hover {
+  background: var(--interactive-secondary-hover);
+}
+
 /* Connection status indicators */
 .connection-status {
   width: 8px;

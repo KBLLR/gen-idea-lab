@@ -9,10 +9,16 @@ import useStore from '../store.js';
 /**
  * Voice Function Call Manager
  * Handles function calling for voice interactions with different module personalities
+ * Integrates workflow tools and assistant tools for robust voice interactions
  */
 export class VoiceFunctionManager {
   constructor() {
     this.functions = new Map();
+    this.pendingCalls = new Map(); // Track pending tool calls
+    this.callHistory = []; // Track call history for debugging
+    this.maxRetries = 3;
+    this.retryDelay = 1000; // ms
+
     this.setupCoreFunctions();
   }
 
@@ -255,40 +261,187 @@ export class VoiceFunctionManager {
   }
 
   /**
-   * Execute a function call
+   * Execute a function call with retry logic and integration with workflow/assistant tools
    */
-  async executeFunction(functionName, args, context = {}) {
+  async executeFunction(functionName, args, context = {}, callId = null) {
+    const startTime = Date.now();
+    let attempt = 0;
+    let lastError = null;
+
+    // Track this call
+    if (callId) {
+      this.pendingCalls.set(callId, {
+        functionName,
+        args,
+        context,
+        startTime,
+        status: 'executing'
+      });
+    }
+
+    // Try local function first
     const functionDef = this.functions.get(functionName);
 
-    if (!functionDef) {
-      return {
-        success: false,
-        error: `Function ${functionName} not found`
-      };
+    if (functionDef) {
+      try {
+        const result = await functionDef.handler(args, context);
+
+        // Record successful call
+        this.recordCall(callId, functionName, args, result, Date.now() - startTime);
+
+        // Dispatch event for UI updates
+        if (result.action) {
+          window.dispatchEvent(new CustomEvent('voice-function-call', {
+            detail: {
+              function: functionName,
+              args,
+              result,
+              context
+            }
+          }));
+        }
+
+        if (callId) this.pendingCalls.delete(callId);
+        return result;
+      } catch (error) {
+        lastError = error;
+        console.warn(`[VoiceFunctionManager] Local function ${functionName} failed:`, error);
+      }
     }
 
+    // Try workflow tools
     try {
-      const result = await functionDef.handler(args, context);
+      const { executeTool } = await import('../workflowTools.js');
+      const result = await this.executeWithRetry(
+        () => executeTool(functionName, args),
+        this.maxRetries
+      );
 
-      // Dispatch event for UI updates if needed
-      if (result.action) {
-        window.dispatchEvent(new CustomEvent('voice-function-call', {
-          detail: {
-            function: functionName,
-            args,
-            result,
-            context
-          }
-        }));
-      }
-
+      this.recordCall(callId, functionName, args, result, Date.now() - startTime);
+      if (callId) this.pendingCalls.delete(callId);
       return result;
     } catch (error) {
-      return {
-        success: false,
-        error: error.message
-      };
+      lastError = error;
+      console.warn(`[VoiceFunctionManager] Workflow tool ${functionName} failed:`, error);
     }
+
+    // Try assistant tools
+    try {
+      const { executeAssistantTool } = await import('../assistantTools.js');
+      const state = useStore.getState();
+      const assistantContext = {
+        moduleId: state.activeModuleId,
+        userId: state.user?.email || 'anonymous',
+        conversationId: context.conversationId || `voice_${Date.now()}`
+      };
+
+      const result = await this.executeWithRetry(
+        () => executeAssistantTool(functionName, args, assistantContext),
+        this.maxRetries
+      );
+
+      this.recordCall(callId, functionName, args, result, Date.now() - startTime);
+      if (callId) this.pendingCalls.delete(callId);
+      return result;
+    } catch (error) {
+      lastError = error;
+      console.error(`[VoiceFunctionManager] Assistant tool ${functionName} failed:`, error);
+    }
+
+    // All attempts failed
+    const errorResult = {
+      success: false,
+      error: `Function ${functionName} not found or failed to execute: ${lastError?.message || 'Unknown error'}`
+    };
+
+    this.recordCall(callId, functionName, args, errorResult, Date.now() - startTime);
+    if (callId) this.pendingCalls.delete(callId);
+    return errorResult;
+  }
+
+  /**
+   * Execute with retry logic
+   */
+  async executeWithRetry(fn, maxRetries = 3) {
+    let lastError;
+
+    for (let attempt = 0; attempt < maxRetries; attempt++) {
+      try {
+        return await fn();
+      } catch (error) {
+        lastError = error;
+        console.warn(`[VoiceFunctionManager] Attempt ${attempt + 1}/${maxRetries} failed:`, error.message);
+
+        if (attempt < maxRetries - 1) {
+          // Exponential backoff
+          await new Promise(resolve => setTimeout(resolve, this.retryDelay * Math.pow(2, attempt)));
+        }
+      }
+    }
+
+    throw lastError;
+  }
+
+  /**
+   * Record function call for debugging and analytics
+   */
+  recordCall(callId, functionName, args, result, duration) {
+    const record = {
+      callId,
+      functionName,
+      args,
+      result,
+      duration,
+      timestamp: Date.now(),
+      success: result.success !== false
+    };
+
+    this.callHistory.push(record);
+
+    // Keep only last 100 calls
+    if (this.callHistory.length > 100) {
+      this.callHistory = this.callHistory.slice(-100);
+    }
+
+    console.log(`[VoiceFunctionManager] ${functionName} completed in ${duration}ms:`, result);
+  }
+
+  /**
+   * Get call statistics
+   */
+  getCallStats() {
+    const stats = {
+      totalCalls: this.callHistory.length,
+      successfulCalls: this.callHistory.filter(c => c.success).length,
+      failedCalls: this.callHistory.filter(c => !c.success).length,
+      averageDuration: 0,
+      functionBreakdown: {}
+    };
+
+    if (this.callHistory.length > 0) {
+      stats.averageDuration = this.callHistory.reduce((sum, c) => sum + c.duration, 0) / this.callHistory.length;
+
+      this.callHistory.forEach(call => {
+        if (!stats.functionBreakdown[call.functionName]) {
+          stats.functionBreakdown[call.functionName] = { count: 0, successes: 0, failures: 0 };
+        }
+        stats.functionBreakdown[call.functionName].count++;
+        if (call.success) {
+          stats.functionBreakdown[call.functionName].successes++;
+        } else {
+          stats.functionBreakdown[call.functionName].failures++;
+        }
+      });
+    }
+
+    return stats;
+  }
+
+  /**
+   * Clear call history
+   */
+  clearHistory() {
+    this.callHistory = [];
   }
 
   /**
@@ -312,6 +465,193 @@ ${functions.map(func => `- ${func.name}: ${func.description}`).join('\n')}
 
 Respond naturally and use function calls when appropriate to help the student learn and navigate the system.
 `;
+  }
+
+  /**
+   * Get all available tools including workflow and assistant tools
+   */
+  async getAllAvailableTools(context = {}) {
+    const tools = [];
+
+    // Get local functions
+    const localFunctions = this.getAvailableFunctions(context);
+    tools.push(...localFunctions);
+
+    // Get workflow tools
+    try {
+      const { WORKFLOW_TOOLS } = await import('../workflowTools.js');
+      Object.values(WORKFLOW_TOOLS).forEach(tool => {
+        // Avoid duplicates
+        if (!tools.find(t => t.name === tool.name)) {
+          tools.push({
+            name: tool.name,
+            description: tool.description,
+            parameters: this.convertToGeminiLiveFormat(tool.parameters)
+          });
+        }
+      });
+    } catch (error) {
+      console.warn('[VoiceFunctionManager] Could not load workflow tools:', error);
+    }
+
+    // Get assistant tools
+    try {
+      const { ASSISTANT_TOOLS } = await import('../assistantTools.js');
+      Object.values(ASSISTANT_TOOLS).forEach(tool => {
+        // Avoid duplicates
+        if (!tools.find(t => t.name === tool.name)) {
+          tools.push({
+            name: tool.name,
+            description: tool.description,
+            parameters: this.convertToGeminiLiveFormat(tool.parameters)
+          });
+        }
+      });
+    } catch (error) {
+      console.warn('[VoiceFunctionManager] Could not load assistant tools:', error);
+    }
+
+    console.log(`[VoiceFunctionManager] Loaded ${tools.length} total tools`);
+    return tools;
+  }
+
+  /**
+   * Convert tool parameters to Gemini Live API format
+   */
+  convertToGeminiLiveFormat(parameters) {
+    if (!parameters || !parameters.properties) {
+      return parameters;
+    }
+
+    const converted = {
+      type: 'OBJECT',
+      properties: {},
+      required: parameters.required || []
+    };
+
+    Object.entries(parameters.properties).forEach(([name, param]) => {
+      converted.properties[name] = {
+        type: this.normalizeType(param.type),
+        description: param.description || ''
+      };
+
+      // Handle array items schema
+      if (param.type === 'array' && param.items) {
+        converted.properties[name].items = this.convertItemSchema(param.items);
+      }
+
+      // Handle object properties schema
+      if (param.type === 'object' && param.properties) {
+        converted.properties[name].properties = {};
+        Object.entries(param.properties).forEach(([propName, propSchema]) => {
+          converted.properties[name].properties[propName] = {
+            type: this.normalizeType(propSchema.type),
+            description: propSchema.description || ''
+          };
+        });
+      }
+
+      if (param.enum) {
+        converted.properties[name].enum = param.enum;
+      }
+
+      if (param.default !== undefined) {
+        converted.properties[name].default = param.default;
+      }
+    });
+
+    return converted;
+  }
+
+  /**
+   * Convert array items schema to Gemini Live API format
+   */
+  convertItemSchema(items) {
+    if (!items) return undefined;
+
+    // Simple type
+    if (typeof items.type === 'string') {
+      const converted = {
+        type: this.normalizeType(items.type),
+      };
+
+      if (items.description) {
+        converted.description = items.description;
+      }
+
+      if (items.enum) {
+        converted.enum = items.enum;
+      }
+
+      // Nested object in array
+      if (items.type === 'object' && items.properties) {
+        converted.properties = {};
+        Object.entries(items.properties).forEach(([name, prop]) => {
+          converted.properties[name] = {
+            type: this.normalizeType(prop.type),
+            description: prop.description || ''
+          };
+
+          if (prop.enum) {
+            converted.properties[name].enum = prop.enum;
+          }
+        });
+
+        if (items.required) {
+          converted.required = items.required;
+        }
+      }
+
+      return converted;
+    }
+
+    // Already formatted
+    return items;
+  }
+
+  /**
+   * Normalize type names to Gemini Live API format
+   */
+  normalizeType(type) {
+    const typeMap = {
+      'string': 'STRING',
+      'number': 'NUMBER',
+      'integer': 'NUMBER',
+      'boolean': 'BOOLEAN',
+      'array': 'ARRAY',
+      'object': 'OBJECT'
+    };
+
+    return typeMap[type.toLowerCase()] || type.toUpperCase();
+  }
+
+  /**
+   * Get pending calls count
+   */
+  getPendingCallsCount() {
+    return this.pendingCalls.size;
+  }
+
+  /**
+   * Cancel a pending call
+   */
+  cancelCall(callId) {
+    if (this.pendingCalls.has(callId)) {
+      this.pendingCalls.delete(callId);
+      console.log(`[VoiceFunctionManager] Cancelled call ${callId}`);
+      return true;
+    }
+    return false;
+  }
+
+  /**
+   * Cancel all pending calls
+   */
+  cancelAllCalls() {
+    const count = this.pendingCalls.size;
+    this.pendingCalls.clear();
+    console.log(`[VoiceFunctionManager] Cancelled ${count} pending calls`);
+    return count;
   }
 }
 

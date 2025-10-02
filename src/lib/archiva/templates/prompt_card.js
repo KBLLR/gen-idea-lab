@@ -1,4 +1,21 @@
 import { helpers, fm } from '../renderer.js';
+import { marked } from 'marked';
+import DOMPurify from 'dompurify';
+
+function mdToHtml(md) {
+  if (!md) return '';
+  try {
+    const raw = marked.parse(String(md));
+    return DOMPurify.sanitize(raw);
+  } catch {
+    return String(md)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/\"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+  }
+}
 
 function escapeHtml(value) {
   return String(value ?? '')
@@ -24,12 +41,16 @@ function renderPromptSteps(steps = [], format = 'md') {
     const items = steps.map((step, index) => {
       const prompt = step.request?.prompt || step.prompt || '';
       const response = step.response || step.output || '';
+      const notes = step.notes || '';
+      const promptHtml = prompt ? mdToHtml(prompt) : '';
+      const responseHtml = response ? mdToHtml(response) : '';
+      const notesHtml = notes ? mdToHtml(notes) : '';
       return `
         <article class="prompt-step">
           <header><h3>Step ${index + 1}: ${escapeHtml(step.name || 'Prompt')}</h3></header>
-          ${prompt ? `<h4>Prompt</h4><pre>${escapeHtml(prompt)}</pre>` : ''}
-          ${response ? `<h4>Response</h4><pre>${escapeHtml(response)}</pre>` : ''}
-          ${step.notes ? `<p>${escapeHtml(step.notes)}</p>` : ''}
+          ${promptHtml ? `<h4>Prompt</h4><div class="markdown-content">${promptHtml}</div>` : ''}
+          ${responseHtml ? `<h4>Response</h4><div class="markdown-content">${responseHtml}</div>` : ''}
+          ${notesHtml ? `<h4>Notes</h4><div class="markdown-content">${notesHtml}</div>` : ''}
         </article>
       `;
     }).join('');

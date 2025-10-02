@@ -28,6 +28,7 @@ import {
   createSampleWorkflow,
   formatWorkflowMetrics
 } from '../lib/archiva/workflow-service.js';
+import { createArchivaEntry, updateArchivaEntry, setActiveEntryId } from '../lib/actions';
 
 // Template renderers mapping - using template keys from templates.js
 const templateRenderers = {
@@ -66,7 +67,38 @@ const templateRenderers = {
 
 // Sample workflow data for preview - structured for template fields
 const sampleWorkflowData = {
+  workflow_id: "wf_sample_2025",
+  run_id: "run_001",
   title: "AI Model Comparison Experiment",
+  started_at: "2025-01-15T10:00:00Z",
+  ended_at: "2025-01-15T10:15:00Z",
+  meta: {
+    description: "Multi-model text generation comparison experiment"
+  },
+  steps: [
+    {
+      name: "Test Claude 3.5 Sonnet",
+      model: "claude-3-5-sonnet",
+      request: { prompt: "Generate a creative story about AI collaboration" },
+      response: "A collaborative AI narrative demonstrating analytical reasoning...",
+      metrics: { latency_ms: 2100, tokens_in: 45, tokens_out: 350 }
+    },
+    {
+      name: "Test GPT-4o",
+      model: "gpt-4o",
+      request: { prompt: "Generate a creative story about AI collaboration" },
+      response: "A balanced creative story showing consistent quality...",
+      metrics: { latency_ms: 1200, tokens_in: 45, tokens_out: 320 }
+    },
+    {
+      name: "Test Gemini 2.0",
+      model: "gemini-2.0",
+      request: { prompt: "Generate a creative story about AI collaboration" },
+      response: "A uniquely creative narrative with innovative storytelling...",
+      metrics: { latency_ms: 1350, tokens_in: 45, tokens_out: 380 }
+    }
+  ],
+  tags: ["AI models", "comparison", "text generation"],
   values: {
     title: "AI Model Comparison Experiment",
     date: "2025-01-15",
@@ -154,25 +186,104 @@ export default function ArchivaDashboard() {
     }
   }, [selectedTemplate, hasRenderer, currentWorkflowData, templateInfo]);
 
-  // Generate documentation with AI enhancement
+  // Generate mock data with AI for the selected template
   const handleGenerateWithAI = async () => {
-    if (!hasRenderer) return;
+    if (!hasRenderer || !templateInfo) return;
 
     setIsGenerating(true);
     try {
-      const result = await generateWorkflowDocumentation(
-        currentWorkflowData,
-        selectedTemplate.toLowerCase(),
-        { enhanceWithAI: true, model: 'gemini-2.5-flash' }
-      );
+      // Build field descriptions for AI prompt
+      const fieldDescriptions = templateInfo.fields.map(f =>
+        `- ${f.field_key} (${f.field_type}): ${f.label}`
+      ).join('\n');
 
-      setRenderedContent({
-        md: result.renderedContent.markdown,
-        html: result.renderedContent.html
+      // Load the template example markdown file
+      const templateFileName = selectedTemplate.toLowerCase().replace(/_/g, '_');
+      let exampleTemplate = '';
+
+      try {
+        const templateResponse = await fetch(`/templates/archivai/${templateFileName}.md`);
+        if (templateResponse.ok) {
+          exampleTemplate = await templateResponse.text();
+        }
+      } catch (err) {
+        console.warn('Could not load template example file:', err);
+      }
+
+      const exampleSection = exampleTemplate ? `
+Here's an example template showing the expected format and style:
+
+\`\`\`markdown
+${exampleTemplate}
+\`\`\`
+
+Use this as a reference for the style, depth, and format of content to generate.
+` : '';
+
+      // Call AI to generate realistic mock data
+      const response = await fetch('/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          model: 'gemini-2.5-flash',
+          messages: [{
+            role: 'user',
+            content: `Generate realistic mock data for a "${templateInfo.name}" template with the following fields:
+
+${fieldDescriptions}
+
+Template Purpose: ${templateInfo.purpose}
+Template Type: ${templateInfo.type}
+${exampleSection}
+
+Create realistic, detailed content that would be typical for a ${templateInfo.type.toLowerCase()} document. For markdown fields, use proper markdown formatting with headings, lists, and emphasis. For code fields, include realistic, working code snippets with comments. Use today's date (${new Date().toISOString().split('T')[0]}) for the date field.
+
+Return a JSON object with sample values for each field listed above. Return ONLY valid JSON, no additional text or markdown code blocks.`
+          }]
+        })
       });
+
+      if (!response.ok) {
+        throw new Error('Failed to generate mock data');
+      }
+
+      const data = await response.json();
+      let generatedData;
+
+      try {
+        // Try to parse the AI response as JSON
+        const cleanedResponse = data.response.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+        generatedData = JSON.parse(cleanedResponse);
+      } catch (parseError) {
+        console.error('Failed to parse AI response:', data.response);
+        throw new Error('AI returned invalid JSON');
+      }
+
+      // Create workflow-compatible data structure
+      const mockWorkflowData = {
+        workflow_id: `mock_${Date.now()}`,
+        run_id: `run_${Date.now()}`,
+        title: generatedData.title || generatedData.experiment_name || generatedData.concept_focus || generatedData.challenge || 'Mock Entry',
+        started_at: new Date().toISOString(),
+        ended_at: new Date().toISOString(),
+        meta: { description: templateInfo.purpose },
+        steps: [{
+          name: 'Mock Generation',
+          model: 'gemini-2.5-flash',
+          response: 'AI-generated mock data',
+          metrics: { latency_ms: 100, tokens_in: 50, tokens_out: 200 }
+        }],
+        tags: generatedData.tags_keywords?.split(',').map(t => t.trim()) || [templateInfo.type],
+        values: generatedData
+      };
+
+      setCurrentWorkflowData(mockWorkflowData);
+      console.log('[ArchivAI] Generated mock data:', mockWorkflowData);
+
     } catch (error) {
       console.error('AI generation failed:', error);
-      // Fallback to local rendering
+      alert(`Failed to generate mock data: ${error.message}`);
     } finally {
       setIsGenerating(false);
     }
@@ -183,6 +294,48 @@ export default function ArchivaDashboard() {
     const realWorkflow = createSampleWorkflow('experiment');
     setCurrentWorkflowData(realWorkflow);
     setIsUsingRealWorkflow(true);
+  };
+
+  // Save current rendered output and values to server mock dir, and create an Archiva entry
+  const handleSaveMock = async () => {
+    if (!hasRenderer || !templateInfo) return;
+    try {
+      const payload = {
+        templateKey: selectedTemplate,
+        templateName: templateInfo.name,
+        title: currentWorkflowData?.values?.title || currentWorkflowData?.title || templateInfo.name,
+        values: currentWorkflowData?.values || {},
+        md: renderedContent.md,
+        html: renderedContent.html,
+        meta: {
+          workflow_id: currentWorkflowData?.workflow_id || null,
+          run_id: currentWorkflowData?.run_id || null
+        }
+      };
+      const resp = await fetch('/api/archivai/mock', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify(payload)
+      });
+      if (!resp.ok) {
+        const text = await resp.text();
+        throw new Error(text || 'Failed to save mock');
+      }
+      const { id } = await resp.json();
+      console.log('[ArchivAI] Saved mock to data/archivai-mock:', id);
+
+      // Create an Archiva entry in local state for editing/testing
+      const newId = createArchivaEntry(selectedTemplate);
+      if (newId) {
+        const values = currentWorkflowData?.values || {};
+        Object.entries(values).forEach(([k, v]) => updateArchivaEntry(newId, k, v));
+        setActiveEntryId(newId);
+      }
+    } catch (err) {
+      console.error('Save mock failed:', err);
+      alert(`Save failed: ${err.message}`);
+    }
   };
 
   // Download handlers
@@ -434,6 +587,15 @@ export default function ArchivaDashboard() {
               <span className="icon">{isGenerating ? 'autorenew' : 'auto_awesome'}</span>
               {isGenerating ? 'Enhancing...' : 'Enhance with AI'}
             </button>
+            <button
+              className="secondary"
+              onClick={handleSaveMock}
+              disabled={!renderedContent?.md && !renderedContent?.html}
+              title="Save current output to data/archivai-mock and open in Archiva"
+            >
+              <span className="icon">save</span>
+              Save Mock → Archiva
+            </button>
           </div>
         )}
       </div>
@@ -566,20 +728,11 @@ export default function ArchivaDashboard() {
         )}
       </div>
 
-      {/* Footer Section with Archive Gallery */}
-      <div className="booth-footer" style={{
-        padding: '32px',
-        borderTop: '1px solid var(--color-surface-border)'
-      }}>
-        <div className="history-header" style={{
-          marginBottom: '24px'
-        }}>
-          <h3 style={{ margin: 0, fontSize: '18px', fontWeight: '600' }}>Archive Gallery</h3>
-          <span className="history-count" style={{
-            fontSize: '14px',
-            color: 'var(--text-secondary)'
-          }}>Real examples of generated documentation</span>
-        </div>
+      {/* Footer Drawer: collapsed by default with handle */}
+      <BoothFooterDrawer
+        title="Archive Gallery"
+        subtitle="Real examples of generated documentation"
+      >
         <div className="history-scroll" style={{
           overflowX: 'auto',
           overflowY: 'hidden',
@@ -592,143 +745,54 @@ export default function ArchivaDashboard() {
           }}>
             {savedTemplates.map(item => {
               const handleCardClick = () => {
-                // Update the current workflow data and render the template
-                setCurrentWorkflowData({
-                  title: item.title,
-                  values: item.values
-                });
-
-                // Set the selected template to trigger rendering
-                useStore.setState({
-                  selectedTemplateForPreview: item.template,
-                  activeEntryId: null
-                });
+                setCurrentWorkflowData({ title: item.title, values: item.values });
+                useStore.setState({ selectedTemplateForPreview: item.template, activeEntryId: null });
               };
-
               return (
-                <div
-                  key={item.id}
-                  className="template-card"
-                  onClick={handleCardClick}
-                  style={{
-                    minWidth: '280px',
-                    width: '280px',
-                    padding: '20px',
-                    borderRadius: '12px',
-                    border: '1px solid var(--color-surface-border)',
-                    backgroundColor: 'var(--color-surface)',
-                    cursor: 'pointer',
-                    transition: 'all 0.2s ease',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    gap: '12px'
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.transform = 'translateY(-2px)';
-                    e.currentTarget.style.boxShadow = '0 8px 24px rgba(0,0,0,0.1)';
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.transform = 'translateY(0)';
-                    e.currentTarget.style.boxShadow = 'none';
-                  }}
-                >
-                  <div className="card-header" style={{
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'flex-start',
-                    gap: '12px'
-                  }}>
-                    <h4 style={{
-                      margin: 0,
-                      fontSize: '16px',
-                      fontWeight: '600',
-                      color: 'var(--text-primary)',
-                      lineHeight: '1.3',
-                      flex: 1
-                    }}>{item.title}</h4>
-                    <span className="template-badge" style={{
-                      fontSize: '11px',
-                      padding: '4px 8px',
-                      borderRadius: '6px',
-                      backgroundColor: 'var(--color-accent)',
-                      color: 'white',
-                      fontWeight: '500',
-                      textTransform: 'uppercase',
-                      letterSpacing: '0.5px',
-                      flexShrink: 0
-                    }}>{item.template.replace('_', ' ')}</span>
+                <div key={item.id} className="template-card" onClick={handleCardClick} style={{ minWidth: '280px', width: '280px', padding: '20px', borderRadius: '12px', border: '1px solid var(--color-surface-border)', backgroundColor: 'var(--color-surface)', cursor: 'pointer', transition: 'all 0.2s ease', display: 'flex', flexDirection: 'column', gap: '12px' }}
+                  onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 8px 24px rgba(0,0,0,0.1)'; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = 'none'; }}>
+                  <div className="card-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '12px' }}>
+                    <h4 style={{ margin: 0, fontSize: '16px', fontWeight: '600', color: 'var(--text-primary)', lineHeight: '1.3', flex: 1 }}>{item.title}</h4>
+                    <span className="template-badge" style={{ fontSize: '11px', padding: '4px 8px', borderRadius: '6px', backgroundColor: 'var(--color-accent)', color: 'white', fontWeight: '500', textTransform: 'uppercase', letterSpacing: '0.5px', flexShrink: 0 }}>{item.template.replace('_', ' ')}</span>
                   </div>
-                  <p className="card-date" style={{
-                    margin: 0,
-                    fontSize: '12px',
-                    color: 'var(--text-tertiary)',
-                    fontWeight: '500'
-                  }}>{item.date}</p>
-                  <p className="card-preview" style={{
-                    margin: 0,
-                    fontSize: '13px',
-                    color: 'var(--text-secondary)',
-                    lineHeight: '1.4',
-                    display: '-webkit-box',
-                    WebkitLineClamp: 3,
-                    WebkitBoxOrient: 'vertical',
-                    overflow: 'hidden',
-                    flex: 1
-                  }}>{item.preview}</p>
-                  <div className="card-actions" style={{
-                    display: 'flex',
-                    gap: '8px',
-                    marginTop: 'auto'
-                  }}>
-                    <button
-                      className="image-action-btn"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleCardClick();
-                      }}
-                      style={{
-                        flex: 1,
-                        padding: '8px 12px',
-                        fontSize: '12px',
-                        fontWeight: '500',
-                        border: '1px solid var(--color-accent)',
-                        backgroundColor: 'transparent',
-                        color: 'var(--color-accent)',
-                        borderRadius: '6px',
-                        cursor: 'pointer',
-                        transition: 'all 0.2s ease'
-                      }}
-                    >View</button>
-                    <button
-                      className="image-action-btn"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        // Export functionality - could download the rendered content
-                        const content = templateRenderers[item.template]
-                          ? templateRenderers[item.template]('md', { values: item.values }, templates[item.template])
-                          : 'Content not available';
-                        downloadDocumentation(content, `${item.title.replace(/\s+/g, '_')}_${Date.now()}`, 'md');
-                      }}
-                      style={{
-                        flex: 1,
-                        padding: '8px 12px',
-                        fontSize: '12px',
-                        fontWeight: '500',
-                        border: '1px solid var(--text-tertiary)',
-                        backgroundColor: 'transparent',
-                        color: 'var(--text-secondary)',
-                        borderRadius: '6px',
-                        cursor: 'pointer',
-                        transition: 'all 0.2s ease'
-                      }}
-                    >Export</button>
+                  <p className="card-date" style={{ margin: 0, fontSize: '12px', color: 'var(--text-tertiary)', fontWeight: '500' }}>{item.date}</p>
+                  <p className="card-preview" style={{ margin: 0, fontSize: '13px', color: 'var(--text-secondary)', lineHeight: '1.4', display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical', overflow: 'hidden', flex: 1 }}>{item.preview}</p>
+                  <div className="card-actions" style={{ display: 'flex', gap: '8px', marginTop: 'auto' }}>
+                    <button className="image-action-btn" onClick={(e) => { e.stopPropagation(); handleCardClick(); }} style={{ flex: 1, padding: '8px 12px', fontSize: '12px', fontWeight: '500', border: '1px solid var(--color-accent)', backgroundColor: 'transparent', color: 'var(--color-accent)', borderRadius: '6px', cursor: 'pointer', transition: 'all 0.2s ease' }}>View</button>
+                    <button className="image-action-btn" onClick={(e) => { e.stopPropagation(); const content = templateRenderers[item.template] ? templateRenderers[item.template]('md', { values: item.values }, templates[item.template]) : 'Content not available'; downloadDocumentation(content, `${item.title.replace(/\s+/g, '_')}_${Date.now()}`, 'md'); }} style={{ flex: 1, padding: '8px 12px', fontSize: '12px', fontWeight: '500', border: '1px solid var(--text-tertiary)', backgroundColor: 'transparent', color: 'var(--text-secondary)', borderRadius: '6px', cursor: 'pointer', transition: 'all 0.2s ease' }}>Export</button>
                   </div>
                 </div>
               );
             })}
           </div>
         </div>
-      </div>
+      </BoothFooterDrawer>
     </div>
+  );
+}
+
+function BoothFooterDrawer({ title, subtitle, children }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <>
+      <button
+        className={`booth-footer-handle ${open ? 'open' : ''}`}
+        aria-expanded={open}
+        onClick={() => setOpen(!open)}
+        title={open ? 'Hide panel' : 'Show panel'}
+      >
+        <span className="icon">{open ? 'keyboard_arrow_down' : 'keyboard_arrow_up'}</span>
+      </button>
+      <div className={`booth-footer-drawer ${open ? 'open' : 'collapsed'}`} role="region" aria-label={title}>
+        <div className="history-header" style={{ marginBottom: '24px' }}>
+          <h3 style={{ margin: 0, fontSize: '18px', fontWeight: '600' }}>{title}</h3>
+          {subtitle && (
+            <span className="history-count" style={{ fontSize: '14px', color: 'var(--text-secondary)' }}>{subtitle}</span>
+          )}
+        </div>
+        {children}
+      </div>
+    </>
   );
 }

@@ -12,6 +12,7 @@ import { Ollama } from 'ollama';
 import crypto from 'crypto';
 import net from 'net';
 import logger from './src/lib/logger.js';
+import tokenStore, { ensureGoogleAccessToken } from './src/lib/secureTokens.js';
 import { register, httpRequestDurationMicroseconds, httpRequestsTotal } from './src/lib/metrics.js';
 import { verifyGoogleToken, generateJWT, requireAuth, optionalAuth } from './src/lib/auth.js';
 import { DEFAULT_IMAGE_MODELS } from './src/lib/imageProviders.js';
@@ -72,6 +73,17 @@ function getBaseUrl(req) {
   const proto = (req.headers['x-forwarded-proto'] || req.protocol || 'http').toString().split(',')[0];
   const host = req.headers['x-forwarded-host'] || req.get('host');
   return `${proto}://${host}`;
+}
+
+// Frontend origin helper for OAuth popups postMessage target
+function getFrontendBaseUrl(req) {
+  if (process.env.FRONTEND_URL) return normalizeUrl(process.env.FRONTEND_URL);
+  if (process.env.NODE_ENV === 'production') {
+    // Best-effort: prefer DOMAIN if set
+    if (process.env.DOMAIN) return normalizeUrl(process.env.DOMAIN);
+  }
+  // Dev default
+  return 'http://localhost:3000';
 }
 
 function sanitizeEndpointUrl(endpoint) {
@@ -367,7 +379,7 @@ app.get('/api/services/university/connect', requireAuth, (req, res) => {
   // Generate Google OAuth URL for University authentication
   const googleAuthUrl = 'https://accounts.google.com/o/oauth2/v2/auth';
   const clientId = '358660676559-02rrefr671bdi1chqtd3l0c44mc8jt9p.apps.googleusercontent.com';
-  const redirectUri = `${process.env.NODE_ENV === 'production' ? 'https://yourdomain.com' : 'http://localhost:8081'}/api/services/university/callback`;
+  const redirectUri = `${getBaseUrl(req)}/api/services/university/callback`;
   const scope = 'openid email profile';
   const state = `${req.user.email}-${Math.random().toString(36).substring(2, 15)}`;
 
@@ -394,12 +406,13 @@ app.get('/api/services/university/callback', async (req, res) => {
   const { code, state, error } = req.query;
 
   if (error) {
+    const front = getFrontendBaseUrl(req);
     return res.send(`
       <script>
         window.opener.postMessage({
           type: 'university-auth-error',
           error: '${error}'
-        }, '${process.env.NODE_ENV === 'production' ? 'https://yourdomain.com' : 'http://localhost:3000'}');
+        }, '${front}');
         window.close();
       </script>
     `);
@@ -409,12 +422,13 @@ app.get('/api/services/university/callback', async (req, res) => {
   const stateData = oauthStates.get(state);
   if (!code || !stateData || Date.now() > stateData.expires) {
     oauthStates.delete(state); // Clean up
+    const front = getFrontendBaseUrl(req);
     return res.send(`
       <script>
         window.opener.postMessage({
           type: 'university-auth-error',
           error: 'Invalid state, missing code, or expired session'
-        }, '${process.env.NODE_ENV === 'production' ? 'https://yourdomain.com' : 'http://localhost:3000'}');
+        }, '${front}');
         window.close();
       </script>
     `);
@@ -433,7 +447,7 @@ app.get('/api/services/university/callback', async (req, res) => {
         client_secret: '', // No client secret needed for this flow
         code,
         grant_type: 'authorization_code',
-        redirect_uri: `${process.env.NODE_ENV === 'production' ? 'https://yourdomain.com' : 'http://localhost:8081'}/api/services/university/callback`,
+        redirect_uri: `${getBaseUrl(req)}/api/services/university/callback`,
       })
     });
 
@@ -473,24 +487,26 @@ app.get('/api/services/university/callback', async (req, res) => {
       lastRefresh: new Date().toISOString()
     };
 
+    const front = getFrontendBaseUrl(req);
     res.send(`
       <script>
         window.opener.postMessage({
           type: 'university-auth-success',
           sessionToken: '${sessionToken}'
-        }, '${process.env.NODE_ENV === 'production' ? 'https://yourdomain.com' : 'http://localhost:3000'}');
+        }, '${front}');
         window.close();
       </script>
     `);
 
   } catch (error) {
     logger.error('University OAuth callback failed:', error);
+    const front = getFrontendBaseUrl(req);
     res.send(`
       <script>
         window.opener.postMessage({
           type: 'university-auth-error',
           error: '${error.message}'
-        }, '${process.env.NODE_ENV === 'production' ? 'https://yourdomain.com' : 'http://localhost:3000'}');
+        }, '${front}');
         window.close();
       </script>
     `);
@@ -656,10 +672,8 @@ app.get('/auth/me', optionalAuth, (req, res) => {
 });
 
 // Service integration routes
-// In-memory store for user service connections (in production, use a database)
+// Legacy in-memory store retained for services not yet migrated (e.g., university)
 const userConnections = new Map();
-
-// Helper function to get user connections
 function getUserConnections(userId) {
   if (!userConnections.has(userId)) {
     userConnections.set(userId, {
@@ -674,35 +688,32 @@ function getUserConnections(userId) {
       claude: null,
       gemini: null,
       ollama: null,
-      drawthings: null
+      drawthings: null,
+      university: null,
     });
   }
   return userConnections.get(userId);
 }
 
 // Get user's connected services
-app.get('/api/services', requireAuth, (req, res) => {
-  const connections = getUserConnections(req.user.email);
-  const connectedServices = {};
-  
-  for (const [service, connection] of Object.entries(connections)) {
-    connectedServices[service] = {
-      connected: !!connection,
-      info: connection
-        ? {
-            name: connection.name || service,
-            transport: connection.transport,
-            url: connection.url
-          }
-        : null
-    };
+app.get('/api/services', requireAuth, async (req, res) => {
+  try {
+    const dbMap = await tokenStore.listConnected(req.user.email);
+    // Add university if stored in memory legacy (optional): omitted for simplicity
+    const out = {};
+    for (const [service, entry] of Object.entries(dbMap)) {
+      out[service] = { connected: true, info: entry.info || null };
+    }
+    res.json(out);
+  } catch (e) {
+    logger.error('Failed to list services:', e);
+    // Degrade gracefully in dev when MongoDB is not installed/configured
+    res.json({});
   }
-  
-  res.json(connectedServices);
 });
 
 // Generic OAuth initiation endpoint
-app.post('/api/services/:service/connect', requireAuth, (req, res) => {
+app.post('/api/services/:service/connect', requireAuth, async (req, res) => {
   const { service } = req.params;
   const { apiKey, url } = req.body;
   
@@ -753,14 +764,7 @@ app.post('/api/services/:service/connect', requireAuth, (req, res) => {
   
   // Handle API key based services
   if (apiKey && ['openai', 'claude', 'gemini'].includes(service)) {
-    const connections = getUserConnections(req.user.email);
-    connections[service] = {
-      type: 'api_key',
-      name: service.charAt(0).toUpperCase() + service.slice(1),
-      apiKey: apiKey,
-      connectedAt: new Date().toISOString()
-    };
-    
+    await tokenStore.upsertApiKey(req.user.email, service, apiKey, { name: service });
     return res.json({ success: true, message: `${service} connected successfully` });
   }
 
@@ -774,16 +778,8 @@ app.post('/api/services/:service/connect', requireAuth, (req, res) => {
     const inferredTransport = endpoint.startsWith('grpc') ? 'grpc' : 'http';
     const transport = ['http', 'grpc'].includes(rawTransport) ? rawTransport : inferredTransport;
 
-    const connections = getUserConnections(req.user.email);
     const connectionName = transport === 'grpc' ? 'DrawThings (gRPC)' : 'DrawThings (HTTP)';
-
-    connections[service] = {
-      type: 'endpoint',
-      name: connectionName,
-      url: endpoint,
-      transport,
-      connectedAt: new Date().toISOString()
-    };
+    await tokenStore.upsertEndpoint(req.user.email, service, { url: endpoint, transport, info: { name: connectionName } });
 
     return res.json({
       success: true,
@@ -798,27 +794,12 @@ app.post('/api/services/:service/connect', requireAuth, (req, res) => {
 
   // Handle Ollama connection (URL for local, API key for cloud)
   if (service === 'ollama') {
-    const connections = getUserConnections(req.user.email);
 
     if (url) {
-      // Local Ollama instance
-      connections[service] = {
-        type: 'url',
-        name: 'Ollama (Local)',
-        url: url,
-        connectedAt: new Date().toISOString()
-      };
+      await tokenStore.upsertEndpoint(req.user.email, service, { url, transport: 'http', info: { name: 'Ollama (Local)' } });
       return res.json({ success: true, message: 'Ollama (Local) connected successfully' });
     } else if (apiKey) {
-      // Ollama Cloud API
-      connections[service] = {
-        type: 'api_key',
-        name: 'Ollama (Cloud)',
-        apiKey: apiKey,
-        apiUrl: 'https://ollama.com/api',
-        connectedAt: new Date().toISOString(),
-        features: ['web_search', 'web_fetch', 'cloud_models']
-      };
+      await tokenStore.upsertApiKey(req.user.email, service, apiKey, { name: 'Ollama (Cloud)', apiUrl: 'https://ollama.com/api', features: ['web_search', 'web_fetch', 'cloud_models'] });
       return res.json({ success: true, message: 'Ollama (Cloud) connected successfully' });
     } else {
       return res.status(400).json({ error: 'Either URL (for local) or API key (for cloud) is required for Ollama' });
@@ -832,6 +813,7 @@ app.post('/api/services/:service/connect', requireAuth, (req, res) => {
   }
   
   const redirectUri = `${getBaseUrl(req)}/api/services/${service}/callback`;
+  logger.info(`OAuth start for ${service}`, { redirectUri, baseUrl: getBaseUrl(req) });
   const state = `${req.user.email}:${Date.now()}`; // Simple state for CSRF protection
   
   let authUrl;
@@ -851,6 +833,34 @@ app.post('/api/services/:service/connect', requireAuth, (req, res) => {
   res.json({ authUrl });
 });
 
+// Report OAuth configuration readiness and redirect URIs
+app.get('/api/services/config', requireAuth, (req, res) => {
+  const baseUrl = getBaseUrl(req);
+  const required = {
+    github: ['GITHUB_CLIENT_ID', 'GITHUB_CLIENT_SECRET'],
+    notion: ['NOTION_CLIENT_ID', 'NOTION_CLIENT_SECRET'],
+    figma: ['FIGMA_CLIENT_ID', 'FIGMA_CLIENT_SECRET'],
+    googleDrive: ['GOOGLE_CLIENT_ID', 'GOOGLE_CLIENT_SECRET'],
+    googlePhotos: ['GOOGLE_CLIENT_ID', 'GOOGLE_CLIENT_SECRET'],
+    googleCalendar: ['GOOGLE_CLIENT_ID', 'GOOGLE_CLIENT_SECRET'],
+    gmail: ['GOOGLE_CLIENT_ID', 'GOOGLE_CLIENT_SECRET'],
+  };
+
+  const redirect = (service) => `${baseUrl}/api/services/${service}/callback`;
+
+  const config = {};
+  for (const [service, vars] of Object.entries(required)) {
+    const missing = vars.filter((v) => !process.env[v]);
+    config[service] = {
+      configured: missing.length === 0,
+      missing,
+      redirectUri: redirect(service),
+    };
+  }
+
+  res.json(config);
+});
+
 // Special handler for Notion OAuth redirect (before general routes)
 app.get('/auth/notion/callback', async (req, res) => {
   // Redirect Notion OAuth to the standard callback endpoint
@@ -864,16 +874,19 @@ app.get('/api/services/:service/callback', async (req, res) => {
   const { code, state, error } = req.query;
   
   if (error) {
-    return res.redirect(`/?error=oauth_error&service=${service}`);
+    const front = getFrontendBaseUrl(req);
+    return res.redirect(`${front}/?error=oauth_error&service=${service}`);
   }
   
   if (!code || !state) {
-    return res.redirect(`/?error=missing_params&service=${service}`);
+    const front = getFrontendBaseUrl(req);
+    return res.redirect(`${front}/?error=missing_params&service=${service}`);
   }
   
   const [userEmail] = state.split(':');
   if (!userEmail) {
-    return res.redirect(`/?error=invalid_state&service=${service}`);
+    const front = getFrontendBaseUrl(req);
+    return res.redirect(`${front}/?error=invalid_state&service=${service}`);
   }
   
   try {
@@ -910,6 +923,12 @@ app.get('/api/services/:service/callback', async (req, res) => {
           redirect_uri: redirectUri
         })
       });
+      if (!response.ok) {
+        const text = await response.text();
+        logger.error('Notion token exchange failed', { status: response.status, text });
+        const front = getFrontendBaseUrl(req);
+        return res.redirect(`${front}/?error=token_exchange&service=${service}`);
+      }
       tokenResponse = await response.json();
     } else if (service === 'figma') {
       const response = await fetch('https://www.figma.com/api/oauth/token', {
@@ -948,43 +967,40 @@ app.get('/api/services/:service/callback', async (req, res) => {
     
     if (tokenResponse.error) {
       logger.error(`OAuth error for ${service}:`, tokenResponse.error);
-      return res.redirect(`/?error=token_exchange&service=${service}`);
+      const front = getFrontendBaseUrl(req);
+      return res.redirect(`${front}/?error=token_exchange&service=${service}`);
     }
     
-    // Store the connection
-    const connections = getUserConnections(userEmail);
-    connections[service] = {
-      type: 'oauth',
+    // Persist the connection securely
+    await tokenStore.upsertOAuthToken(userEmail, service, {
       accessToken: tokenResponse.access_token,
       refreshToken: tokenResponse.refresh_token,
-      expiresAt: tokenResponse.expires_in ? Date.now() + (tokenResponse.expires_in * 1000) : null,
-      scope: tokenResponse.scope,
-      connectedAt: new Date().toISOString(),
-      name: service.charAt(0).toUpperCase() + service.slice(1)
-    };
+      scopes: (tokenResponse.scope || '').split(' ').filter(Boolean),
+      expiresAt: tokenResponse.expires_in ? new Date(Date.now() + tokenResponse.expires_in * 1000).toISOString() : null,
+      info: { name: service.charAt(0).toUpperCase() + service.slice(1) }
+    });
     
     logger.info(`Successfully connected ${service} for user ${userEmail}`);
-    const frontendUrl = process.env.NODE_ENV === 'production' ? 'https://yourdomain.com' : 'http://localhost:3000';
-    res.redirect(`${frontendUrl}/?success=connected&service=${service}`);
+    const front = getFrontendBaseUrl(req);
+    res.redirect(`${front}/?success=connected&service=${service}`);
     
   } catch (error) {
     logger.error(`Error during ${service} OAuth callback:`, error);
-    const frontendUrl = process.env.NODE_ENV === 'production' ? 'https://yourdomain.com' : 'http://localhost:3000';
-    res.redirect(`${frontendUrl}/?error=callback_error&service=${service}`);
+    const front = getFrontendBaseUrl(req);
+    res.redirect(`${front}/?error=callback_error&service=${service}`);
   }
 });
 
 // Disconnect a service
-app.delete('/api/services/:service', requireAuth, (req, res) => {
+app.delete('/api/services/:service', requireAuth, async (req, res) => {
   const { service } = req.params;
-  const connections = getUserConnections(req.user.email);
-  
-  if (connections[service]) {
-    connections[service] = null;
+  try {
+    await tokenStore.removeProvider(req.user.email, service);
     logger.info(`Disconnected ${service} for user ${req.user.email}`);
     res.json({ success: true, message: `${service} disconnected successfully` });
-  } else {
-    res.status(404).json({ error: 'Service not connected' });
+  } catch (e) {
+    logger.error('Failed to disconnect:', e);
+    res.status(500).json({ error: 'Failed to disconnect service' });
   }
 });
 
@@ -1085,6 +1101,162 @@ app.post('/api/services/:service/test', requireAuth, async (req, res) => {
   }
 });
 
+// Google Drive: list files
+app.get('/api/services/googleDrive/files', requireAuth, async (req, res) => {
+  try {
+    const { folderId = 'root', q = '', pageToken = '' } = req.query;
+    const accessToken = await ensureGoogleAccessToken(req.user.email, 'googleDrive', { clientId: process.env.GOOGLE_CLIENT_ID, clientSecret: process.env.GOOGLE_CLIENT_SECRET });
+    if (!accessToken) {
+      return res.status(400).json({ error: 'Google Drive not connected' });
+    }
+
+    const params = new URLSearchParams();
+    const baseQuery = folderId === 'root' ? `'root' in parents` : `'${folderId}' in parents`;
+    const query = [baseQuery, 'trashed = false', q ? `name contains '${q.replace(/'/g, "\'")}'` : '']
+      .filter(Boolean)
+      .join(' and ');
+
+    params.set('q', query);
+    params.set('orderBy', 'modifiedTime desc');
+    params.set('pageSize', '50');
+    if (pageToken) params.set('pageToken', pageToken);
+    params.set('fields', 'files(id,name,mimeType,modifiedTime,size,iconLink,thumbnailLink,webViewLink,parents),nextPageToken');
+
+    const url = `https://www.googleapis.com/drive/v3/files?${params.toString()}`;
+    const resp = await fetch(url, { headers: { Authorization: `Bearer ${accessToken}` } });
+    if (!resp.ok) {
+      const text = await resp.text();
+      return res.status(resp.status).json({ error: 'Drive API error', details: text });
+    }
+    const json = await resp.json();
+    const items = (json.files || []).map((f) => ({
+      id: f.id,
+      name: f.name,
+      kind: f.mimeType === 'application/vnd.google-apps.folder' ? 'folder' : 'file',
+      mimeType: f.mimeType,
+      modifiedTime: f.modifiedTime,
+      size: f.size,
+      icon: f.mimeType === 'application/vnd.google-apps.folder' ? 'folder' : 'description',
+      thumbnailLink: f.thumbnailLink,
+      webViewLink: f.webViewLink,
+      parents: f.parents || [],
+    }));
+    res.json({ files: items, nextPageToken: json.nextPageToken || null });
+  } catch (err) {
+    logger.error('Drive list error:', err);
+    res.status(500).json({ error: 'Failed to list Drive files', details: err.message });
+  }
+});
+
+// Google Photos: list albums
+app.get('/api/services/googlePhotos/albums', requireAuth, async (req, res) => {
+  try {
+    const accessToken = await ensureGoogleAccessToken(req.user.email, 'googlePhotos', { clientId: process.env.GOOGLE_CLIENT_ID, clientSecret: process.env.GOOGLE_CLIENT_SECRET });
+    if (!accessToken) {
+      return res.status(400).json({ error: 'Google Photos not connected' });
+    }
+    const params = new URLSearchParams({ pageSize: '50' });
+    const resp = await fetch(`https://photoslibrary.googleapis.com/v1/albums?${params.toString()}`, { headers: { Authorization: `Bearer ${accessToken}` } });
+    if (!resp.ok) {
+      const text = await resp.text();
+      return res.status(resp.status).json({ error: 'Photos API error', details: text });
+    }
+    const json = await resp.json();
+    const items = (json.albums || []).map((a) => ({
+      id: a.id,
+      title: a.title,
+      count: Number(a.mediaItemsCount || 0),
+      coverPhotoBaseUrl: a.coverPhotoBaseUrl || null,
+    }));
+    res.json({ albums: items, nextPageToken: json.nextPageToken || null });
+  } catch (err) {
+    logger.error('Photos albums error:', err);
+    res.status(500).json({ error: 'Failed to list Photos albums', details: err.message });
+  }
+});
+
+// Google Photos: list media items in album
+app.get('/api/services/googlePhotos/mediaItems', requireAuth, async (req, res) => {
+  try {
+    const { albumId, pageToken = '' } = req.query;
+    const accessToken = await ensureGoogleAccessToken(req.user.email, 'googlePhotos', { clientId: process.env.GOOGLE_CLIENT_ID, clientSecret: process.env.GOOGLE_CLIENT_SECRET });
+    if (!accessToken) {
+      return res.status(400).json({ error: 'Google Photos not connected' });
+    }
+    if (!albumId) {
+      return res.status(400).json({ error: 'albumId is required' });
+    }
+    const body = { albumId, pageSize: 50 };
+    if (pageToken) body.pageToken = pageToken;
+    const resp = await fetch(`https://photoslibrary.googleapis.com/v1/mediaItems:search`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(body),
+    });
+    if (!resp.ok) {
+      const text = await resp.text();
+      return res.status(resp.status).json({ error: 'Photos API error', details: text });
+    }
+    const json = await resp.json();
+    const items = (json.mediaItems || []).map((m) => ({
+      id: m.id,
+      mimeType: m.mimeType,
+      filename: m.filename,
+      baseUrl: m.baseUrl,
+      description: m.description || '',
+    }));
+    res.json({ mediaItems: items, nextPageToken: json.nextPageToken || null });
+  } catch (err) {
+    logger.error('Photos mediaItems error:', err);
+    res.status(500).json({ error: 'Failed to list Photos media items', details: err.message });
+  }
+});
+
+// Gmail: list messages (INBOX)
+app.get('/api/services/gmail/messages', requireAuth, async (req, res) => {
+  try {
+    const { maxResults = '10', q = '', labelIds = 'INBOX' } = req.query;
+    const accessToken = await ensureGoogleAccessToken(req.user.email, 'gmail', { clientId: process.env.GOOGLE_CLIENT_ID, clientSecret: process.env.GOOGLE_CLIENT_SECRET });
+    if (!accessToken) {
+      return res.status(400).json({ error: 'Gmail not connected' });
+    }
+
+    const listParams = new URLSearchParams({ maxResults: String(maxResults), labelIds, q });
+    const listResp = await fetch(`https://gmail.googleapis.com/gmail/v1/users/me/messages?${listParams.toString()}`, { headers: { Authorization: `Bearer ${accessToken}` } });
+    if (!listResp.ok) {
+      const text = await listResp.text();
+      return res.status(listResp.status).json({ error: 'Gmail API error', details: text });
+    }
+    const listJson = await listResp.json();
+    const ids = (listJson.messages || []).map((m) => m.id);
+    const results = [];
+    for (const id of ids) {
+      const msgResp = await fetch(`https://gmail.googleapis.com/gmail/v1/users/me/messages/${id}?format=metadata&metadataHeaders=Subject&metadataHeaders=From&metadataHeaders=Date&metadataHeaders=To`, { headers: { Authorization: `Bearer ${accessToken}` } });
+      if (!msgResp.ok) continue;
+      const msg = await msgResp.json();
+      const headers = Object.fromEntries((msg.payload?.headers || []).map(h => [h.name, h.value]));
+      results.push({
+        id: msg.id,
+        threadId: msg.threadId,
+        snippet: msg.snippet,
+        subject: headers.Subject || '(no subject)',
+        from: headers.From || '',
+        to: headers.To || '',
+        date: headers.Date || '',
+        labelIds: msg.labelIds || [],
+        unread: (msg.labelIds || []).includes('UNREAD'),
+      });
+    }
+    res.json({ messages: results });
+  } catch (err) {
+    logger.error('Gmail list error:', err);
+    res.status(500).json({ error: 'Failed to list Gmail messages', details: err.message });
+  }
+});
+
 // Expose the /metrics endpoint for Prometheus scraping
 app.get('/metrics', async (req, res) => {
   try {
@@ -1149,24 +1321,23 @@ app.post('/api/image/generate', requireAuth, async (req, res) => {
       }
 
       const request = {
-        model: resolvedModel || DEFAULT_IMAGE_MODELS.gemini || 'gemini-2.5-flash-image-preview',
-        contents: {
-          parts: [
-            {
-              inlineData: {
-                data: parsedImage.base64,
-                mimeType: parsedImage.mimeType || 'image/png'
-              }
-            },
-            { text: prompt }
-          ]
-        },
+        model: resolvedModel || 'gemini-2.5-flash-image-preview',
+        contents: [
+          {
+            parts: [
+              {
+                inlineData: {
+                  data: parsedImage.base64,
+                  mimeType: parsedImage.mimeType || 'image/png'
+                }
+              },
+              { text: prompt }
+            ]
+          }
+        ],
+        config: { responseModalities: ['IMAGE', 'TEXT'] },
         safetySettings: GEMINI_SAFETY_SETTINGS
       };
-
-      if ((request.model || '').includes('image')) {
-        request.config = { responseModalities: ['IMAGE', 'TEXT'] };
-      }
 
       const response = await geminiClient.models.generateContent(request);
       const candidate = response?.candidates?.[0];
@@ -1590,6 +1761,236 @@ app.post('/api/chat', requireAuth, async (req, res) => {
   }
 });
 
+// Chat endpoint with tool calling support
+app.post('/api/chat/tools', requireAuth, async (req, res) => {
+  const end = httpRequestDurationMicroseconds.startTimer();
+  try {
+    const { model, messages, systemPrompt, tools, provider } = req.body;
+
+    if (!model || !messages) {
+      return res.status(400).json({ error: 'Missing model or messages' });
+    }
+
+    const connections = getUserConnections(req.user.email);
+
+    // Route to appropriate provider with tool support
+    let response, toolCalls;
+
+    if (provider === 'gemini' || model.startsWith('gemini-')) {
+      // Gemini with tools
+      const geminiContents = messages.map(msg => {
+        if (msg.role === 'tool') {
+          return {
+            role: 'function',
+            parts: msg.toolResults.map(tr => ({
+              functionResponse: {
+                name: tr.name,
+                response: tr.result
+              }
+            }))
+          };
+        }
+        return {
+          role: msg.role === 'assistant' ? 'model' : 'user',
+          parts: msg.toolCalls ?
+            msg.toolCalls.map(tc => ({ functionCall: { name: tc.name, args: tc.args } })) :
+            [{ text: msg.content }]
+        };
+      });
+
+      if (systemPrompt) {
+        geminiContents.unshift({
+          role: 'user',
+          parts: [{ text: systemPrompt }]
+        });
+      }
+
+      const requestConfig = {
+        model,
+        contents: geminiContents
+      };
+
+      if (tools && tools.length > 0) {
+        requestConfig.tools = [{
+          functionDeclarations: tools.map(t => ({
+            name: t.name,
+            description: t.description,
+            parameters: t.parameters
+          }))
+        }];
+      }
+
+      const geminiResponse = await ai.models.generateContent(requestConfig);
+      const candidate = geminiResponse.candidates[0];
+
+      // Check for function calls
+      const functionCalls = candidate.content.parts.filter(p => p.functionCall);
+      if (functionCalls.length > 0) {
+        toolCalls = functionCalls.map((fc, idx) => ({
+          id: `call_${Date.now()}_${idx}`,
+          name: fc.functionCall.name,
+          args: fc.functionCall.args
+        }));
+        response = ''; // No text when making function calls
+      } else {
+        response = candidate.content.parts[0]?.text || '';
+      }
+
+    } else if (provider === 'openai' || model.startsWith('gpt-')) {
+      // OpenAI with tools
+      const connection = connections.openai;
+      if (!connection?.apiKey) {
+        return res.status(400).json({ error: 'OpenAI not connected' });
+      }
+
+      const openaiMessages = messages.map(msg => {
+        if (msg.role === 'tool') {
+          return msg.toolResults.map(tr => ({
+            role: 'tool',
+            tool_call_id: tr.toolCallId,
+            content: JSON.stringify(tr.result)
+          }));
+        }
+        if (msg.toolCalls) {
+          return {
+            role: 'assistant',
+            tool_calls: msg.toolCalls.map(tc => ({
+              id: tc.id,
+              type: 'function',
+              function: {
+                name: tc.name,
+                arguments: JSON.stringify(tc.args)
+              }
+            }))
+          };
+        }
+        return {
+          role: msg.role,
+          content: msg.content
+        };
+      }).flat();
+
+      if (systemPrompt) {
+        openaiMessages.unshift({ role: 'system', content: systemPrompt });
+      }
+
+      const requestBody = {
+        model,
+        messages: openaiMessages
+      };
+
+      if (tools && tools.length > 0) {
+        requestBody.tools = tools.map(t => ({
+          type: 'function',
+          function: {
+            name: t.name,
+            description: t.description,
+            parameters: t.parameters
+          }
+        }));
+      }
+
+      const openaiResponse = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${connection.apiKey}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(requestBody)
+      });
+
+      const data = await openaiResponse.json();
+      if (!openaiResponse.ok) {
+        throw new Error(data.error?.message || 'OpenAI API error');
+      }
+
+      const message = data.choices[0].message;
+      if (message.tool_calls) {
+        toolCalls = message.tool_calls.map(tc => ({
+          id: tc.id,
+          name: tc.function.name,
+          args: JSON.parse(tc.function.arguments)
+        }));
+        response = '';
+      } else {
+        response = message.content;
+      }
+
+    } else if (provider === 'claude' || model.startsWith('claude-')) {
+      // Claude with tools
+      const connection = connections.claude;
+      if (!connection?.apiKey) {
+        return res.status(400).json({ error: 'Claude not connected' });
+      }
+
+      const claudeMessages = messages.filter(msg => msg.role !== 'tool').map(msg => ({
+        role: msg.role === 'model' ? 'assistant' : msg.role,
+        content: msg.toolCalls ?
+          msg.toolCalls.map(tc => ({
+            type: 'tool_use',
+            id: tc.id,
+            name: tc.name,
+            input: tc.args
+          })) :
+          msg.content
+      }));
+
+      const requestBody = {
+        model,
+        messages: claudeMessages,
+        max_tokens: 2000,
+        system: systemPrompt
+      };
+
+      if (tools && tools.length > 0) {
+        requestBody.tools = tools.map(t => ({
+          name: t.name,
+          description: t.description,
+          input_schema: t.parameters
+        }));
+      }
+
+      const claudeResponse = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: {
+          'x-api-key': connection.apiKey,
+          'anthropic-version': '2023-06-01',
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(requestBody)
+      });
+
+      const data = await claudeResponse.json();
+      if (!claudeResponse.ok) {
+        throw new Error(data.error?.message || 'Claude API error');
+      }
+
+      const toolUses = data.content.filter(c => c.type === 'tool_use');
+      if (toolUses.length > 0) {
+        toolCalls = toolUses.map(tu => ({
+          id: tu.id,
+          name: tu.name,
+          args: tu.input
+        }));
+        response = '';
+      } else {
+        response = data.content.find(c => c.type === 'text')?.text || '';
+      }
+    }
+
+    res.json({ response, toolCalls });
+
+  } catch (error) {
+    logger.error('Error in tool calling endpoint:', { errorMessage: error.message });
+    if (!res.headersSent) {
+      res.status(500).json({ error: error.message });
+    }
+  } finally {
+    end({ route: '/api/chat/tools', code: res.statusCode, method: 'POST' });
+    httpRequestsTotal.inc({ route: '/api/chat/tools', code: res.statusCode, method: 'POST' });
+  }
+});
+
 // Planner workflow generation endpoint
 app.post('/api/planner/generate-from-context', requireAuth, async (req, res) => {
   try {
@@ -1712,42 +2113,38 @@ app.get('/api/models', requireAuth, async (req, res) => {
       );
     }
 
-    // Ollama models (if connected) - fetch from the instance
-    if (connections.ollama) {
-      try {
-        if (connections.ollama.type === 'url') {
-          // Local Ollama instance
-          const resp = await fetch(`${connections.ollama.url}/api/tags`);
-          if (resp.ok) {
-            const data = await resp.json();
-            const TEXT_EXCLUDES = [
-              'embed','embedding','nomic','bge','e5','gte','gte-','all-minilm','text-embed',
-              'llava','moondream','whisper','audiodec','sd-','flux','llm-vision'
-            ];
-            const isTextish = (n) => !TEXT_EXCLUDES.some(x => n.includes(x));
-            const ollamaModels = (data.models || [])
-              .map(m => (m?.name || '').toLowerCase())
-              .filter(n => isTextish(n))
-              .map(n => ({
-                id: n,
-                name: n.split(':')[0] || n,
-                provider: 'Ollama',
-                category: 'text',
-                available: true
-              }));
-            availableModels.push(...ollamaModels);
-          }
-        } else if (connections.ollama.type === 'api_key') {
-          // Ollama Cloud - add some common cloud models
-          availableModels.push(
-            { id: 'qwen3:480b-cloud', name: 'Qwen 3 480B', provider: 'Ollama Cloud', category: 'text', available: true },
-            { id: 'gpt-oss', name: 'GPT OSS', provider: 'Ollama Cloud', category: 'text', available: true }
-          );
-        }
-      } catch (ollamaError) {
-        logger.warn('Failed to fetch Ollama models:', ollamaError.message);
-        // Don't fail the entire request if Ollama is unreachable
+    // Ollama models - always try to fetch from localhost or configured URL
+    try {
+      // Use configured URL if available, otherwise try default localhost
+      const ollamaUrl = connections.ollama?.url || 'http://localhost:11434';
+
+      const resp = await fetch(`${ollamaUrl}/api/tags`, {
+        signal: AbortSignal.timeout(2000) // 2 second timeout
+      });
+
+      if (resp.ok) {
+        const data = await resp.json();
+        const TEXT_EXCLUDES = [
+          'embed','embedding','nomic','bge','e5','gte','gte-','all-minilm','text-embed',
+          'llava','moondream','whisper','audiodec','sd-','flux','llm-vision'
+        ];
+        const isTextish = (n) => !TEXT_EXCLUDES.some(x => n.includes(x));
+        const ollamaModels = (data.models || [])
+          .map(m => (m?.name || '').toLowerCase())
+          .filter(n => isTextish(n))
+          .map(n => ({
+            id: n,
+            name: n.split(':')[0] || n,
+            provider: 'Ollama',
+            category: 'text',
+            available: true
+          }));
+        availableModels.push(...ollamaModels);
+        logger.info(`Discovered ${ollamaModels.length} Ollama models at ${ollamaUrl}`);
       }
+    } catch (ollamaError) {
+      // Silently fail - Ollama is optional
+      logger.debug('Ollama not available:', ollamaError.message);
     }
 
     // Hugging Face models (if connected)
@@ -1948,6 +2345,7 @@ app.post('/api/embeddings/ollama', requireAuth, async (req, res) => {
 import fs from 'fs';
 import fsp from 'fs/promises';
 const RAG_PATH = path.join(__dirname, 'data', 'rag-store.json');
+const ARCHIVAI_MOCK_DIR = path.join(__dirname, 'data', 'archivai-mock');
 async function ensureRagFile() {
   try {
     await fsp.mkdir(path.join(__dirname, 'data'), { recursive: true });
@@ -1965,6 +2363,87 @@ function cosineSim(a, b) {
   if (na === 0 || nb === 0) return 0;
   return dot / (Math.sqrt(na) * Math.sqrt(nb));
 }
+
+// Ensure ArchivAI mock directory exists
+async function ensureArchivaMockDir() {
+  try {
+    await fsp.mkdir(ARCHIVAI_MOCK_DIR, { recursive: true });
+  } catch (e) {
+    logger.error('Failed to ensure archivai-mock dir:', e.message);
+  }
+}
+
+function slugify(s = '') {
+  return String(s)
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/(^-|-$)+/g, '');
+}
+
+// Save mock ArchivAI output to disk for local testing
+app.post('/api/archivai/mock', requireAuth, async (req, res) => {
+  try {
+    const { templateKey, templateName, title, values, md, html, meta } = req.body || {};
+    if (!md && !html) {
+      return res.status(400).json({ error: 'Missing md or html content' });
+    }
+    await ensureArchivaMockDir();
+
+    const ts = Date.now();
+    const baseSlug = slugify(title || templateName || templateKey || 'archivai');
+    const dirName = `${ts}_${baseSlug || 'entry'}`;
+    const dir = path.join(ARCHIVAI_MOCK_DIR, dirName);
+    await fsp.mkdir(dir, { recursive: true });
+
+    const metaObj = {
+      id: dirName,
+      templateKey: templateKey || null,
+      templateName: templateName || null,
+      title: title || null,
+      createdAt: new Date(ts).toISOString(),
+      meta: meta || {},
+      values: values || {}
+    };
+
+    const writes = [
+      fsp.writeFile(path.join(dir, 'meta.json'), JSON.stringify(metaObj, null, 2), 'utf-8')
+    ];
+    if (md) writes.push(fsp.writeFile(path.join(dir, 'content.md'), String(md), 'utf-8'));
+    if (html) writes.push(fsp.writeFile(path.join(dir, 'content.html'), String(html), 'utf-8'));
+    await Promise.all(writes);
+
+    res.json({ success: true, id: dirName, relPath: `data/archivai-mock/${dirName}` });
+  } catch (error) {
+    logger.error('Failed to save ArchivAI mock:', error);
+    res.status(500).json({ error: 'Failed to save mock entry' });
+  }
+});
+
+// List mock ArchivAI entries
+app.get('/api/archivai/mock', requireAuth, async (_req, res) => {
+  try {
+    await ensureArchivaMockDir();
+    const entries = [];
+    const dirs = await fsp.readdir(ARCHIVAI_MOCK_DIR, { withFileTypes: true });
+    for (const d of dirs) {
+      if (!d.isDirectory()) continue;
+      const id = d.name;
+      const metaPath = path.join(ARCHIVAI_MOCK_DIR, id, 'meta.json');
+      try {
+        const meta = JSON.parse(await fsp.readFile(metaPath, 'utf-8'));
+        entries.push({ id, title: meta.title, templateKey: meta.templateKey, createdAt: meta.createdAt });
+      } catch {
+        entries.push({ id, title: id, templateKey: null, createdAt: null });
+      }
+    }
+    entries.sort((a, b) => String(b.id).localeCompare(String(a.id)));
+    res.json({ items: entries, total: entries.length });
+  } catch (error) {
+    logger.error('Failed to list ArchivAI mocks:', error);
+    res.status(500).json({ error: 'Failed to list mock entries' });
+  }
+});
 async function loadRag() {
   await ensureRagFile();
   const buf = await fsp.readFile(RAG_PATH, 'utf-8');
@@ -2071,6 +2550,291 @@ app.post('/api/rag/query', requireAuth, async (req, res) => {
   } catch (error) {
     logger.error('RAG query error:', { errorMessage: error.message });
     res.status(500).json({ error: error.message });
+  }
+});
+
+// Research Papers Tool - Fetch from ArXiv, HuggingFace, Semantic Scholar, GitHub
+app.post('/api/tools/research-papers', requireAuth, async (req, res) => {
+  try {
+    const {
+      topic,
+      sources = ['arxiv', 'huggingface', 'semantic_scholar'],
+      max_results = 5,
+      save_to_knowledge = false,
+      module_id
+    } = req.body;
+
+    if (!topic) {
+      return res.status(400).json({ error: 'Missing "topic" in request body' });
+    }
+
+    const papers = [];
+    const resources = [];
+    const sources_searched = [];
+
+    // Helper function to save to knowledge base
+    const saveToKnowledge = async (items) => {
+      if (!save_to_knowledge || !module_id) return false;
+
+      try {
+        const ragItems = items.map(item => ({
+          text: `${item.title}\n\n${item.summary || item.abstract || item.description || ''}\n\nAuthors: ${item.authors?.join(', ') || 'N/A'}\nURL: ${item.url}`,
+          moduleId: module_id,
+          metadata: {
+            type: 'research_paper',
+            source: item.source,
+            title: item.title,
+            authors: item.authors,
+            url: item.url,
+            published: item.published
+          }
+        }));
+
+        for (const item of ragItems) {
+          await fetch(`${req.protocol}://${req.get('host')}/api/rag/upsert`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': req.headers.authorization
+            },
+            body: JSON.stringify(item)
+          });
+        }
+
+        return true;
+      } catch (error) {
+        logger.warn('Failed to save research papers to knowledge base:', error);
+        return false;
+      }
+    };
+
+    // 1. ArXiv
+    if (sources.includes('arxiv')) {
+      try {
+        const arxivUrl = `http://export.arxiv.org/api/query?search_query=all:${encodeURIComponent(topic)}&start=0&max_results=${max_results}`;
+        const arxivResponse = await fetch(arxivUrl);
+        const arxivXml = await arxivResponse.text();
+
+        // Parse XML (simplified - in production use xml2js or similar)
+        const entries = arxivXml.match(/<entry>(.*?)<\/entry>/gs) || [];
+
+        entries.slice(0, max_results).forEach(entry => {
+          const title = entry.match(/<title>(.*?)<\/title>/s)?.[1]?.trim().replace(/\s+/g, ' ');
+          const summary = entry.match(/<summary>(.*?)<\/summary>/s)?.[1]?.trim().replace(/\s+/g, ' ');
+          const published = entry.match(/<published>(.*?)<\/published>/)?.[1];
+          const id = entry.match(/<id>(.*?)<\/id>/)?.[1];
+          const authors = entry.match(/<name>(.*?)<\/name>/g)?.map(a => a.replace(/<\/?name>/g, '').trim()) || [];
+
+          if (title && id) {
+            papers.push({
+              source: 'arxiv',
+              title,
+              summary,
+              authors,
+              url: id,
+              published
+            });
+          }
+        });
+
+        sources_searched.push('arxiv');
+        logger.info(`ArXiv search found ${papers.length} papers`);
+      } catch (error) {
+        logger.warn('ArXiv search failed:', error.message);
+      }
+    }
+
+    // 2. HuggingFace Papers
+    if (sources.includes('huggingface')) {
+      try {
+        const hfUrl = `https://huggingface.co/api/papers?search=${encodeURIComponent(topic)}&limit=${max_results}`;
+        const hfResponse = await fetch(hfUrl);
+        const hfData = await hfResponse.json();
+
+        if (Array.isArray(hfData)) {
+          hfData.slice(0, max_results).forEach(paper => {
+            papers.push({
+              source: 'huggingface',
+              title: paper.title,
+              summary: paper.summary || paper.abstract,
+              authors: paper.authors || [],
+              url: `https://huggingface.co/papers/${paper.id}`,
+              published: paper.publishedAt
+            });
+          });
+        }
+
+        sources_searched.push('huggingface');
+        logger.info(`HuggingFace search found ${hfData?.length || 0} papers`);
+      } catch (error) {
+        logger.warn('HuggingFace search failed:', error.message);
+      }
+    }
+
+    // 3. Semantic Scholar
+    if (sources.includes('semantic_scholar')) {
+      try {
+        const ssUrl = `https://api.semanticscholar.org/graph/v1/paper/search?query=${encodeURIComponent(topic)}&limit=${max_results}&fields=title,abstract,authors,url,year,publicationDate`;
+        const ssResponse = await fetch(ssUrl);
+        const ssData = await ssResponse.json();
+
+        if (ssData.data) {
+          ssData.data.slice(0, max_results).forEach(paper => {
+            papers.push({
+              source: 'semantic_scholar',
+              title: paper.title,
+              summary: paper.abstract,
+              authors: paper.authors?.map(a => a.name) || [],
+              url: paper.url || `https://www.semanticscholar.org/paper/${paper.paperId}`,
+              published: paper.publicationDate || paper.year
+            });
+          });
+        }
+
+        sources_searched.push('semantic_scholar');
+        logger.info(`Semantic Scholar search found ${ssData.data?.length || 0} papers`);
+      } catch (error) {
+        logger.warn('Semantic Scholar search failed:', error.message);
+      }
+    }
+
+    // 4. GitHub Awesome Lists
+    if (sources.includes('github_awesome')) {
+      try {
+        const ghUrl = `https://api.github.com/search/repositories?q=awesome+${encodeURIComponent(topic)}&sort=stars&order=desc&per_page=${max_results}`;
+        const ghResponse = await fetch(ghUrl, {
+          headers: {
+            'Accept': 'application/vnd.github.v3+json',
+            'User-Agent': 'GenBooth-IdeaLab'
+          }
+        });
+        const ghData = await ghResponse.json();
+
+        if (ghData.items) {
+          ghData.items.slice(0, max_results).forEach(repo => {
+            resources.push({
+              source: 'github_awesome',
+              title: repo.full_name,
+              description: repo.description,
+              url: repo.html_url,
+              stars: repo.stargazers_count,
+              updated: repo.updated_at
+            });
+          });
+        }
+
+        sources_searched.push('github_awesome');
+        logger.info(`GitHub Awesome search found ${ghData.items?.length || 0} repos`);
+      } catch (error) {
+        logger.warn('GitHub Awesome search failed:', error.message);
+      }
+    }
+
+    // Save to knowledge base if requested
+    let saved_to_knowledge = false;
+    if (save_to_knowledge && module_id) {
+      const allItems = [...papers, ...resources];
+      saved_to_knowledge = await saveToKnowledge(allItems);
+    }
+
+    const total_found = papers.length + resources.length;
+
+    logger.info(`Research papers tool completed`, {
+      topic,
+      sources_searched,
+      total_found,
+      saved_to_knowledge
+    });
+
+    res.json({
+      papers,
+      resources,
+      sources_searched,
+      total_found,
+      saved_to_knowledge,
+      message: `Found ${total_found} items on "${topic}"`
+    });
+
+  } catch (error) {
+    logger.error('Research papers tool error:', { errorMessage: error.message });
+    res.status(500).json({
+      error: error.message,
+      papers: [],
+      resources: [],
+      sources_searched: []
+    });
+  }
+});
+
+// Unified web search tool endpoint
+app.post('/api/tools/web-search', requireAuth, async (req, res) => {
+  try {
+    const { query, max_results = 5 } = req.body;
+    if (!query) {
+      return res.status(400).json({ error: 'Missing "query" in request body' });
+    }
+
+    const connections = getUserConnections(req.user.email);
+
+    // Try Ollama Cloud web search first (if available)
+    const ollamaApiKey = connections.ollama?.apiKey || process.env.OLLAMA_API_KEY;
+    if (ollamaApiKey && (connections.ollama?.type === 'api_key' || process.env.OLLAMA_API_KEY)) {
+      try {
+        logger.info('Attempting Ollama web search', { query, using_env_key: !connections.ollama?.apiKey });
+        const ollama = new Ollama({
+          host: 'https://ollama.com',
+          auth: ollamaApiKey
+        });
+
+        const results = await ollama.webSearch({
+          query,
+          max_results: Math.min(max_results, 10)
+        });
+
+        logger.info('Ollama web search successful', { query, results_count: results.results?.length || 0 });
+        return res.json({
+          results: results.results || [],
+          source: 'ollama'
+        });
+      } catch (ollamaError) {
+        logger.warn('Ollama web search failed, trying fallback', { error: ollamaError.message, stack: ollamaError.stack });
+      }
+    }
+
+    // Fallback to Google Custom Search (if configured)
+    if (process.env.GOOGLE_SEARCH_API_KEY && process.env.GOOGLE_SEARCH_ENGINE_ID) {
+      try {
+        const searchUrl = `https://www.googleapis.com/customsearch/v1?key=${process.env.GOOGLE_SEARCH_API_KEY}&cx=${process.env.GOOGLE_SEARCH_ENGINE_ID}&q=${encodeURIComponent(query)}&num=${Math.min(max_results, 10)}`;
+
+        const searchResponse = await fetch(searchUrl);
+        const searchData = await searchResponse.json();
+
+        if (searchData.items) {
+          const results = searchData.items.map(item => ({
+            title: item.title,
+            url: item.link,
+            snippet: item.snippet
+          }));
+
+          return res.json({
+            results,
+            source: 'google'
+          });
+        }
+      } catch (googleError) {
+        logger.warn('Google search failed', { error: googleError.message });
+      }
+    }
+
+    // No search provider available
+    return res.status(503).json({
+      error: 'No web search provider available. Please configure Ollama Cloud or Google Custom Search.',
+      results: []
+    });
+
+  } catch (error) {
+    logger.error('Web search tool error:', { errorMessage: error.message });
+    res.status(500).json({ error: error.message, results: [] });
   }
 });
 
@@ -2466,9 +3230,18 @@ app.post('/api/workflow/generate-docs', requireAuth, async (req, res) => {
 
     // Validate workflow can be mapped to template
     if (!canMapWorkflowToTemplate(workflowResult, templateId)) {
+      const hasSteps = Array.isArray(workflowResult.steps) && workflowResult.steps.length > 0;
       return res.status(400).json({
         error: `Workflow data is not compatible with template: ${templateId}`,
-        required: 'Workflow must contain steps array'
+        required: 'Workflow must contain a non-empty steps array',
+        hint: hasSteps
+          ? 'Steps array exists but may not meet template requirements'
+          : 'Missing or empty steps array in workflow data',
+        workflowStructure: {
+          hasSteps: Array.isArray(workflowResult.steps),
+          stepCount: workflowResult.steps?.length || 0,
+          availableFields: Object.keys(workflowResult || {})
+        }
       });
     }
 
@@ -2842,8 +3615,9 @@ async function startServer() {
   }
 }
 
-// Start the server unless running in a test environment
-if (process.env.NODE_ENV !== 'test') {
+// Start the server in traditional mode only when not running on serverless platforms
+const isServerless = !!process.env.VERCEL || !!process.env.AWS_LAMBDA_FUNCTION_NAME || !!process.env.NOW_REGION;
+if (process.env.NODE_ENV !== 'test' && !isServerless) {
   startServer();
 }
 

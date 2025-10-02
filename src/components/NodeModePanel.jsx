@@ -156,6 +156,66 @@ export default function NodeModePanel({ nodeId, config, onReturnToChat }) {
         {/* Configuration Section */}
         <div className="config-section">
           <h4>Configuration</h4>
+
+          {/* AI Provider Selection */}
+          <label className="select-label">
+            <span>AI Provider:</span>
+            <select
+              value={settings.provider || 'gemini'}
+              onChange={(e) => setSettings({
+                ...settings,
+                provider: e.target.value,
+                model: '' // Reset model when provider changes
+              })}
+            >
+              <option value="gemini">Gemini</option>
+              <option value="openai">OpenAI</option>
+              <option value="claude">Claude</option>
+              <option value="ollama">Ollama</option>
+            </select>
+          </label>
+
+          {/* Model Selection */}
+          <label className="select-label">
+            <span>Model:</span>
+            <select
+              value={settings.model || ''}
+              onChange={(e) => setSettings({
+                ...settings,
+                model: e.target.value
+              })}
+            >
+              <option value="">Default</option>
+              {settings.provider === 'gemini' && (
+                <>
+                  <option value="gemini-2.5-flash">Gemini 2.5 Flash</option>
+                  <option value="gemini-2.0-flash-exp">Gemini 2.0 Flash Exp</option>
+                  <option value="gemini-1.5-pro">Gemini 1.5 Pro</option>
+                </>
+              )}
+              {settings.provider === 'openai' && (
+                <>
+                  <option value="gpt-4o">GPT-4o</option>
+                  <option value="gpt-4o-mini">GPT-4o Mini</option>
+                  <option value="gpt-4-turbo">GPT-4 Turbo</option>
+                </>
+              )}
+              {settings.provider === 'claude' && (
+                <>
+                  <option value="claude-3-5-sonnet-20241022">Claude 3.5 Sonnet</option>
+                  <option value="claude-3-5-haiku-20241022">Claude 3.5 Haiku</option>
+                </>
+              )}
+              {settings.provider === 'ollama' && (
+                <>
+                  <option value="gpt-oss:20b">GPT-OSS 20B</option>
+                  <option value="llama3.2">Llama 3.2</option>
+                  <option value="qwen2.5">Qwen 2.5</option>
+                </>
+              )}
+            </select>
+          </label>
+
           <label className="checkbox-label">
             <input
               type="checkbox"

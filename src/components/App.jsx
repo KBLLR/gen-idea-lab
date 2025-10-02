@@ -94,7 +94,11 @@ export default function App() {
       // Cmd+K (or Ctrl+K on Windows) for Command Palette
       if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
         e.preventDefault();
-        setIsCommandPaletteOpen(prev => !prev);
+        console.log('[App] Cmd+K pressed - toggling command palette');
+        setIsCommandPaletteOpen(prev => {
+          console.log('[App] Command palette now:', !prev);
+          return !prev;
+        });
       }
 
       // Cmd+Shift+V (or Ctrl+Shift+V on Windows) for Voice Chat toggle

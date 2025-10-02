@@ -2,11 +2,11 @@
  * @license
  * SPDX-License-Identifier: Apache-2.0
 */
-import { useMemo } from 'react';
-import { useRef } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import useStore from '../lib/store';
 import { generateImage, setInputImage } from '../lib/actions';
-import ImageUploader, { fileToBase64 } from './ImageUploader';
+import ImageUploader from './ImageUploader';
+import { fileToBase64 } from '../lib/fileUtils';
 import modes from '../lib/modes';
 import descriptions from '../lib/descriptions';
 import { getImageProviderLabel, DEFAULT_IMAGE_MODELS } from '../lib/imageProviders';
@@ -274,21 +274,43 @@ export default function BoothViewer() {
                 )}
             </div>
 
-            {/* Footer Section with Generation History */}
-            <div className="booth-footer">
+            {/* Footer Drawer: collapsed by default with handle */}
+            <BoothFooterDrawer
+                title="Generation History"
+                subtitle={`Recent transformations with ${modeDetails.name}`}
+            >
+                {/* This would be populated with actual history once we add that feature */}
+                <div className="history-placeholder">
+                    <span className="icon">history</span>
+                    <p>Your generated images will appear here</p>
+                    <small>Start generating to build your transformation history</small>
+                </div>
+            </BoothFooterDrawer>
+        </div>
+    );
+}
+
+function BoothFooterDrawer({ title, subtitle, children }) {
+    const [open, setOpen] = useState(false);
+    return (
+        <>
+            <button
+                className={`booth-footer-handle ${open ? 'open' : ''}`}
+                aria-expanded={open}
+                onClick={() => setOpen(!open)}
+                title={open ? 'Hide panel' : 'Show panel'}
+            >
+                <span className="icon">{open ? 'keyboard_arrow_down' : 'keyboard_arrow_up'}</span>
+            </button>
+            <div className={`booth-footer-drawer ${open ? 'open' : 'collapsed'}`} role="region" aria-label={title}>
                 <div className="history-header">
-                    <h3>Generation History</h3>
-                    <span className="history-count">Recent transformations with {modeDetails.name}</span>
+                    <h3>{title}</h3>
+                    {subtitle && <span className="history-count">{subtitle}</span>}
                 </div>
                 <div className="history-scroll">
-                    {/* This would be populated with actual history once we add that feature */}
-                    <div className="history-placeholder">
-                        <span className="icon">history</span>
-                        <p>Your generated images will appear here</p>
-                        <small>Start generating to build your transformation history</small>
-                    </div>
+                    {children}
                 </div>
             </div>
-        </div>
+        </>
     );
 }

@@ -18,6 +18,8 @@ export default function CommandPalette({ isOpen, onClose }) {
   const setIsLiveVoiceChatOpen = useStore.use.actions().setIsLiveVoiceChatOpen;
   const isLiveVoiceChatOpen = useStore.use.isLiveVoiceChatOpen();
 
+  console.log('[CommandPalette] Rendered with isOpen:', isOpen);
+
   // Define available commands
   const commands = [
     // App navigation

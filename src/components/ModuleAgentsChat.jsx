@@ -194,11 +194,24 @@ export default function ModuleAgentsChat() {
                         return <AgentCollaborationMessage key={index} message={msg} />;
                     }
                     if (msg.role === 'model') {
+                        // Use agent info if available (multi-agent conversation)
+                        const agentIcon = msg.agentIcon || activePersonality?.icon || 'smart_toy';
+                        const agentName = msg.agentName || activePersonality?.name || 'Assistant';
+                        const agentId = msg.agentId || activeModuleId;
+                        const isMultiAgent = msg.agentId && msg.agentId !== activeModuleId;
+
                         return (
-                            <div key={index} className={`assistant-message ${msg.role}`}>
+                            <div key={index} className={`assistant-message ${msg.role} ${isMultiAgent ? 'invited-agent' : ''}`}>
                                 <div className="message-header">
-                                    <span className="icon ai-icon">{activePersonality?.icon || 'smart_toy'}</span>
-                                    <span className="ai-name">{activePersonality?.name || 'Assistant'}</span>
+                                    <span className="icon ai-icon">{agentIcon}</span>
+                                    <span className="ai-name">{agentName}</span>
+                                    {isMultiAgent && <span className="agent-badge">Invited</span>}
+                                    {msg.toolsUsed && msg.toolsUsed.length > 0 && (
+                                        <span className="tools-badge" title={`Used: ${msg.toolsUsed.join(', ')}`}>
+                                            <span className="icon">build</span>
+                                            {msg.toolsUsed.length}
+                                        </span>
+                                    )}
                                 </div>
                                 <p dangerouslySetInnerHTML={{ __html: (msg.responseText || msg.content || msg.parts?.[0]?.text || '').replace(/\n/g, '<br />') }} />
                             </div>

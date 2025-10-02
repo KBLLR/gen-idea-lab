@@ -57,11 +57,37 @@ function LabelNode({ data }) {
     return '';
   };
 
+  // Extract state from data (idle | processing | complete | error)
+  const state = data.state || 'idle';
+  const error = data.error;
+
+  // Get state-specific styling
+  const getStateColor = () => {
+    switch (state) {
+      case 'processing': return '#3b82f6'; // blue
+      case 'complete': return '#10b981'; // green
+      case 'error': return '#ef4444'; // red
+      default: return null; // no special color for idle
+    }
+  };
+
+  const getStateIcon = () => {
+    switch (state) {
+      case 'processing': return 'pending';
+      case 'complete': return 'check_circle';
+      case 'error': return 'error';
+      default: return null;
+    }
+  };
+
   const connectorClass = getConnectorClass();
-  const nodeClass = `${data.className} ${connectorClass}`.trim();
+  const stateClass = state !== 'idle' ? `node-state-${state}` : '';
+  const nodeClass = `${data.className} ${connectorClass} ${stateClass}`.trim();
+  const stateColor = getStateColor();
+  const stateIcon = getStateIcon();
 
   return (
-    <div className={nodeClass}>
+    <div className={nodeClass} style={stateColor ? { borderColor: stateColor } : {}}>
       {/* Input handle on the left */}
       <Handle
         type="target"
@@ -74,9 +100,25 @@ function LabelNode({ data }) {
         }}
       />
 
-      <div className="node-title">{data.label}</div>
+      <div className="node-title">
+        {data.label}
+        {stateIcon && (
+          <span className="icon" style={{ color: stateColor, marginLeft: '8px', fontSize: '16px' }}>
+            {stateIcon}
+          </span>
+        )}
+        {state === 'processing' && <span className="state-indicator processing-spinner"></span>}
+      </div>
       {data.sub && <div className="node-sub">{data.sub}</div>}
       {data.description && <div className="node-description">{data.description}</div>}
+
+      {/* Error display */}
+      {state === 'error' && error && (
+        <div className="node-error">
+          <span className="icon" style={{ color: '#ef4444' }}>error</span>
+          <span className="error-text">{error}</span>
+        </div>
+      )}
 
       {/* Connector badge */}
       {data.connectorType && data.connectorType !== 'none' && (
@@ -999,7 +1041,7 @@ function GoogleCalendarNode({ data, id }) {
   const connectedServices = useStore.use.connectedServices();
 
   const fetchCalendarEvents = useCallback(async (date) => {
-    if (!connectedServices?.googlecalendar?.connected) return;
+    if (!connectedServices?.googleCalendar?.connected) return;
     setIsLoading(true);
     try {
       // TODO: Implement calendar API call
@@ -1021,7 +1063,9 @@ function GoogleCalendarNode({ data, id }) {
     fetchCalendarEvents(selectedDate);
   }, [selectedDate, fetchCalendarEvents]);
 
-  const handleDoubleClick = () => {
+  const handleDoubleClick = (e) => {
+    e?.stopPropagation?.();
+    e?.preventDefault?.();
     setShowPromptConfig(true);
   };
 
@@ -1060,7 +1104,7 @@ function GoogleCalendarNode({ data, id }) {
         </div>
       )}
 
-      {connectedServices?.googlecalendar?.connected ? (
+      {connectedServices?.googleCalendar?.connected ? (
         <div className="calendar-content">
           <input
             type="date"
@@ -1109,24 +1153,35 @@ function GoogleDriveNode({ data, id }) {
   const [files, setFiles] = useState([]);
   const [currentFolder, setCurrentFolder] = useState('root');
   const [isLoading, setIsLoading] = useState(false);
+  const [showSourceConfig, setShowSourceConfig] = useState(false);
+  const [folderSearchTerm, setFolderSearchTerm] = useState('');
+  const [folderResults, setFolderResults] = useState([]);
   const [showPromptConfig, setShowPromptConfig] = useState(false);
   const [promptInstructions, setPromptInstructions] = useState(data.promptInstructions || 'Help me organize my Google Drive files. Suggest folder structures and identify duplicate or outdated files that can be cleaned up.');
   const { updateNode } = React.useContext(NodeUpdateContext);
   const connectedServices = useStore.use.connectedServices();
 
   const fetchDriveFiles = useCallback(async (folderId = 'root') => {
-    if (!connectedServices?.googledrive?.connected) return;
+    if (!connectedServices?.googleDrive?.connected) return;
     setIsLoading(true);
     try {
-      // TODO: Implement Drive API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      const mockFiles = [
-        { id: 1, name: 'Project Docs', type: 'folder', icon: 'folder' },
-        { id: 2, name: 'presentation.pptx', type: 'file', icon: 'description', size: '2.4 MB' },
-        { id: 3, name: 'image.jpg', type: 'file', icon: 'image', size: '856 KB' }
-      ];
-      setFiles(mockFiles);
-      updateNode(id, { ...data, files: mockFiles, currentFolder: folderId });
+      const params = new URLSearchParams({ folderId });
+      const response = await fetch(`/api/services/googleDrive/files?${params.toString()}`, { credentials: 'include' });
+      if (!response.ok) {
+        const err = await response.json().catch(() => ({}));
+        throw new Error(err.error || 'Drive API error');
+      }
+      const payload = await response.json();
+      const list = (payload.files || []).map(f => ({
+        id: f.id,
+        name: f.name,
+        type: f.kind === 'folder' ? 'folder' : 'file',
+        icon: f.kind === 'folder' ? 'folder' : (f.mimeType?.startsWith('image/') ? 'image' : 'description'),
+        size: f.size,
+        webViewLink: f.webViewLink,
+      }));
+      setFiles(list);
+      updateNode(id, { ...data, files: list, currentFolder: folderId, lastUpdated: new Date().toISOString() });
     } catch (error) {
       console.error('Failed to fetch Drive files:', error);
     } finally {
@@ -1138,9 +1193,30 @@ function GoogleDriveNode({ data, id }) {
     fetchDriveFiles(currentFolder);
   }, [currentFolder, fetchDriveFiles]);
 
-  const handleDoubleClick = () => {
-    setShowPromptConfig(true);
+  const handleDoubleClick = (e) => {
+    e?.stopPropagation?.();
+    e?.preventDefault?.();
+    setShowSourceConfig(true);
   };
+
+  const searchFolders = useCallback(async () => {
+    if (!connectedServices?.googleDrive?.connected) return;
+    try {
+      const params = new URLSearchParams({ q: folderSearchTerm });
+      const res = await fetch(`/api/services/googleDrive/files?${params.toString()}`, { credentials: 'include' });
+      if (!res.ok) {
+        console.warn('Drive search failed');
+        setFolderResults([]);
+        return;
+      }
+      const json = await res.json();
+      const onlyFolders = (json.files || []).filter(f => (f.mimeType || '').includes('application/vnd.google-apps.folder'));
+      setFolderResults(onlyFolders);
+    } catch (e) {
+      console.error('Drive folder search error:', e);
+      setFolderResults([]);
+    }
+  }, [folderSearchTerm, connectedServices]);
 
   const savePromptInstructions = () => {
     updateNode(id, { ...data, promptInstructions });
@@ -1156,6 +1232,57 @@ function GoogleDriveNode({ data, id }) {
         <div className="node-title">Google Drive</div>
         {data.promptInstructions && <span className="prompt-indicator">💬</span>}
       </div>
+
+      {showSourceConfig && (
+        <div className="prompt-config-modal">
+          <div className="prompt-config-header">
+            <h4>Select Drive Source</h4>
+            <button onClick={() => setShowSourceConfig(false)} className="close-btn">×</button>
+          </div>
+          <div className="source-config-body">
+            <div className="input-row">
+              <button
+                className="save-btn"
+                onClick={() => {
+                  setCurrentFolder('root');
+                  updateNode(id, { ...data, currentFolder: 'root', sub: 'My Drive (root)' });
+                  setShowSourceConfig(false);
+                }}
+              >
+                Use My Drive (root)
+              </button>
+            </div>
+            <div className="input-row" style={{ display: 'flex', gap: 8 }}>
+              <input
+                type="text"
+                value={folderSearchTerm}
+                onChange={(e) => setFolderSearchTerm(e.target.value)}
+                placeholder="Search folders by name..."
+                className="prompt-textarea"
+                style={{ minHeight: 0, height: 36 }}
+              />
+              <button className="save-btn" onClick={searchFolders}>Search</button>
+            </div>
+            <div className="files-list">
+              {folderResults.map(f => (
+                <div key={f.id} className="file-item" onClick={() => {
+                  setCurrentFolder(f.id);
+                  updateNode(id, { ...data, currentFolder: f.id, sub: `Folder: ${f.name}` });
+                  setShowSourceConfig(false);
+                }}>
+                  <span className="file-icon icon">folder</span>
+                  <div className="file-info">
+                    <span className="file-name">{f.name}</span>
+                  </div>
+                </div>
+              ))}
+              {folderResults.length === 0 && (
+                <div className="no-events">Search for a folder to select as source</div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       {showPromptConfig && (
         <div className="prompt-config-modal">
@@ -1177,14 +1304,14 @@ function GoogleDriveNode({ data, id }) {
         </div>
       )}
 
-      {connectedServices?.googledrive?.connected ? (
+      {connectedServices?.googleDrive?.connected ? (
         <div className="drive-content">
           {isLoading ? (
             <div className="loading">Loading files...</div>
           ) : (
             <div className="files-list">
               {files.map(file => (
-                <div key={file.id} className="file-item" onClick={() => file.type === 'folder' && setCurrentFolder(file.id)}>
+                <div key={file.id} className="file-item" onClick={() => file.type === 'folder' ? setCurrentFolder(file.id) : (file.webViewLink && window.open(file.webViewLink, '_blank'))} title={file.webViewLink ? 'Open in Drive' : ''}>
                   <span className="file-icon icon">{file.icon}</span>
                   <div className="file-info">
                     <span className="file-name">{file.name}</span>
@@ -1225,45 +1352,65 @@ function GooglePhotosNode({ data, id }) {
   const [photos, setPhotos] = useState([]);
   const [selectedAlbum, setSelectedAlbum] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [showSourceConfig, setShowSourceConfig] = useState(false);
   const [showPromptConfig, setShowPromptConfig] = useState(false);
   const [promptInstructions, setPromptInstructions] = useState(data.promptInstructions || 'Help me organize my photo collection. Identify similar photos, suggest albums to create, and find the best photos from events or trips.');
   const { updateNode } = React.useContext(NodeUpdateContext);
   const connectedServices = useStore.use.connectedServices();
 
-  const fetchPhotos = useCallback(async (albumId = null) => {
-    if (!connectedServices?.googlephotos?.connected) return;
+  const fetchAlbums = useCallback(async () => {
+    if (!connectedServices?.googlePhotos?.connected) return;
     setIsLoading(true);
     try {
-      // TODO: Implement Photos API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      if (!albumId) {
-        const mockAlbums = [
-          { id: 1, title: 'Recent', count: 24 },
-          { id: 2, title: 'Vacation 2024', count: 156 },
-          { id: 3, title: 'Family', count: 89 }
-        ];
-        setAlbums(mockAlbums);
-      } else {
-        const mockPhotos = [
-          { id: 1, url: 'https://via.placeholder.com/100', title: 'Photo 1' },
-          { id: 2, url: 'https://via.placeholder.com/100', title: 'Photo 2' }
-        ];
-        setPhotos(mockPhotos);
+      const response = await fetch('/api/services/googlePhotos/albums', { credentials: 'include' });
+      if (!response.ok) {
+        const err = await response.json().catch(() => ({}));
+        throw new Error(err.error || 'Photos API error');
       }
-      updateNode(id, { ...data, albums, photos, selectedAlbum: albumId });
+      const payload = await response.json();
+      setAlbums(payload.albums || []);
+      updateNode(id, { ...data, albums: payload.albums || [], lastUpdated: new Date().toISOString() });
+    } catch (error) {
+      console.error('Failed to fetch albums:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [connectedServices, id, data, updateNode]);
+
+  const fetchPhotos = useCallback(async (albumId) => {
+    if (!connectedServices?.googlePhotos?.connected) return;
+    setIsLoading(true);
+    try {
+      const params = new URLSearchParams({ albumId });
+      const response = await fetch(`/api/services/googlePhotos/mediaItems?${params.toString()}`, { credentials: 'include' });
+      if (!response.ok) {
+        const err = await response.json().catch(() => ({}));
+        throw new Error(err.error || 'Photos API error');
+      }
+      const payload = await response.json();
+      const list = (payload.mediaItems || []).map(m => ({ id: m.id, url: `${m.baseUrl}=w400-h400`, title: m.filename }));
+      setPhotos(list);
+      updateNode(id, { ...data, photos: list, selectedAlbum: albumId, lastUpdated: new Date().toISOString() });
     } catch (error) {
       console.error('Failed to fetch photos:', error);
     } finally {
       setIsLoading(false);
     }
-  }, [connectedServices, id, data, updateNode, albums, photos]);
+  }, [connectedServices, id, data, updateNode]);
 
   useEffect(() => {
-    fetchPhotos(selectedAlbum);
-  }, [selectedAlbum, fetchPhotos]);
+    if (selectedAlbum) {
+      fetchPhotos(selectedAlbum);
+    } else {
+      fetchAlbums();
+    }
+  }, [selectedAlbum, fetchPhotos, fetchAlbums]);
 
-  const handleDoubleClick = () => {
-    setShowPromptConfig(true);
+  const handleDoubleClick = (e) => {
+    e?.stopPropagation?.();
+    e?.preventDefault?.();
+    setShowSourceConfig(true);
+    fetchAlbums();
   };
 
   const savePromptInstructions = () => {
@@ -1280,6 +1427,31 @@ function GooglePhotosNode({ data, id }) {
         <div className="node-title">Google Photos</div>
         {data.promptInstructions && <span className="prompt-indicator">💬</span>}
       </div>
+
+      {showSourceConfig && (
+        <div className="prompt-config-modal">
+          <div className="prompt-config-header">
+            <h4>Select Album</h4>
+            <button onClick={() => setShowSourceConfig(false)} className="close-btn">×</button>
+          </div>
+          <div className="albums-list">
+            {albums.length === 0 && <div className="loading">Loading albums...</div>}
+            {albums.map(album => (
+              <div key={album.id} className="album-item" onClick={() => {
+                setSelectedAlbum(album.id);
+                updateNode(id, { ...data, selectedAlbum: album.id, sub: `Album: ${album.title}` });
+                setShowSourceConfig(false);
+              }}>
+                <span className="album-icon icon">photo_album</span>
+                <div className="album-info">
+                  <span className="album-title">{album.title}</span>
+                  <span className="album-count">{album.count} photos</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {showPromptConfig && (
         <div className="prompt-config-modal">
@@ -1301,7 +1473,7 @@ function GooglePhotosNode({ data, id }) {
         </div>
       )}
 
-      {connectedServices?.googlephotos?.connected ? (
+      {connectedServices?.googlePhotos?.connected ? (
         <div className="photos-content">
           {selectedAlbum ? (
             <div className="photos-view">
@@ -1358,6 +1530,9 @@ function GmailNode({ data, id }) {
   const [messages, setMessages] = useState([]);
   const [selectedMessage, setSelectedMessage] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [showSourceConfig, setShowSourceConfig] = useState(false);
+  const [labelValue, setLabelValue] = useState(data.gmailLabelIds || 'INBOX');
+  const [queryValue, setQueryValue] = useState(data.gmailQuery || '');
   const [showPromptConfig, setShowPromptConfig] = useState(false);
   const [promptInstructions, setPromptInstructions] = useState(data.promptInstructions || 'Help me manage my email efficiently. Prioritize important messages, suggest responses, and identify emails that need follow-up action.');
   const { updateNode } = React.useContext(NodeUpdateContext);
@@ -1367,28 +1542,38 @@ function GmailNode({ data, id }) {
     if (!connectedServices?.gmail?.connected) return;
     setIsLoading(true);
     try {
-      // TODO: Implement Gmail API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      const mockMessages = [
-        { id: 1, subject: 'Project Update', sender: 'team@company.com', preview: 'Here\'s the latest update on our project...', unread: true },
-        { id: 2, subject: 'Meeting Tomorrow', sender: 'boss@company.com', preview: 'Don\'t forget about our meeting...', unread: false },
-        { id: 3, subject: 'Weekly Report', sender: 'reports@company.com', preview: 'Your weekly analytics report is ready...', unread: true }
-      ];
-      setMessages(mockMessages);
-      updateNode(id, { ...data, messages: mockMessages, unreadCount: mockMessages.filter(m => m.unread).length });
+      const params = new URLSearchParams({ maxResults: '10', labelIds: labelValue || 'INBOX', q: queryValue || '' });
+      const response = await fetch(`/api/services/gmail/messages?${params.toString()}`, { credentials: 'include' });
+      if (!response.ok) {
+        const err = await response.json().catch(() => ({}));
+        throw new Error(err.error || 'Gmail API error');
+      }
+      const payload = await response.json();
+      const list = (payload.messages || []).map(m => ({
+        id: m.id,
+        subject: m.subject,
+        sender: m.from,
+        preview: m.snippet,
+        unread: !!m.unread,
+        date: m.date,
+      }));
+      setMessages(list);
+      updateNode(id, { ...data, messages: list, unreadCount: list.filter(m => m.unread).length, lastUpdated: new Date().toISOString(), gmailLabelIds: labelValue, gmailQuery: queryValue });
     } catch (error) {
       console.error('Failed to fetch Gmail messages:', error);
     } finally {
       setIsLoading(false);
     }
-  }, [connectedServices, id, data, updateNode]);
+  }, [connectedServices, id, data, updateNode, labelValue, queryValue]);
 
   useEffect(() => {
     fetchMessages();
   }, [fetchMessages]);
 
-  const handleDoubleClick = () => {
-    setShowPromptConfig(true);
+  const handleDoubleClick = (e) => {
+    e?.stopPropagation?.();
+    e?.preventDefault?.();
+    setShowSourceConfig(true);
   };
 
   const savePromptInstructions = () => {
@@ -1406,6 +1591,49 @@ function GmailNode({ data, id }) {
         {data.unreadCount > 0 && <span className="unread-badge">{data.unreadCount}</span>}
         {data.promptInstructions && <span className="prompt-indicator">💬</span>}
       </div>
+
+      {showSourceConfig && (
+        <div className="prompt-config-modal">
+          <div className="prompt-config-header">
+            <h4>Select Mail Source</h4>
+            <button onClick={() => setShowSourceConfig(false)} className="close-btn">×</button>
+          </div>
+          <div className="prompt-config-body">
+            <div className="input-row">
+              <label style={{ marginRight: 8 }}>Label</label>
+              <select value={labelValue} onChange={(e) => setLabelValue(e.target.value)}>
+                <option value="INBOX">INBOX</option>
+                <option value="STARRED">STARRED</option>
+                <option value="UNREAD">UNREAD</option>
+                <option value="IMPORTANT">IMPORTANT</option>
+                <option value="SENT">SENT</option>
+              </select>
+            </div>
+            <div className="input-row" style={{ marginTop: 8 }}>
+              <label style={{ marginRight: 8 }}>Query</label>
+              <input
+                type="text"
+                value={queryValue}
+                onChange={(e) => setQueryValue(e.target.value)}
+                placeholder="from:boss subject:report is:unread"
+              />
+            </div>
+            <div className="prompt-config-actions">
+              <button
+                className="save-btn"
+                onClick={() => {
+                  updateNode(id, { ...data, gmailLabelIds: labelValue, gmailQuery: queryValue });
+                  setShowSourceConfig(false);
+                  setTimeout(() => fetchMessages(), 0);
+                }}
+              >
+                Apply
+              </button>
+              <button onClick={() => setShowSourceConfig(false)} className="cancel-btn">Cancel</button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {showPromptConfig && (
         <div className="prompt-config-modal">
@@ -2049,8 +2277,16 @@ function PlannerCanvasInner() {
 
   // Handle double-click for node configuration
   const onNodeDoubleClick = useCallback((event, node) => {
-    // Don't open config for model-provider or archiva-template nodes (they have their own config)
-    if (node.type === 'model-provider' || node.type === 'archiva-template') return;
+    // Nodes with their own double-click overlays should not open the generic config modal
+    const skipTypes = new Set([
+      'model-provider',
+      'archiva-template',
+      'google-calendar',
+      'google-drive',
+      'google-photos',
+      'gmail',
+    ]);
+    if (skipTypes.has(node.type)) return;
 
     setConfigModalNode(node);
     setIsConfigModalOpen(true);

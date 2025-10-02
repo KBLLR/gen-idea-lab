@@ -1,4 +1,21 @@
 import { helpers, fm } from '../renderer.js';
+import { marked } from 'marked';
+import DOMPurify from 'dompurify';
+
+function mdToHtml(md) {
+  if (!md) return '';
+  try {
+    const raw = marked.parse(String(md));
+    return DOMPurify.sanitize(raw);
+  } catch {
+    return String(md)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/\"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+  }
+}
 
 function escapeHtml(value) {
   return String(value ?? '')
@@ -60,16 +77,16 @@ export function render(format = 'md', data = {}) {
   }));
 
   const meta = renderMetadata(data, format);
-  const methodDescription = data.method ? escapeHtml(data.method) : '';
-  const contextBody = data.context ? escapeHtml(data.context) : '';
+  const methodHtml = data.method ? mdToHtml(data.method) : '';
+  const contextHtml = data.context ? mdToHtml(data.context) : '';
   const stepsTable = stepRows.length ? helpers.tbl(stepRows, format) : '';
 
   if (format === 'html') {
     const header = `\n      <header>\n        <h1>${escapeHtml(data.title || 'Process Journal')}</h1>\n      </header>\n    `;
     const sections = [
       meta ? `<section>${meta}</section>` : '',
-      renderSection('Context', `<p>${contextBody}</p>`, format),
-      renderSection('Method', `<pre>${methodDescription}</pre>`, format),
+      renderSection('Context', contextHtml ? `<div class="markdown-content">${contextHtml}</div>` : '<p>No context provided.</p>', format),
+      renderSection('Method', methodHtml ? `<div class="markdown-content">${methodHtml}</div>` : '<p>No method documented.</p>', format),
       findings ? renderSection('Key Findings', findings, format) : '',
       nextSteps ? renderSection('Next Steps', nextSteps, format) : '',
       stepsTable ? renderSection('Execution Steps', stepsTable, format) : ''
