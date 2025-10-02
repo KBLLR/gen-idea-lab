@@ -22,30 +22,22 @@
       "use": "@vercel/node"
     }
   ],
-  "routes": [
+  "rewrites": [
     {
-      "src": "/api/(.*)",
-      "dest": "/server.js"
+      "source": "/api/:path*",
+      "destination": "/server.js"
     },
     {
-      "src": "/auth/(.*)",
-      "dest": "/server.js"
+      "source": "/auth/:path*",
+      "destination": "/server.js"
     },
     {
-      "src": "/healthz",
-      "dest": "/server.js"
+      "source": "/healthz",
+      "destination": "/server.js"
     },
     {
-      "src": "/metrics",
-      "dest": "/server.js"
-    },
-    {
-      "src": "/(.*\\.(js|css|png|jpg|jpeg|gif|ico|svg|woff|woff2|ttf|eot))",
-      "dest": "/dist/$1"
-    },
-    {
-      "src": "/(.*)",
-      "dest": "/dist/index.html"
+      "source": "/metrics",
+      "destination": "/server.js"
     }
   ]
 }
