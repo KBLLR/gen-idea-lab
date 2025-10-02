@@ -37,6 +37,12 @@ export default defineConfig(({ command, mode }) => {
           changeOrigin: true,
           secure: false
         },
+        '/ws': {
+          target: `http://localhost:${serverPort}`,
+          changeOrigin: true,
+          secure: false,
+          ws: true  // Enable WebSocket proxying
+        },
         '/metrics': {
           target: `http://localhost:${serverPort}`,
           changeOrigin: true,
