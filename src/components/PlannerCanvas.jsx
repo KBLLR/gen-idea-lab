@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useCallback, useMemo, useRef, useState, useEffect } from 'react';
+import React, { useCallback, useMemo, useRef, useState, useEffect, memo } from 'react';
 import { createPortal } from 'react-dom';
 import useStore from '../lib/store';
 import { modules } from '../lib/modules';
@@ -49,7 +49,7 @@ const normalizeNodesForComparison = (nodes = []) =>
 const normalizeEdgesForComparison = (edges = []) =>
   edges.map(({ selected, ...rest }) => ({ ...rest }));
 
-function LabelNode({ data }) {
+const LabelNode = memo(function LabelNode({ data }) {
   // Apply connector-specific styling
   const getConnectorClass = () => {
     if (data.connectorType === 'loop') return 'loop-connector';
@@ -138,7 +138,7 @@ function LabelNode({ data }) {
       />
     </div>
   );
-}
+});
 
 export default function PlannerCanvas(props) {
   return (
@@ -151,7 +151,7 @@ export default function PlannerCanvas(props) {
 // Create a context for sharing setNodes function and canvas ref
 const NodeUpdateContext = React.createContext();
 
-function ModelProviderNode({ data, id }) {
+const ModelProviderNode = memo(function ModelProviderNode({ data, id }) {
   const [contextMenu, setContextMenu] = useState(null);
   const [availableModels, setAvailableModels] = useState([]);
   const { updateNode, canvasRef } = React.useContext(NodeUpdateContext);
@@ -302,10 +302,10 @@ function ModelProviderNode({ data, id }) {
       {renderedMenu}
     </div>
   );
-}
+});
 
 // ArchivAI Template Node Component
-function ArchivAITemplateNode({ data, id }) {
+const ArchivAITemplateNode = memo(function ArchivAITemplateNode({ data, id }) {
   const [isConfiguring, setIsConfiguring] = useState(false);
   const [templateData, setTemplateData] = useState({});
   const [outputFormat, setOutputFormat] = useState('markdown');
@@ -418,10 +418,10 @@ function ArchivAITemplateNode({ data, id }) {
       )}
     </div>
   );
-}
+});
 
 // App State Snapshot Node Component
-function AppStateSnapshotNode({ data, id }) {
+const AppStateSnapshotNode = memo(function AppStateSnapshotNode({ data, id }) {
   const [snapshotData, setSnapshotData] = useState(null);
   const [isCapturing, setIsCapturing] = useState(false);
   const { updateNode } = React.useContext(NodeUpdateContext);
@@ -522,10 +522,10 @@ function AppStateSnapshotNode({ data, id }) {
       />
     </div>
   );
-}
+});
 
 // Image Canvas Node Component
-function ImageCanvasNode({ data, id }) {
+const ImageCanvasNode = memo(function ImageCanvasNode({ data, id }) {
   const [imageData, setImageData] = useState(null);
   const [isZoomed, setIsZoomed] = useState(false);
   const [scale, setScale] = useState(1);
@@ -629,10 +629,10 @@ function ImageCanvasNode({ data, id }) {
       />
     </div>
   );
-}
+});
 
 // Audio Player Node Component
-function AudioPlayerNode({ data, id }) {
+const AudioPlayerNode = memo(function AudioPlayerNode({ data, id }) {
   const [audioUrl, setAudioUrl] = useState(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [duration, setDuration] = useState(0);
@@ -763,10 +763,10 @@ function AudioPlayerNode({ data, id }) {
       />
     </div>
   );
-}
+});
 
 // Text Renderer Node Component
-function TextRendererNode({ data, id }) {
+const TextRendererNode = memo(function TextRendererNode({ data, id }) {
   const [textContent, setTextContent] = useState('');
   const [renderMode, setRenderMode] = useState('markdown');
   const [isEditing, setIsEditing] = useState(false);
@@ -885,10 +885,10 @@ function TextRendererNode({ data, id }) {
       />
     </div>
   );
-}
+});
 
 // File Uploader Node Component
-function FileUploaderNode({ data, id }) {
+const FileUploaderNode = memo(function FileUploaderNode({ data, id }) {
   const [uploadedFiles, setUploadedFiles] = useState([]);
   const [isDragging, setIsDragging] = useState(false);
   const { updateNode } = React.useContext(NodeUpdateContext);
@@ -1027,10 +1027,10 @@ function FileUploaderNode({ data, id }) {
       />
     </div>
   );
-}
+});
 
 // Google Calendar Node Component
-function GoogleCalendarNode({ data, id }) {
+const GoogleCalendarNode = memo(function GoogleCalendarNode({ data, id }) {
   const [events, setEvents] = useState([]);
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
   const [isLoading, setIsLoading] = useState(false);
@@ -1146,10 +1146,10 @@ function GoogleCalendarNode({ data, id }) {
       <div className="resize-handle"></div>
     </div>
   );
-}
+});
 
 // Google Drive Node Component
-function GoogleDriveNode({ data, id }) {
+const GoogleDriveNode = memo(function GoogleDriveNode({ data, id }) {
   const [files, setFiles] = useState([]);
   const [currentFolder, setCurrentFolder] = useState('root');
   const [isLoading, setIsLoading] = useState(false);
@@ -1345,10 +1345,10 @@ function GoogleDriveNode({ data, id }) {
       <div className="resize-handle"></div>
     </div>
   );
-}
+});
 
 // Google Photos Node Component
-function GooglePhotosNode({ data, id }) {
+const GooglePhotosNode = memo(function GooglePhotosNode({ data, id }) {
   const [albums, setAlbums] = useState([]);
   const [photos, setPhotos] = useState([]);
   const [selectedAlbum, setSelectedAlbum] = useState(null);
@@ -1525,10 +1525,10 @@ function GooglePhotosNode({ data, id }) {
       <div className="resize-handle"></div>
     </div>
   );
-}
+});
 
 // Gmail Node Component
-function GmailNode({ data, id }) {
+const GmailNode = memo(function GmailNode({ data, id }) {
   const [messages, setMessages] = useState([]);
   const [selectedMessage, setSelectedMessage] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -1704,10 +1704,10 @@ function GmailNode({ data, id }) {
       <div className="resize-handle"></div>
     </div>
   );
-}
+});
 
 // University Student Data Node Component
-function UniversityStudentNode({ data, id }) {
+const UniversityStudentNode = memo(function UniversityStudentNode({ data, id }) {
   const [studentData, setStudentData] = useState(null);
   const [showPromptConfig, setShowPromptConfig] = useState(false);
   const [promptInstructions, setPromptInstructions] = useState(data.promptInstructions || 'Analyze my academic progress and suggest areas for improvement. Focus on course performance, assignment completion, and semester planning.');
@@ -1844,10 +1844,10 @@ function UniversityStudentNode({ data, id }) {
       <div className="resize-handle"></div>
     </div>
   );
-}
+});
 
 // University Courses Node Component
-function UniversityCoursesNode({ data, id }) {
+const UniversityCoursesNode = memo(function UniversityCoursesNode({ data, id }) {
   const [courses, setCourses] = useState([]);
   const [selectedCourse, setSelectedCourse] = useState(null);
   const [showPromptConfig, setShowPromptConfig] = useState(false);
@@ -1982,10 +1982,10 @@ function UniversityCoursesNode({ data, id }) {
       <div className="resize-handle"></div>
     </div>
   );
-}
+});
 
 // AI Agent Node Component (Orchestrator as Node)
-function AIAgentNode({ data, id }) {
+const AIAgentNode = memo(function AIAgentNode({ data, id }) {
   const [isEditing, setIsEditing] = useState(false);
   const [nodeName, setNodeName] = useState(data.nodeName || 'AI Agent');
   const { updateNode } = React.useContext(NodeUpdateContext);
@@ -2174,7 +2174,7 @@ function AIAgentNode({ data, id }) {
       ))}
     </div>
   );
-}
+});
 
 const nodeTypes = {
   default: LabelNode,
@@ -2193,6 +2193,16 @@ const nodeTypes = {
   'university-courses': UniversityCoursesNode,
   'ai-agent': AIAgentNode,
 };
+
+// Node types that handle their own double-click configuration
+const SKIP_CONFIG_MODAL_TYPES = new Set([
+  'model-provider',
+  'archiva-template',
+  'google-calendar',
+  'google-drive',
+  'google-photos',
+  'gmail',
+]);
 
 // Note: nodeStyles now include source and model-provider
 
@@ -2290,15 +2300,7 @@ function PlannerCanvasInner() {
   // Handle double-click for node configuration
   const onNodeDoubleClick = useCallback((event, node) => {
     // Nodes with their own double-click overlays should not open the generic config modal
-    const skipTypes = new Set([
-      'model-provider',
-      'archiva-template',
-      'google-calendar',
-      'google-drive',
-      'google-photos',
-      'gmail',
-    ]);
-    if (skipTypes.has(node.type)) return;
+    if (SKIP_CONFIG_MODAL_TYPES.has(node.type)) return;
 
     setConfigModalNode(node);
     setIsConfigModalOpen(true);
