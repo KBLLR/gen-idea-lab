@@ -72,11 +72,17 @@ export default function GlassDock() {
   const currentNodeConfig = useStore((state) => state.currentNodeConfig);
   const returnToChat = useStore((state) => state.actions.returnToChat);
 
-  // Live API setup
+  // Live API setup - only if API key is available
   const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
-  const { client, setConfig, connect, disconnect, connected, volume } = useLiveAPI({
-    apiKey,
-  });
+  const liveAPIResult = apiKey ? useLiveAPI({ apiKey }) : null;
+  const { client, setConfig, connect, disconnect, connected, volume } = liveAPIResult || {
+    client: null,
+    setConfig: () => {},
+    connect: async () => {},
+    disconnect: () => {},
+    connected: false,
+    volume: 0
+  };
 
   // Sync position to store
   useEffect(() => {
