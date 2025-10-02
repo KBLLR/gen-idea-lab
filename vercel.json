@@ -32,6 +32,10 @@
       "destination": "/server.js"
     },
     {
+      "source": "/ws/:path*",
+      "destination": "/server.js"
+    },
+    {
       "source": "/healthz",
       "destination": "/server.js"
     },

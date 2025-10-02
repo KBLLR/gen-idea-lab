@@ -72,17 +72,8 @@ export default function GlassDock() {
   const currentNodeConfig = useStore((state) => state.currentNodeConfig);
   const returnToChat = useStore((state) => state.actions.returnToChat);
 
-  // Live API setup - only if API key is available
-  const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
-  const liveAPIResult = apiKey ? useLiveAPI({ apiKey }) : null;
-  const { client, setConfig, connect, disconnect, connected, volume } = liveAPIResult || {
-    client: null,
-    setConfig: () => {},
-    connect: async () => {},
-    disconnect: () => {},
-    connected: false,
-    volume: 0
-  };
+  // Live API setup - uses secure backend proxy (no API key needed on frontend)
+  const { client, setConfig, connect, disconnect, connected, volume } = useLiveAPI({});
 
   // Sync position to store
   useEffect(() => {
@@ -1041,12 +1032,6 @@ Use this context to provide more relevant and specific answers about what the us
             <span className="icon">open_in_full</span>
           </div>
 
-          {!apiKey && (
-            <div className="api-key-warning">
-              <span className="icon">warning</span>
-              <span>GEMINI_API_KEY not configured</span>
-            </div>
-          )}
         </div>
       )}
 

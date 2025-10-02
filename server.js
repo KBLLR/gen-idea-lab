@@ -4,6 +4,7 @@
 */
 import 'dotenv/config';
 import express from 'express';
+import http from 'http';
 import path from 'path';
 import cookieParser from 'cookie-parser';
 import { GoogleGenAI } from '@google/genai';
@@ -17,6 +18,7 @@ import { register, httpRequestDurationMicroseconds, httpRequestsTotal } from './
 import { verifyGoogleToken, generateJWT, requireAuth, optionalAuth } from './src/lib/auth.js';
 import { DEFAULT_IMAGE_MODELS } from './src/lib/imageProviders.js';
 import { renderTemplate, getTemplateIds } from './src/lib/archiva/templates/library.js';
+import { setupLiveApiProxy } from './src/lib/liveApiProxy.js';
 
 // In ES modules, __dirname is not available. path.resolve() provides the project root.
 const __dirname = path.resolve();
@@ -3609,8 +3611,15 @@ async function startServer() {
       serverPort = resolvedPort;
     }
 
+    // Create HTTP server (needed for WebSocket)
+    const httpServer = http.createServer(app);
+
+    // Setup WebSocket proxy for Gemini Live API
+    const geminiApiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY;
+    setupLiveApiProxy(httpServer, geminiApiKey);
+
     // Start the server
-    app.listen(serverPort, () => {
+    httpServer.listen(serverPort, () => {
       logger.info(`Server listening at http://localhost:${serverPort}`);
     });
   } catch (error) {

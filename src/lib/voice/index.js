@@ -17,8 +17,9 @@
  * - Utilities: audio context, base64 conversion
  */
 
-// Core Gemini Live API client
-export { GenAILiveClient } from './genAILiveClient.js';
+// Core Gemini Live API clients
+export { GenAILiveClient } from './genAILiveClient.js';  // Direct connection (requires API key on frontend)
+export { GenAIProxyClient } from './genAIProxyClient.js';  // Proxy connection (secure, uses backend)
 
 // Audio components
 export { AudioRecorder } from './audioRecorder.js';

@@ -36,31 +36,37 @@ VITE_FIGMA_CLIENT_ID=your_figma_client_id
 VITE_API_BASE_URL=https://your-domain.vercel.app
 ```
 
-### ⚠️ Live Voice API Configuration
+### ✅ Live Voice API Configuration (Secure Backend Proxy)
 
-**Current Implementation (Not Recommended for Production):**
+**Current Implementation:**
 
-The Live Voice feature currently requires a Gemini API key exposed to the frontend:
+The Live Voice feature uses a **secure backend WebSocket proxy** that handles all Gemini API communication server-side. No API keys are exposed to the frontend.
 
+**Architecture:**
+- Client connects to backend WebSocket at `/ws/live-api`
+- Authentication via JWT tokens (from cookies)
+- Backend proxy forwards messages to Gemini Live API
+- API key (`GEMINI_API_KEY`) remains secure on server
+
+**Required Configuration:**
+
+Server-side only (already listed above):
 ```
-VITE_GEMINI_API_KEY=your_gemini_api_key
+GEMINI_API_KEY=your_gemini_api_key
 ```
 
-**Security Warning:**
-- Exposing API keys on the frontend is a security risk
-- Anyone can extract the key from browser DevTools
-- API usage can be abused, leading to unexpected charges
+**No client-side API key needed!** The frontend uses the proxy automatically.
 
-**Recommended Alternative (Future Implementation):**
-1. Create a backend proxy endpoint for Live API WebSocket connections
-2. Handle authentication on the server side
-3. Remove `VITE_GEMINI_API_KEY` from client environment
-4. See: `docs/service-connections-setup.md` for OAuth patterns
+**Implementation Details:**
+- WebSocket proxy: `src/lib/liveApiProxy.js`
+- Proxy client: `src/lib/voice/genAIProxyClient.js`
+- Origin verification in production for additional security
+- See commit series for full implementation
 
-**Temporary Workaround:**
-- If you must use the current implementation, set up API quotas and usage limits in Google Cloud Console
-- Monitor API usage regularly
-- Consider using a separate API key with restricted scopes
+**Vercel WebSocket Support:**
+- Vercel supports WebSocket connections on serverless functions
+- Connections automatically route through `/ws/live-api` path
+- No additional configuration needed in `vercel.json`
 
 ## Deployment Configuration
 
@@ -95,10 +101,13 @@ The project uses the following Vercel configuration:
     { "source": "/api/:path*", "destination": "/server.js" },
     { "source": "/auth/:path*", "destination": "/server.js" },
     { "source": "/healthz", "destination": "/server.js" },
-    { "source": "/metrics", "destination": "/server.js" }
+    { "source": "/metrics", "destination": "/server.js" },
+    { "source": "/ws/:path*", "destination": "/server.js" }
   ]
 }
 ```
+
+**Note:** WebSocket routes (like `/ws/live-api`) automatically work through the `/ws/:path*` rewrite. Vercel handles WebSocket upgrade requests on serverless functions.
 
 ### Build Command
 
@@ -113,18 +122,36 @@ This runs:
 
 ## Common Deployment Issues
 
-### Issue 1: "An API Key must be set when running in a browser"
+### Issue 1: WebSocket Connection Issues (Live Voice)
 
-**Symptom:** Console error on page load in production
+**Symptom:** Live Voice feature not connecting, WebSocket errors in console
 
-**Cause:** `VITE_GEMINI_API_KEY` not set in Vercel environment variables
+**Cause:** Backend proxy not initialized or authentication issues
 
-**Fix:**
-1. Go to Vercel Dashboard → Project → Settings → Environment Variables
-2. Add `VITE_GEMINI_API_KEY` with your Gemini API key
-3. Redeploy the project
+**Troubleshooting:**
 
-**Note:** If the key is missing, the Live Voice feature will show a warning but won't crash the app (as of commit e2628b1).
+1. **Verify GEMINI_API_KEY is set:**
+   - Check Vercel Dashboard → Environment Variables
+   - Ensure `GEMINI_API_KEY` (or `GOOGLE_API_KEY`) is configured
+   - This is a server-side variable (no `VITE_` prefix)
+
+2. **Check authentication:**
+   - Live Voice requires user authentication (JWT token)
+   - Ensure user is logged in before using voice features
+   - Check browser cookies for `auth_token`
+
+3. **Verify WebSocket support:**
+   - Vercel supports WebSockets on serverless functions
+   - Check Function Logs for proxy initialization messages
+   - Look for: `[Live API Proxy] WebSocket server initialized`
+
+4. **Test locally:**
+   ```bash
+   npm run dev
+   # Check for: [Live API Proxy] WebSocket server initialized at /ws/live-api
+   ```
+
+**Note:** The frontend no longer requires `VITE_GEMINI_API_KEY`. If you see references to it, update to the latest code.
 
 ### Issue 2: OAuth Redirect Mismatches
 
@@ -277,4 +304,4 @@ ls -la .vercel/output/
 
 **Last Updated:** 2025-10-02
 **Maintainer:** KBLLR Team
-**Related Issues:** #[issue-number] for Live API proxy implementation
+**Related:** Backend WebSocket proxy implementation completed - see server.js, src/lib/liveApiProxy.js, and src/lib/voice/genAIProxyClient.js

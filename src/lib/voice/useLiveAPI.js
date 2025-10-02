@@ -4,22 +4,22 @@
  */
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { GenAILiveClient } from './genAILiveClient.js';
+import { GenAIProxyClient } from './genAIProxyClient.js';
 import { AudioStreamer } from './audioStreamer.js';
 import { audioContext } from './utils.js';
 import VolMeterWorklet from './worklets/volMeter.js';
 
 /**
- * React hook for using Gemini Live API with real-time audio
+ * React hook for using Gemini Live API via backend proxy (secure)
+ * No API key needed on frontend - auth handled via JWT token
  * @param {Object} params
- * @param {string} params.apiKey - Gemini API key
  * @param {string} [params.model] - Optional model override
  * @returns {Object} Live API controls and state
  */
-export function useLiveAPI({ apiKey, model }) {
+export function useLiveAPI({ model }) {
   const client = useMemo(
-    () => new GenAILiveClient(apiKey, model),
-    [apiKey, model]
+    () => new GenAIProxyClient(model),
+    [model]
   );
 
   const audioStreamerRef = useRef(null);
