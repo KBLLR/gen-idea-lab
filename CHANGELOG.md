@@ -1,5 +1,7 @@
 # Changelog
 
+2025-10-03: Added EmpathyLab app with Human library integration for multimodal computer vision (face detection, emotion analysis, gaze tracking, body pose, hand tracking, gesture recognition); created comprehensive documentation covering educational use cases, privacy controls, UI visualization strategies, and technical implementation; integrated with app switcher and navigation; includes privacy-first design with granular consent controls and client-side processing.
+
 2025-10-03: Created comprehensive Hume AI documentation suite including voice systems comparison (Gemini Live vs Hume EVI), step-by-step integration guide with server-side token generation and React components, and in-depth 48 emotions UI/UX guide with 6 visualization strategies (Emotion Bubble Cloud, Spectrum Bar, Radar Chart, Timeline, Particle System, Ambient Atmosphere), reusable component library, and app-specific implementation recommendations.
 
 2025-10-03: Added CalendarAI sidebar with mini calendar navigation and category filters (Today, Tomorrow, This Week, This Month, Upcoming, Past); implemented event count badges and Google Calendar connection status indicator; created comprehensive context awareness documentation explaining screen awareness system across all 6 apps with technical implementation details and usage examples.
@@ -17,3 +19,5 @@
 2025-10-03: UI a11y + stories/tests; Panel adoption in Archiva/VizGen; ActionBar size/roving focus; added UI docs.
 2025-10-03: CalendarAI now uses shared BoothHeader with stacked actions, selected event summary, and status based on Google Calendar connection.
 2025-10-03: CalendarAI UI: more rounded event cards; countdown styled to match user-actions bar with dividers and tokens.
+2025-10-03: CalendarAI countdown now uses shared ActionBar for reusability; CSS positions container only.
+2025-10-03: Added CalendarAI stories: Countdown as ActionBar and basic EventCard.

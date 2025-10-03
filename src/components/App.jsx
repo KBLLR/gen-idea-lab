@@ -25,6 +25,8 @@ import PlannerSidebar from './PlannerSidebar.jsx'
 import PlannerCanvas from './PlannerCanvas.jsx'
 import CalendarAI from './CalendarAI.jsx'
 import CalendarAISidebar from './CalendarAISidebar.jsx'
+import EmpathyLab from './EmpathyLab.jsx'
+import EmpathyLabSidebar from './EmpathyLabSidebar.jsx'
 import GlassDock from './GlassDock.jsx'
 import SystemInfoModal from './SystemInfoModal.jsx'
 import CommandPalette from './CommandPalette.jsx'
@@ -190,6 +192,8 @@ export default function App() {
         return <PlannerSidebar />;
       case 'calendarAI':
         return <CalendarAISidebar />;
+      case 'empathyLab':
+        return <EmpathyLabSidebar />;
       default:
         return null;
     }
@@ -209,6 +213,8 @@ export default function App() {
         return <PlannerCanvas />;
       case 'calendarAI':
         return <CalendarAI />;
+      case 'empathyLab':
+        return <EmpathyLab />;
       default:
         return null;
     }

@@ -12,6 +12,10 @@
     "vercel-build": "npm run tokens:build && vite build",
     "preview": "vite preview",
     "start": "node server.js",
+    "storybook": "storybook dev -p 6006",
+    "build-storybook": "storybook build",
+    "test:ui": "vitest --environment=jsdom",
+    "test:ui:watch": "vitest --environment=jsdom --watch",
     "generate-thumbnails": "node scripts/generate-thumbnails.mjs",
     "tokens:build": "cd tokens && npx style-dictionary build --config config.json",
     "tokens:watch": "cd tokens && npx style-dictionary build --watch",
@@ -23,6 +27,7 @@
   },
   "dependencies": {
     "@google/genai": "^1.21.0",
+    "@vladmandic/human": "^3.3.6",
     "auto-zustand-selectors-hook": "^3.0.1",
     "clsx": "^2.1.1",
     "cookie-parser": "^1.4.6",
@@ -52,12 +57,19 @@
     "zustand": "^5.0.8"
   },
   "devDependencies": {
+    "@storybook/addon-a11y": "^8.6.14",
+    "@storybook/addon-essentials": "^8.6.14",
+    "@storybook/addon-interactions": "^8.6.14",
+    "@storybook/react-vite": "^8.6.14",
+    "@storybook/test": "^8.6.14",
     "@vitejs/plugin-react": "^4.3.0",
     "concurrently": "^8.2.2",
     "jest": "^29.7.0",
     "nodemon": "^3.1.0",
+    "storybook": "^8.6.14",
     "style-dictionary": "^5.0.4",
     "supertest": "^6.3.4",
-    "vite": "^5.4.0"
+    "vite": "^5.4.0",
+    "vitest": "^2.0.0"
   }
 }

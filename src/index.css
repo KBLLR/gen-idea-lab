@@ -3,6 +3,7 @@
 @import './styles/tokens/index.css';
 @import './styles/utilities/utilities.css';
 @import './styles/components/knowledge-section.css';
+@import './styles/components/empathy-lab.css';
 
 * {
   margin: 0;
@@ -2264,9 +2265,9 @@ main.workflows-layout .right-column {
 .booth-header {
   padding-bottom: 20px;
   border-bottom: 1px solid var(--border-primary);
-  display: flex;
-  align-items: flex-end;
-  justify-content: space-between;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto;
+  align-items: start;
   gap: 20px;
   width: 100%;
   max-width: 1200px;
@@ -2299,6 +2300,11 @@ main.workflows-layout .right-column {
   transition: transform 0.2s;
   white-space: nowrap;
 }
+
+/* Header column defaults */
+.booth-title { min-width: 0; }
+.booth-description { min-width: 0; display: flex; flex-direction: column; align-items: flex-start; }
+.booth-actions { display: flex; align-items: flex-start; gap: 12px; }
 
 /* Consistent header internals */
 .booth-title h1 {
@@ -2492,6 +2498,23 @@ main.workflows-layout .right-column {
 
 [data-theme="light"] .user-actions .action-divider {
   background: rgba(0, 0, 0, 0.1);
+}
+
+/* Larger variant for GlassDock toolbar (square icon buttons) */
+.user-actions.user-actions--lg {
+  padding: 6px 8px;
+  border-radius: 16px;
+}
+.user-actions.user-actions--lg .action-btn {
+  padding: 12px 14px;
+  border-radius: 12px;
+}
+.user-actions.user-actions--lg .action-btn .icon {
+  font-size: 24px;
+}
+.user-actions.user-actions--lg .action-divider {
+  height: 24px;
+  margin: 0 6px;
 }
 
 /* Archiva Styles */

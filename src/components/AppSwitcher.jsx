@@ -13,6 +13,7 @@ const apps = [
   { id: 'workflows', title: 'Workflows' },
   { id: 'planner', title: 'PlannerAI' },
   { id: 'calendarAI', title: 'CalendarAI' },
+  { id: 'empathyLab', title: 'EmpathyLab' },
 ];
 
 export default function AppSwitcher() {
