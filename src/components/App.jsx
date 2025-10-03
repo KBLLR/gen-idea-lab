@@ -23,6 +23,7 @@ import ModuleViewer from './ModuleViewer.jsx'
 import Assistant from './Assistant.jsx'
 import PlannerSidebar from './PlannerSidebar.jsx'
 import PlannerCanvas from './PlannerCanvas.jsx'
+import CalendarAI from './CalendarAI.jsx'
 import GlassDock from './GlassDock.jsx'
 import SystemInfoModal from './SystemInfoModal.jsx'
 import CommandPalette from './CommandPalette.jsx'
@@ -203,6 +204,8 @@ export default function App() {
         return <WorkflowEditor />;
       case 'planner':
         return <PlannerCanvas />;
+      case 'calendarAI':
+        return <CalendarAI />;
       default:
         return null;
     }

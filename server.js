@@ -1265,6 +1265,57 @@ app.get('/api/services/gmail/messages', requireAuth, async (req, res) => {
   }
 });
 
+// Google Calendar: list events
+app.get('/api/services/googleCalendar/events', requireAuth, async (req, res) => {
+  try {
+    const { maxResults = '50', timeMin, timeMax, q = '' } = req.query;
+    const accessToken = await ensureGoogleAccessToken(req.user.email, 'googleCalendar', { clientId: process.env.GOOGLE_CLIENT_ID, clientSecret: process.env.GOOGLE_CLIENT_SECRET });
+    if (!accessToken) {
+      return res.status(400).json({ error: 'Google Calendar not connected' });
+    }
+
+    const params = new URLSearchParams({
+      maxResults: String(maxResults),
+      orderBy: 'startTime',
+      singleEvents: 'true',
+      timeMin: timeMin || new Date().toISOString(), // Default to current time
+    });
+
+    if (timeMax) params.set('timeMax', timeMax);
+    if (q) params.set('q', q);
+
+    const url = `https://www.googleapis.com/calendar/v3/calendars/primary/events?${params.toString()}`;
+    const resp = await fetch(url, { headers: { Authorization: `Bearer ${accessToken}` } });
+
+    if (!resp.ok) {
+      const text = await resp.text();
+      return res.status(resp.status).json({ error: 'Calendar API error', details: text });
+    }
+
+    const json = await resp.json();
+    const events = (json.items || []).map((event) => ({
+      id: event.id,
+      summary: event.summary || '(No title)',
+      description: event.description || '',
+      location: event.location || '',
+      start: event.start?.dateTime || event.start?.date,
+      end: event.end?.dateTime || event.end?.date,
+      htmlLink: event.htmlLink,
+      creator: event.creator,
+      organizer: event.organizer,
+      attendees: event.attendees || [],
+      status: event.status,
+      colorId: event.colorId,
+      attachments: event.attachments || [],
+    }));
+
+    res.json({ events, nextPageToken: json.nextPageToken || null });
+  } catch (err) {
+    logger.error('Calendar list error:', err);
+    res.status(500).json({ error: 'Failed to list Calendar events', details: err.message });
+  }
+});
+
 // Expose the /metrics endpoint for Prometheus scraping
 app.get('/metrics', async (req, res) => {
   try {

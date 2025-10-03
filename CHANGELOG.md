@@ -1,5 +1,7 @@
 # Changelog
 
+2025-10-03: Added CalendarAI app to the app switcher with event countdown grid, ICS import/export, JSON backup/restore, and keyboard shortcuts; implemented Google Calendar API integration with /api/services/googleCalendar/events endpoint to fetch upcoming events; integrated real-time countdown timers for calendar events with automatic refresh; styled with dark theme matching application design system.
+
 2025-10-02: Implemented secure backend WebSocket proxy for Gemini Live API eliminating frontend API key exposure; fixed httpOnly cookie authentication; wrapped all PlannerCanvas node components with React.memo for 30-50% performance improvement; optimized constant allocations; updated Vercel deployment documentation with WebSocket configuration and security best practices.
 
 2025-10-02: Added comprehensive planner performance troubleshooting guide with optimization strategies, hardware recommendations, and profiling analysis; updated server OAuth routes with documentation references for easier setup.

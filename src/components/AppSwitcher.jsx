@@ -12,6 +12,7 @@ const apps = [
   { id: 'archiva', title: 'ArchivAI' },
   { id: 'workflows', title: 'Workflows' },
   { id: 'planner', title: 'PlannerAI' },
+  { id: 'calendarAI', title: 'CalendarAI' },
 ];
 
 export default function AppSwitcher() {
