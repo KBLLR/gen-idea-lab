@@ -1,5 +1,7 @@
 # Changelog
 
+2025-10-03: Fixed Vercel build: added missing UI components (Button, FormField, Panel, ActionBar) and BoothHeader to git tracking that were previously untracked causing build failures.
+
 2025-10-03: Integrated HumeTest into Settings Modal: added "Hume EVI Testing" section with toggle button to show/hide test interface, provides easy access to test Hume voice integration without leaving Settings.
 
 2025-10-03: Created HumeTest component for quick verification of Hume EVI integration: fetches access token from backend, connects to Hume voice service, displays real-time emotion detection with top 5 emotions shown as progress bars, shows conversation messages with emotion scores, includes connection controls and visual status indicators.
