@@ -6,6 +6,7 @@
 import { useMemo, useState } from 'react';
 import useStore from '../lib/store';
 import { personalities } from '../lib/assistant/personalities';
+import SidebarItemCard from './sidebar/SidebarItemCard.jsx';
 import { commonTasks, specializedTasks } from '../lib/assistant/tasks';
 import { modules } from '../lib/modules';
 import { templates as archivaTemplates } from '../lib/archiva/templates';
@@ -252,27 +253,33 @@ export function DraggableItem({ item }) {
     }
   };
 
-  return (
-    <div
-      className="planner-item"
-      draggable
-      onDragStart={onDragStart}
-      title={item.label}
-      {...dataAttributes}
-    >
-      <span className="icon">{item.icon || 'drag_indicator'}</span>
-      <span className="label">{item.label}</span>
+  const rightSlot = (
+    <>
       {showConnectionStatus && !item.connected && (
         <button className="connect-cta" onClick={handleQuickConnect} title="Connect this service">
           Connect
         </button>
       )}
       {showConnectionStatus && (
-        <span className={`connection-status ${item.connected ? 'connected' : 'disconnected'}`}
-              title={item.connected ? 'Connected' : 'Disconnected'}>
-        </span>
+        <span
+          className={`connection-status ${item.connected ? 'connected' : 'disconnected'}`}
+          title={item.connected ? 'Connected' : 'Disconnected'}
+        />
       )}
-    </div>
+    </>
+  );
+
+  return (
+    <SidebarItemCard
+      className="planner-item"
+      icon={item.icon || 'drag_indicator'}
+      label={item.label}
+      title={item.label}
+      rightSlot={rightSlot}
+      draggable
+      onDragStart={onDragStart}
+      {...dataAttributes}
+    />
   );
 }
 

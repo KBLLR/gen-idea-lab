@@ -69,3 +69,10 @@
 2025-10-03: Storybook: added Planner sidebar coverage (PlannerSidebar, DraggableItem stories); exported DraggableItem for reuse in stories.
 2025-10-03: IdeaLab sidebar: enforce inline icon+text for module cards; added reusable SidebarItemCard component with Storybook stories; Storybook now loads Material Symbols via preview-head.
 2025-10-03: EmpathyLab sidebar: normalized consent rows to SidebarItemCard with toggles (new SidebarToggleItemCard) and added stories for toggle variant.
+2025-10-03: Planner sidebar: DraggableItem now uses base SidebarItemCard with right-side Connect CTA and status dot for consistent cards; kept drag behavior and data attributes for service-specific styles.
+2025-10-03: Storybook: added Planner/ServiceStates story to showcase Connect CTA and status dots for OAuth/API‑key items without invoking real OAuth.
+2025-10-03: Sidebar Subheader: added reusable SidebarSubheader component + stories; EmpathyLab sidebar now uses it and supports an optional 'distribute-evenly' layout mode to evenly space sections in the column.
+2025-10-03: EmpathyLab presets: SidebarSubheader now hosts a 3‑button ActionBar (Full Research, Presentation, Minimal) using userbar styling; replaced old preset buttons.
+2025-10-03: Privacy banner: added glass-style overlay banner centered in EmpathyLab right column with close button; reusable UI/GlassBanner component + story.
+2025-10-03: Privacy notice moved: removed old sidebar privacy notice from EmpathyLab sidebar (left column); keep only floating glass banner in the right column.
+2025-10-03: Agent docs: added UI spacing migration note to AGENTS.md, CODEX.md, CLAUDE.md, GEMINI.md (use --space-* or semantic tokens when touching styles).

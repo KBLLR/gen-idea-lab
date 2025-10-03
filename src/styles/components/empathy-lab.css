@@ -9,6 +9,7 @@
     height: 100%;
     background: var(--color-bg);
     overflow: hidden;
+    position: relative; /* allow absolute overlays inside right column */
 }
 
 .empathy-lab-main {
@@ -309,6 +310,11 @@
     padding: var(--space-4);
     /* Let the parent left-column-content handle scrolling to avoid nested scrollbars */
     overflow: visible;
+    justify-content: flex-start;
+}
+
+.empathy-lab-sidebar.distribute-evenly {
+    justify-content: space-evenly;
 }
 
 /* Ensure panels stack as full-width rows inside the sidebar */

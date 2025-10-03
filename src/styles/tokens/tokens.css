@@ -62,6 +62,7 @@
   --shadow-xl: 0 10px 40px rgba(0, 0, 0, 0.3);
   --shadow-inner: inset 0 0 0 2px rgba(30, 136, 229, 0.1);
   --shadow-focus: 0 0 0 3px rgba(30, 136, 229, 0.1);
+  /* Legacy spacing tokens (kept for compatibility) */
   --spacing-0: 0px;
   --spacing-1: 2px;
   --spacing-2: 4px;
@@ -76,6 +77,37 @@
   --spacing-11: 24px;
   --spacing-12: 30px;
   --spacing-13: 40px;
+
+  /* 8pt-based spacing scale (new) */
+  --space-0: 0px;
+  --space-1: 4px;   /* 0.5x */
+  --space-2: 8px;   /* 1x */
+  --space-3: 12px;  /* 1.5x */
+  --space-4: 16px;  /* 2x */
+  --space-5: 20px;  /* 2.5x */
+  --space-6: 24px;  /* 3x */
+  --space-7: 32px;  /* 4x */
+  --space-8: 40px;  /* 5x */
+  --space-9: 48px;  /* 6x */
+  --space-10: 64px; /* 8x */
+
+  /* Gutters and paddings (semantic) */
+  --gutter-xs: var(--space-2);
+  --gutter-sm: var(--space-3);
+  --gutter-md: var(--space-4);
+  --gutter-lg: var(--space-6);
+  --gutter-xl: var(--space-7);
+
+  --panel-padding-sm: var(--space-3);
+  --panel-padding-md: var(--space-4);
+  --panel-padding-lg: var(--space-6);
+
+  --stack-gap-sm: var(--space-2);
+  --stack-gap-md: var(--space-3);
+  --stack-gap-lg: var(--space-4);
+
+  /* Alias for occasional usage */
+  --spacing-lg: var(--space-4);
   --spacing-layout-column-padding: 20px;
   --spacing-layout-modal-padding: 40px;
   --spacing-layout-max-width-left-column-two-column: 380px;

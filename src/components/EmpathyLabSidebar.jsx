@@ -3,9 +3,9 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 import { useState } from 'react';
-import Panel from './ui/Panel.jsx';
 import FormField from './ui/FormField.jsx';
 import { createHumeConfig } from '../lib/services/hume.js';
+import SidebarSubheader from './sidebar/SidebarSubheader.jsx';
 import SidebarToggleItemCard from './sidebar/SidebarToggleItemCard.jsx';
 import { getAllPrompts, getPrompt } from '../data/hume-prompts.js';
 
@@ -149,25 +149,22 @@ export default function EmpathyLabSidebar() {
     };
 
     return (
-        <div className="empathy-lab-sidebar">
+        <div className="empathy-lab-sidebar distribute-evenly">
             {/* Sticky Preset Row under header */}
             <div className="preset-bar">
-                <div className="preset-buttons">
-                    <button className={`preset-btn ${presets === 'research' ? 'active' : ''}`} onClick={() => applyPreset('research')} title="Full Research">
-                        <span className="icon">science</span>
-                        <span>Full Research</span>
-                    </button>
-                    <button className={`preset-btn ${presets === 'presentation' ? 'active' : ''}`} onClick={() => applyPreset('presentation')} title="Presentation">
-                        <span className="icon">co_present</span>
-                        <span>Presentation</span>
-                    </button>
-                    <button className={`preset-btn ${presets === 'minimal' ? 'active' : ''}`} onClick={() => applyPreset('minimal')} title="Minimal">
-                        <span className="icon">visibility_off</span>
-                        <span>Minimal</span>
-                    </button>
-                </div>
+              <SidebarSubheader
+                icon="tune"
+                title="Presets"
+                subtitle="Quick toggle sets"
+                actions={[
+                  { key: 'research', title: 'Full Research', icon: 'science', ariaPressed: presets === 'research', onClick: () => applyPreset('research') },
+                  { key: 'presentation', title: 'Presentation', icon: 'co_present', ariaPressed: presets === 'presentation', onClick: () => applyPreset('presentation') },
+                  { key: 'minimal', title: 'Minimal', icon: 'visibility_off', ariaPressed: presets === 'minimal', onClick: () => applyPreset('minimal') },
+                ]}
+              />
             </div>
 
+            <SidebarSubheader icon="tune" title="Tracking Permissions" subtitle="Toggle capabilities used in the lab" />
             <div className="consent-options" style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                 <SidebarToggleItemCard
                   icon="face"
@@ -218,6 +215,7 @@ export default function EmpathyLabSidebar() {
             </div>
 
             {/* Hume EVI Configuration */}
+            <SidebarSubheader icon="settings_voice" title="Hume EVI" subtitle="Configuration and saved presets" />
             <div className="sidebar-accordion">
                 <button className="accordion-header" onClick={() => setShowConfigForm(v => !v)} aria-expanded={showConfigForm}>
                     <span className="icon">tune</span>
@@ -391,18 +389,6 @@ export default function EmpathyLabSidebar() {
                         )}
                     </div>
                 )}
-            </div>
-
-            <div className="privacy-notice privacy-sticky">
-                <span className="icon">info</span>
-                <div>
-                    <strong>Your Privacy Matters</strong>
-                    <p>
-                        All AI processing happens locally in your browser.
-                            No video or images are sent to servers. Session data
-                            is automatically deleted when you close this tab.
-                        </p>
-                    </div>
             </div>
 
             {/* Use Cases moved to main area */}

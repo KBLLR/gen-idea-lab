@@ -20,6 +20,7 @@ This playbook gives Claude Code (claude.ai/code) the context it needs when joini
 - **ArchivAI Templates**: Workflow data requires `steps` array for template validation. AI mock data generation loads example templates from `/templates/archivai/` and uses Gemini to generate realistic content matching field schemas.
 - **Screen Awareness**: `GlassDock.jsx:extractDOMContext()` uses content-based app detection to auto-sync store state with actual page content.
 - **Web Search**: Assistant `search_web` tool uses Ollama API with `OLLAMA_API_KEY` environment variable fallback if user hasn't connected their own key.
+- **UI Spacing Migration**: When touching app-specific styles, migrate hard‑coded `--spacing-*` to the new 8px tokens (`--space-*`) or semantic tokens (`--panel-padding-*`, `--gutter-*`, `--stack-gap-*`) to gradually converge.
 
 ## Observability & Ops
 - Health endpoint: `GET /healthz`

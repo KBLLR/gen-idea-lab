@@ -43,6 +43,7 @@
 
 ## Agent-Specific Instructions
 - Treat this file as authoritative. Follow directory scopes when adding or modifying files under `src/`, `tokens/`, and `tests/`.
+- UI spacing migration: Gradually migrate remaining hard‑coded `--spacing-*` in app‑specific styles to the new 8px tokens (`--space-*`) or semantic tokens (e.g., `--panel-padding-*`, `--gutter-*`, `--stack-gap-*`) when touching those files (calendar grids, custom modals, etc.).
 
 ## Recent Changes & Rationale
 - For a concise summary of the latest implementation updates (Markdown rendering, mock persistence, drawer UI, centered layouts, headers), see `docs/IMPLEMENTATION_NOTES.md`.

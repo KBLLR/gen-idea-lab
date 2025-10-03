@@ -36,6 +36,10 @@ export default function EmpathyLab() {
     const [tensors, setTensors] = useState(0);
     const fpsHistoryRef = useRef([]);
 
+    // Model loading state
+    const [loadingStatus, setLoadingStatus] = useState('');
+    const [isModelReady, setIsModelReady] = useState(false);
+
     const [consent, setConsent] = useState({
         faceDetection: false,
         emotionAnalysis: false,
@@ -50,15 +54,20 @@ export default function EmpathyLab() {
 
     // Multimodal layout state
     const [showVoiceChat, setShowVoiceChat] = useState(false);
+    const [showPrivacyBanner, setShowPrivacyBanner] = useState(true);
 
     // Initialize Human library
     useEffect(() => {
         const initHuman = async () => {
             try {
                 setIsLoading(true);
+                setIsModelReady(false);
+                setLoadingStatus('Importing Human library...');
 
                 // Dynamically import Human library
                 const Human = (await import('@vladmandic/human')).default;
+
+                setLoadingStatus('Configuring detection models...');
 
                 const config = {
                     // Auto-detect best backend with fallback: webgpu > webgl > wasm > cpu
@@ -119,17 +128,22 @@ export default function EmpathyLab() {
 
                 humanRef.current = new Human(config);
 
-                // Load models
+                // Load models (this downloads TensorFlow models from CDN)
+                setLoadingStatus('Downloading AI models from CDN (5-20MB)...');
                 await humanRef.current.load();
 
                 // Warmup for better first-run performance (recommended by docs)
+                setLoadingStatus('Warming up TensorFlow backend...');
                 console.log('Human library loaded, warming up...');
                 await humanRef.current.warmup();
 
                 console.log('Human library ready:', humanRef.current.version);
+                setLoadingStatus('');
+                setIsModelReady(true);
             } catch (err) {
                 console.error('Failed to initialize Human library:', err);
                 setError('Failed to load AI models. Please refresh and try again.');
+                setLoadingStatus('');
             } finally {
                 setIsLoading(false);
             }
@@ -138,6 +152,9 @@ export default function EmpathyLab() {
         // Only initialize if any consent is given
         if (Object.values(consent).some(v => v)) {
             initHuman();
+        } else {
+            setIsModelReady(false);
+            setLoadingStatus('');
         }
 
         return () => {
@@ -532,6 +549,25 @@ export default function EmpathyLab() {
 
     return (
         <div className="empathy-lab">
+            {showPrivacyBanner && (
+                <>
+                    {/** Centered glass banner above content (right column only) */}
+                    <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none' }}>
+                        {/* using shared glass banner styles */}
+                        <div className="glass-banner-overlay">
+                            <div className="glass-banner">
+                                <button className="glass-banner-close" onClick={() => setShowPrivacyBanner(false)} aria-label="Close privacy notice" type="button">
+                                    <span className="icon">close</span>
+                                </button>
+                                <div className="glass-banner-title">Your Privacy Matters</div>
+                                <div className="glass-banner-body">
+                                    All AI processing happens locally in your browser. No video or images are sent to servers. Session data is automatically deleted when you close this tab.
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </>
+            )}
             <BoothHeader
                 icon="psychology"
                 title="EmpathyLab"
