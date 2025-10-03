@@ -1,5 +1,7 @@
 # Changelog
 
+2025-10-03: Created HumeTest component for quick verification of Hume EVI integration: fetches access token from backend, connects to Hume voice service, displays real-time emotion detection with top 5 emotions shown as progress bars, shows conversation messages with emotion scores, includes connection controls and visual status indicators.
+
 2025-10-03: Implemented Hume EVI foundation: added server endpoint for access token generation (/api/services/hume/token), installed @humeai/voice-react SDK, created emotion fusion engine that maps Human's 7 emotions to Hume's 48 emotions with conflict detection (polarity mismatch, suppressed anxiety, forced positivity, hidden frustration), valence/arousal calculation, and EmotionTracker class for pattern analysis over time.
 
 2025-10-03: Created comprehensive EmpathyLab + Hume integration strategy document detailing multimodal emotion fusion (visual + vocal intelligence), split-screen interface design (webcam tracking + empathic chat), emotion conflict detection, GlassDock global toggle for cross-app empathy, session recording with synchronized timestamps, and educational use cases for UX research, presentation training, and accessibility studies.
@@ -26,3 +28,4 @@
 2025-10-03: CalendarAI countdown now uses shared ActionBar for reusability; CSS positions container only.
 2025-10-03: Added CalendarAI stories: Countdown as ActionBar and basic EventCard.
 2025-10-03: CalendarAI grid gutter increased (gap = 1.5x spacing-md) for clearer separation between cards.
+2025-10-03: Added interactive CalendarGrid with day popover (Create/See events), date filter banner, default date for new event; responsive gutters (2x on >=1200px).
