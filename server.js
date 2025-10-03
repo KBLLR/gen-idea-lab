@@ -1316,6 +1316,59 @@ app.get('/api/services/googleCalendar/events', requireAuth, async (req, res) => 
   }
 });
 
+// Hume AI - Get access token for EVI (Empathic Voice Interface)
+app.get('/api/services/hume/token', requireAuth, async (req, res) => {
+  try {
+    const apiKey = process.env.HUME_API_KEY;
+    const secretKey = process.env.HUME_SECRET_KEY;
+
+    if (!apiKey || !secretKey) {
+      return res.status(500).json({
+        error: 'Hume API credentials not configured',
+        details: 'HUME_API_KEY and HUME_SECRET_KEY must be set in environment variables'
+      });
+    }
+
+    // Fetch access token from Hume API
+    const response = await fetch('https://api.hume.ai/oauth2-cc/token', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+      body: new URLSearchParams({
+        grant_type: 'client_credentials',
+        client_id: apiKey,
+        client_secret: secretKey,
+      }),
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      logger.error('Hume token request failed:', { status: response.status, error: errorText });
+      return res.status(response.status).json({
+        error: 'Failed to fetch Hume access token',
+        details: errorText
+      });
+    }
+
+    const data = await response.json();
+
+    logger.info('Hume access token generated successfully', {
+      expiresIn: data.expires_in,
+      user: req.user.email
+    });
+
+    res.json({
+      accessToken: data.access_token,
+      expiresIn: data.expires_in,
+      tokenType: data.token_type
+    });
+  } catch (err) {
+    logger.error('Hume token error:', err);
+    res.status(500).json({ error: 'Failed to generate Hume access token', details: err.message });
+  }
+});
+
 // Expose the /metrics endpoint for Prometheus scraping
 app.get('/metrics', async (req, res) => {
   try {

@@ -27,6 +27,7 @@
   },
   "dependencies": {
     "@google/genai": "^1.21.0",
+    "@humeai/voice-react": "^0.2.5",
     "@vladmandic/human": "^3.3.6",
     "auto-zustand-selectors-hook": "^3.0.1",
     "clsx": "^2.1.1",
