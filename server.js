@@ -1369,6 +1369,79 @@ app.get('/api/services/hume/token', requireAuth, async (req, res) => {
   }
 });
 
+// Hume API proxy routes (server-side key usage)
+app.post('/api/hume/configs', requireAuth, async (req, res) => {
+  try {
+    const apiKey = process.env.HUME_API_KEY;
+    if (!apiKey) return res.status(500).json({ error: 'HUME_API_KEY not configured' });
+    const r = await fetch('https://api.hume.ai/v0/evi/configs', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Hume-Api-Key': apiKey
+      },
+      body: JSON.stringify(req.body)
+    });
+    const data = await r.json().catch(() => ({}));
+    if (!r.ok) {
+      logger.error('Hume create config failed', { status: r.status, data });
+      return res.status(r.status).json(data);
+    }
+    res.json(data);
+  } catch (err) {
+    logger.error('Hume create config error:', err);
+    res.status(500).json({ error: 'Failed to create Hume config', details: err.message });
+  }
+});
+
+app.post('/api/hume/prompts', requireAuth, async (req, res) => {
+  try {
+    const apiKey = process.env.HUME_API_KEY;
+    if (!apiKey) return res.status(500).json({ error: 'HUME_API_KEY not configured' });
+    const r = await fetch('https://api.hume.ai/v0/evi/prompts', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Hume-Api-Key': apiKey
+      },
+      body: JSON.stringify(req.body)
+    });
+    const data = await r.json().catch(() => ({}));
+    if (!r.ok) {
+      logger.error('Hume create prompt failed', { status: r.status, data });
+      return res.status(r.status).json(data);
+    }
+    res.json(data);
+  } catch (err) {
+    logger.error('Hume create prompt error:', err);
+    res.status(500).json({ error: 'Failed to create Hume prompt', details: err.message });
+  }
+});
+
+app.post('/api/hume/tools', requireAuth, async (req, res) => {
+  try {
+    const apiKey = process.env.HUME_API_KEY;
+    if (!apiKey) return res.status(500).json({ error: 'HUME_API_KEY not configured' });
+    const r = await fetch('https://api.hume.ai/v0/evi/tools', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Hume-Api-Key': apiKey
+      },
+      body: JSON.stringify(req.body)
+    });
+    const data = await r.json().catch(() => ({}));
+    if (!r.ok) {
+      logger.error('Hume create tool failed', { status: r.status, data });
+      return res.status(r.status).json(data);
+    }
+    res.json(data);
+  } catch (err) {
+    logger.error('Hume create tool error:', err);
+    res.status(500).json({ error: 'Failed to create Hume tool', details: err.message });
+  }
+});
+
 // Expose the /metrics endpoint for Prometheus scraping
 app.get('/metrics', async (req, res) => {
   try {

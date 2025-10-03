@@ -367,3 +367,4 @@ const CalendarConnectionStatus = () => {
 };
 
 export default CalendarAISidebar;
+export { CalendarConnectionStatus };

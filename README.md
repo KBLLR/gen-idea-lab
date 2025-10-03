@@ -203,7 +203,9 @@ npm run dev
 - Stories live under `src/**/*.stories.jsx` (examples: `src/components/BoothHeader.stories.jsx`, `src/components/ui/*.stories.jsx`, `src/stories/Tokens.stories.jsx`).
 - Use the “Accessibility” panel to scan for WCAG issues; the “Interactions” panel can step through play functions.
 - Tokens: inspect color/typography via `Tokens/Overview` story.
- - Docs: UI tokens (`docs/ui/tokens.md`) and components (`docs/ui/components.md`).
+- Docs: UI tokens (`docs/ui/tokens.md`) and components (`docs/ui/components.md`).
+- Sidebars: see `docs/ui/sidebar.md`; upcoming plan in `docs/ui/storybook-episode-02.md`.
+ - Voice/EVI: Hume integration guide in `docs/integrations/hume-evi.md`.
 
 ## Deployment
 

@@ -7,6 +7,8 @@ import BoothHeader from './BoothHeader.jsx';
 import Button from './ui/Button.jsx';
 import Panel from './ui/Panel.jsx';
 import FormField from './ui/FormField.jsx';
+import VideoFrame from './empathy/VideoFrame.jsx';
+import RecordingIndicator from './empathy/RecordingIndicator.jsx';
 
 export default function EmpathyLab() {
     const videoRef = useRef(null);
@@ -496,7 +498,7 @@ export default function EmpathyLab() {
 
             <div className="empathy-lab-main">
                 {error && (
-                    <div className="error-display">
+                    <div className="error-display" aria-live="polite" role="status">
                         <span className="icon">error</span>
                         <div>
                             <h4>Error</h4>
@@ -508,30 +510,17 @@ export default function EmpathyLab() {
                     </div>
                 )}
 
-                <div className="video-container">
-                    <video
-                        ref={videoRef}
-                        style={{ display: 'none' }}
-                        playsInline
-                        muted
-                    />
-                    <canvas ref={canvasRef} className="video-canvas" />
-                    <canvas ref={overlayCanvasRef} className="overlay-canvas" />
-
-                    {isTracking && (
-                        <div className="recording-indicator">
-                            <span className="recording-dot"></span>
-                            <span>Tracking Active</span>
-                        </div>
-                    )}
-
-                    {!isTracking && !error && (
-                        <div className="placeholder">
-                            <span className="icon">videocam_off</span>
-                            <p>Configure privacy settings and click "Start Tracking"</p>
-                        </div>
-                    )}
-                </div>
+                <Panel title="Webcam Viewer" info={isTracking ? 'Live' : 'Idle'}>
+                    <VideoFrame
+                        videoRef={videoRef}
+                        canvasRef={canvasRef}
+                        overlayCanvasRef={overlayCanvasRef}
+                        active={isTracking}
+                        error={!!error}
+                    >
+                        <RecordingIndicator active={isTracking} />
+                    </VideoFrame>
+                </Panel>
 
                 {results && (
                     <ResultsPanel

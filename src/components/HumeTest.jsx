@@ -2,7 +2,7 @@
  * @license
  * SPDX-License-Identifier: Apache-2.0
  */
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { VoiceProvider, useVoice } from '@humeai/voice-react';
 import Button from './ui/Button.jsx';
 import Panel from './ui/Panel.jsx';
@@ -105,14 +105,14 @@ function HumeChat() {
 
   const handleConnect = async () => {
     try {
-      await connect();
-      setIsConnected(true);
-
-      // Optional: Configure session settings
-      await sendSessionSettings({
-        type: 'session_settings',
-        systemPrompt: 'You are an empathic AI assistant. Be warm, understanding, and supportive.'
+      await connect({
+        audioConstraints: {
+          echoCancellation: true,
+          noiseSuppression: true,
+          autoGainControl: true
+        }
       });
+      setIsConnected(true);
     } catch (err) {
       console.error('Connection error:', err);
     }
@@ -122,6 +122,20 @@ function HumeChat() {
     disconnect();
     setIsConnected(false);
   };
+
+  // Configure session settings when socket is connected/open
+  const hasConfiguredRef = useRef(false);
+  useEffect(() => {
+    if (!isConnected || hasConfiguredRef.current) return;
+    const statusText = typeof status === 'string' ? status : (status && typeof status.value === 'string' ? status.value : '');
+    if (statusText && /connected|ready|open/i.test(statusText)) {
+      sendSessionSettings({
+        type: 'session_settings',
+        systemPrompt: 'You are an empathic AI assistant. Be warm, understanding, and supportive.'
+      }).catch((e) => console.warn('Failed to send session settings:', e));
+      hasConfiguredRef.current = true;
+    }
+  }, [isConnected, status, sendSessionSettings]);
 
   // Extract emotions from latest message
   const latestEmotions = messages.length > 0
@@ -158,9 +172,14 @@ function HumeChat() {
           >
             {isConnected ? 'mic' : 'mic_off'}
           </span>
-          <span style={{ fontSize: '0.875rem', color: 'var(--color-text-secondary)' }}>
-            Status: {status || 'disconnected'}
-          </span>
+          {(() => {
+            const statusText = typeof status === 'string' ? status : (status && typeof status.value === 'string' ? status.value : '');
+            return (
+              <span style={{ fontSize: '0.875rem', color: 'var(--color-text-secondary)' }}>
+                Status: {statusText || 'disconnected'}
+              </span>
+            );
+          })()}
           {isPlaying && (
             <span className="icon" style={{ color: '#2196F3', animation: 'pulse 1.5s infinite' }}>
               graphic_eq
@@ -249,6 +268,18 @@ function HumeChat() {
             const topEmotion = emotions
               ? Object.entries(emotions).sort((a, b) => b[1] - a[1])[0]
               : null;
+            const roleText = typeof msg.message?.role === 'string' ? msg.message.role : String(msg.message?.role || '');
+            let contentText = '';
+            const rawContent = msg.message?.content;
+            if (typeof rawContent === 'string') {
+              contentText = rawContent;
+            } else if (Array.isArray(rawContent)) {
+              contentText = rawContent.map((part) => (typeof part === 'string' ? part : (part?.text || ''))).join(' ');
+            } else if (rawContent && typeof rawContent.value === 'string') {
+              contentText = rawContent.value;
+            } else if (rawContent) {
+              try { contentText = JSON.stringify(rawContent); } catch { contentText = '' }
+            }
 
             return (
               <div
@@ -274,14 +305,14 @@ function HumeChat() {
                     opacity: 0.7
                   }}
                 >
-                  <span>{msg.message.role}</span>
+                  <span>{roleText}</span>
                   {topEmotion && (
                     <span>
                       {topEmotion[0]}: {Math.round(topEmotion[1] * 100)}%
                     </span>
                   )}
                 </div>
-                <div style={{ fontSize: '0.875rem' }}>{msg.message.content}</div>
+                <div style={{ fontSize: '0.875rem' }}>{contentText}</div>
               </div>
             );
           })

@@ -5,6 +5,7 @@
 import { useState } from 'react';
 import Panel from './ui/Panel.jsx';
 import FormField from './ui/FormField.jsx';
+import { createHumeConfig } from '../lib/services/hume.js';
 
 export default function EmpathyLabSidebar() {
     const [consent, setConsent] = useState({
@@ -57,39 +58,68 @@ export default function EmpathyLabSidebar() {
         setPresets('custom');
     };
 
+    // Hume EVI Config form state
+    const [showConfigForm, setShowConfigForm] = useState(false);
+    const [showConfigsList, setShowConfigsList] = useState(false);
+    const [cfgName, setCfgName] = useState('');
+    const [cfgVoice, setCfgVoice] = useState('Evelyn');
+    const [cfgLatency, setCfgLatency] = useState('low');
+    const [cfgAllowTools, setCfgAllowTools] = useState(false);
+    const [cfgPrompt, setCfgPrompt] = useState('You are an empathic AI assistant. Be warm, understanding, and supportive.');
+    const [cfgSaving, setCfgSaving] = useState(false);
+    const [cfgError, setCfgError] = useState(null);
+    const [savedConfigs, setSavedConfigs] = useState(() => {
+        try { return JSON.parse(localStorage.getItem('empathyLab.hume.configs') || '[]'); } catch { return []; }
+    });
+
+    const persistConfigs = (list) => {
+        setSavedConfigs(list);
+        try { localStorage.setItem('empathyLab.hume.configs', JSON.stringify(list)); } catch {}
+    };
+
+    const handleSaveConfig = async () => {
+        setCfgError(null);
+        setCfgSaving(true);
+        try {
+            const payload = {
+                name: cfgName || undefined,
+                voice: { name: cfgVoice, provider: 'HUME_AI' },
+                latency: cfgLatency,
+                prompts: cfgPrompt ? [{ text: cfgPrompt }] : undefined,
+                tools: cfgAllowTools ? [] : []
+            };
+            const result = await createHumeConfig(payload);
+            const entry = { id: result?.id || result?.config_id || Date.now().toString(), name: result?.name || cfgName || `Config ${savedConfigs.length + 1}`, voice: cfgVoice, latency: cfgLatency };
+            persistConfigs([entry, ...savedConfigs]);
+            setShowConfigsList(true);
+        } catch (e) {
+            setCfgError(e?.data?.error || e.message || 'Failed to save config');
+        } finally {
+            setCfgSaving(false);
+        }
+    };
+
     return (
         <div className="empathy-lab-sidebar">
-            <Panel variant="sidebar" title="Privacy Settings" icon="shield">
-                <div className="sidebar-section">
-                    <h4>Quick Presets</h4>
-                    <div className="preset-buttons">
-                        <button
-                            className={`preset-btn ${presets === 'research' ? 'active' : ''}`}
-                            onClick={() => applyPreset('research')}
-                        >
-                            <span className="icon">science</span>
-                            <span>Full Research</span>
-                        </button>
-                        <button
-                            className={`preset-btn ${presets === 'presentation' ? 'active' : ''}`}
-                            onClick={() => applyPreset('presentation')}
-                        >
-                            <span className="icon">co_present</span>
-                            <span>Presentation</span>
-                        </button>
-                        <button
-                            className={`preset-btn ${presets === 'minimal' ? 'active' : ''}`}
-                            onClick={() => applyPreset('minimal')}
-                        >
-                            <span className="icon">visibility_off</span>
-                            <span>Minimal</span>
-                        </button>
-                    </div>
+            {/* Sticky Preset Row under header */}
+            <div className="preset-bar">
+                <div className="preset-buttons">
+                    <button className={`preset-btn ${presets === 'research' ? 'active' : ''}`} onClick={() => applyPreset('research')} title="Full Research">
+                        <span className="icon">science</span>
+                        <span>Full Research</span>
+                    </button>
+                    <button className={`preset-btn ${presets === 'presentation' ? 'active' : ''}`} onClick={() => applyPreset('presentation')} title="Presentation">
+                        <span className="icon">co_present</span>
+                        <span>Presentation</span>
+                    </button>
+                    <button className={`preset-btn ${presets === 'minimal' ? 'active' : ''}`} onClick={() => applyPreset('minimal')} title="Minimal">
+                        <span className="icon">visibility_off</span>
+                        <span>Minimal</span>
+                    </button>
                 </div>
+            </div>
 
-                <div className="sidebar-section">
-                    <h4>Tracking Permissions</h4>
-                    <div className="consent-options">
+            <div className="consent-options">
                         <label className="consent-item">
                             <div className="consent-header">
                                 <input
@@ -181,100 +211,104 @@ export default function EmpathyLabSidebar() {
                                 Allow exporting anonymized session data (JSON)
                             </p>
                         </label>
-                    </div>
-                </div>
+            </div>
 
-                <div className="privacy-notice">
-                    <span className="icon">info</span>
-                    <div>
-                        <strong>Your Privacy Matters</strong>
-                        <p>
-                            All AI processing happens locally in your browser.
+            {/* Hume EVI Configuration */}
+            <div className="sidebar-accordion">
+                <button className="accordion-header" onClick={() => setShowConfigForm(v => !v)} aria-expanded={showConfigForm}>
+                    <span className="icon">tune</span>
+                    <strong style={{ flex: 1 }}>EVI Configuration</strong>
+                    <span className="icon">{showConfigForm ? 'expand_less' : 'expand_more'}</span>
+                </button>
+                {showConfigForm && (
+                    <div className="accordion-body">
+                        <div className="sidebar-section" style={{ gap: '8px', display: 'flex', flexDirection: 'column' }}>
+                            <FormField label="Name"><input type="text" value={cfgName} onChange={(e) => setCfgName(e.target.value)} placeholder="e.g., Research Default" /></FormField>
+                            <FormField label="Voice"><input type="text" value={cfgVoice} onChange={(e) => setCfgVoice(e.target.value)} placeholder="e.g., Evelyn" /></FormField>
+                            <FormField label="Latency">
+                                <select value={cfgLatency} onChange={(e) => setCfgLatency(e.target.value)}>
+                                    <option value="low">Low</option>
+                                    <option value="medium">Medium</option>
+                                    <option value="high">High</option>
+                                </select>
+                            </FormField>
+                            <label className="checkbox-label"><input type="checkbox" checked={cfgAllowTools} onChange={(e) => setCfgAllowTools(e.target.checked)} /> Allow function tools</label>
+                            <FormField label="System Prompt"><textarea rows={3} value={cfgPrompt} onChange={(e) => setCfgPrompt(e.target.value)} /></FormField>
+                            {cfgError && (
+                                <div className="privacy-notice" style={{ borderColor: 'rgba(244,67,54,0.3)', background: 'rgba(244,67,54,0.08)' }}>
+                                    <span className="icon">error</span>
+                                    <div>
+                                        <strong>Save failed</strong>
+                                        <p style={{ margin: 0 }}>{cfgError}</p>
+                                    </div>
+                                </div>
+                            )}
+                            <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
+                                <button className="preset-btn" onClick={handleSaveConfig} disabled={cfgSaving}>
+                                    <span className="icon">save</span>
+                                    <span>{cfgSaving ? 'Saving…' : 'Save Config'}</span>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                )}
+            </div>
+
+            {/* Saved Configurations */}
+            <div className="sidebar-accordion">
+                <button className="accordion-header" onClick={() => setShowConfigsList(v => !v)} aria-expanded={showConfigsList}>
+                    <span className="icon">folder_open</span>
+                    <strong style={{ flex: 1 }}>Saved EVI Configs</strong>
+                    <span className="icon">{showConfigsList ? 'expand_less' : 'expand_more'}</span>
+                </button>
+                {showConfigsList && (
+                    <div className="accordion-body">
+                        {savedConfigs.length === 0 ? (
+                            <div className="consent-item" style={{ textAlign: 'center', color: 'var(--color-text-secondary)' }}>No configurations saved yet.</div>
+                        ) : (
+                            <div className="use-cases" style={{ gap: '8px' }}>
+                                {savedConfigs.map((c) => (
+                                    <div key={c.id} className="use-case-item" style={{ alignItems: 'center', justifyContent: 'space-between' }}>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                            <span className="icon">settings_voice</span>
+                                            <div>
+                                                <strong>{c.name}</strong>
+                                                <p style={{ margin: 0 }}>Voice: {c.voice} · Latency: {c.latency}</p>
+                                            </div>
+                                        </div>
+                                        <div style={{ display: 'flex', gap: '8px' }}>
+                                            <button className="preset-btn" title="Use config" onClick={() => {/* future: set active */}}>
+                                                <span className="icon">check_circle</span>
+                                                <span>Use</span>
+                                            </button>
+                                            <button className="preset-btn" title="Remove" onClick={() => persistConfigs(savedConfigs.filter(x => x.id !== c.id))}>
+                                                <span className="icon">delete</span>
+                                                <span>Remove</span>
+                                            </button>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+                )}
+            </div>
+
+            <div className="privacy-notice privacy-sticky">
+                <span className="icon">info</span>
+                <div>
+                    <strong>Your Privacy Matters</strong>
+                    <p>
+                        All AI processing happens locally in your browser.
                             No video or images are sent to servers. Session data
                             is automatically deleted when you close this tab.
                         </p>
                     </div>
-                </div>
-            </Panel>
+            </div>
 
-            <Panel variant="sidebar" title="Use Cases" icon="lightbulb">
-                <div className="use-cases">
-                    <div className="use-case-item">
-                        <span className="icon">psychology</span>
-                        <div>
-                            <strong>UX Research</strong>
-                            <p>Test prototypes with emotion and gaze tracking</p>
-                        </div>
-                    </div>
+            {/* Use Cases moved to main area */}
 
-                    <div className="use-case-item">
-                        <span className="icon">co_present</span>
-                        <div>
-                            <strong>Presentation Training</strong>
-                            <p>Practice public speaking with AI feedback</p>
-                        </div>
-                    </div>
-
-                    <div className="use-case-item">
-                        <span className="icon">accessible</span>
-                        <div>
-                            <strong>Accessibility Studies</strong>
-                            <p>Analyze interaction patterns for inclusive design</p>
-                        </div>
-                    </div>
-
-                    <div className="use-case-item">
-                        <span className="icon">school</span>
-                        <div>
-                            <strong>Learning Analytics</strong>
-                            <p>Detect confusion and measure attention during study</p>
-                        </div>
-                    </div>
-
-                    <div className="use-case-item">
-                        <span className="icon">groups</span>
-                        <div>
-                            <strong>Design Thinking</strong>
-                            <p>Capture authentic reactions during workshops</p>
-                        </div>
-                    </div>
-                </div>
-            </Panel>
-
-            <Panel variant="sidebar" title="About Human Library" icon="code">
-                <div className="about-content">
-                    <p>
-                        <strong>Human</strong> is an open-source computer vision library
-                        by Vladimir Mandic that provides comprehensive AI-powered
-                        tracking capabilities.
-                    </p>
-
-                    <div className="tech-specs">
-                        <div className="spec-item">
-                            <span className="icon">speed</span>
-                            <strong>WebGPU Accelerated</strong>
-                        </div>
-                        <div className="spec-item">
-                            <span className="icon">devices</span>
-                            <strong>Multi-Platform</strong>
-                        </div>
-                        <div className="spec-item">
-                            <span className="icon">lock</span>
-                            <strong>Privacy-First</strong>
-                        </div>
-                    </div>
-
-                    <a
-                        href="https://github.com/vladmandic/human"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="external-link"
-                    >
-                        <span className="icon">open_in_new</span>
-                        View on GitHub
-                    </a>
-                </div>
-            </Panel>
+            {/* About moved to main area */}
         </div>
     );
 }

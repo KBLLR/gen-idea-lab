@@ -51,3 +51,16 @@
 2025-10-03: Sidebar tooltip now closes on outside click and Escape; added dialog role and ref containment.
 
 2025-10-03: Sidebar tooltip positioned to the right of day; vertical stack; added caret arrow matching theme.
+2025-10-03: Docs: added sidebar pattern and Storybook Episode 2 plan; linked from README and AGENTS.md.
+2025-10-03: Storybook: added AppSwitcher and UserBar stories using real store/actions (no mocks).
+2025-10-03: Storybook: added small sidebar element stories (MiniCalendarHeader, DayActionsTooltip, SidebarCategoryItem, CalendarConnectionStatus).
+2025-10-03: EmpathyLab: extracted VideoFrame and RecordingIndicator; replaced inline markup; added aria-live to error display; added presentational components + Storybook stories (ConsentItem, UseCaseItem).
+2025-10-03: EmpathyLabSidebar layout: enforce single-column rows (full-width panels), remove nested scrolling for cleaner sidebar behavior.
+2025-10-03: EmpathyLabSidebar restructure: sticky top preset bar, Tracking Permissions panel only, sticky privacy banner; removed Use Cases/About from sidebar.
+2025-10-03: EmpathyLab: wrapped VideoFrame in Panel titled 'Webcam Viewer'; sidebar now shows individual consent mini-cards (no permissions panel wrapper).
+2025-10-03: Fix HumeTest rendering: guard against object children (status, message.role/content); normalize to strings to avoid React object child error).
+2025-10-03: Fix Hume connect(): pass default audioConstraints to avoid destructuring error in VoiceProvider.
+2025-10-03: Docs: added Hume EVI technical guide (server token endpoint, client VoiceProvider, session settings timing, function calling, TTS).
+2025-10-03: Server: added Hume proxy routes (/api/hume/configs|prompts|tools) using server-side API key; kept existing /api/services/hume/token.
+2025-10-03: Client: added src/lib/services/hume.js (token + configs/prompts/tools helpers).
+2025-10-03: EmpathyLab sidebar: added EVI Configuration accordion with form + Saved EVI Configs list; uses /api/hume/configs via client helper; persisted to localStorage.
