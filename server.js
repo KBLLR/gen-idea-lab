@@ -1358,11 +1358,18 @@ app.get('/api/services/hume/token', requireAuth, async (req, res) => {
       user: req.user.email
     });
 
-    res.json({
+    const tokenResponse = {
       accessToken: data.access_token,
       expiresIn: data.expires_in,
       tokenType: data.token_type
-    });
+    };
+
+    // Include configId if set in environment (optional)
+    if (process.env.HUME_CONFIG_ID) {
+      tokenResponse.configId = process.env.HUME_CONFIG_ID;
+    }
+
+    res.json(tokenResponse);
   } catch (err) {
     logger.error('Hume token error:', err);
     res.status(500).json({ error: 'Failed to generate Hume access token', details: err.message });
@@ -1439,6 +1446,111 @@ app.post('/api/hume/tools', requireAuth, async (req, res) => {
   } catch (err) {
     logger.error('Hume create tool error:', err);
     res.status(500).json({ error: 'Failed to create Hume tool', details: err.message });
+  }
+});
+
+// EmpathyLab Session Storage
+// In-memory storage (will persist to MongoDB when MONGODB_URI is configured)
+const empathyLabSessions = new Map();
+
+// Save EmpathyLab session
+app.post('/api/empathylab/sessions', requireAuth, async (req, res) => {
+  try {
+    const { sessionData, consent, humeConfigId } = req.body;
+
+    if (!sessionData || !Array.isArray(sessionData)) {
+      return res.status(400).json({ error: 'Invalid session data' });
+    }
+
+    const session = {
+      id: Date.now().toString(),
+      userId: req.user.email,
+      timestamp: new Date().toISOString(),
+      sessionData,
+      consent,
+      humeConfigId,
+      stats: {
+        duration: sessionData[sessionData.length - 1]?.timestamp || 0,
+        dataPoints: sessionData.length,
+        avgFps: Math.round(sessionData.reduce((sum, d) => sum + (d.fps || 0), 0) / sessionData.length),
+        emotions: sessionData.filter(d => d.emotion).map(d => ({ emotion: d.emotion, score: d.emotionScore }))
+      }
+    };
+
+    // Store in memory
+    empathyLabSessions.set(session.id, session);
+
+    logger.info('EmpathyLab session saved', {
+      sessionId: session.id,
+      user: req.user.email,
+      dataPoints: sessionData.length
+    });
+
+    res.json({ sessionId: session.id, session });
+  } catch (err) {
+    logger.error('EmpathyLab session save error:', err);
+    res.status(500).json({ error: 'Failed to save session', details: err.message });
+  }
+});
+
+// Get user's EmpathyLab sessions
+app.get('/api/empathylab/sessions', requireAuth, async (req, res) => {
+  try {
+    const userSessions = Array.from(empathyLabSessions.values())
+      .filter(session => session.userId === req.user.email)
+      .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+
+    res.json({ sessions: userSessions });
+  } catch (err) {
+    logger.error('EmpathyLab sessions fetch error:', err);
+    res.status(500).json({ error: 'Failed to fetch sessions', details: err.message });
+  }
+});
+
+// Get specific session
+app.get('/api/empathylab/sessions/:id', requireAuth, async (req, res) => {
+  try {
+    const session = empathyLabSessions.get(req.params.id);
+
+    if (!session) {
+      return res.status(404).json({ error: 'Session not found' });
+    }
+
+    if (session.userId !== req.user.email) {
+      return res.status(403).json({ error: 'Unauthorized' });
+    }
+
+    res.json({ session });
+  } catch (err) {
+    logger.error('EmpathyLab session fetch error:', err);
+    res.status(500).json({ error: 'Failed to fetch session', details: err.message });
+  }
+});
+
+// Delete session
+app.delete('/api/empathylab/sessions/:id', requireAuth, async (req, res) => {
+  try {
+    const session = empathyLabSessions.get(req.params.id);
+
+    if (!session) {
+      return res.status(404).json({ error: 'Session not found' });
+    }
+
+    if (session.userId !== req.user.email) {
+      return res.status(403).json({ error: 'Unauthorized' });
+    }
+
+    empathyLabSessions.delete(req.params.id);
+
+    logger.info('EmpathyLab session deleted', {
+      sessionId: req.params.id,
+      user: req.user.email
+    });
+
+    res.json({ success: true });
+  } catch (err) {
+    logger.error('EmpathyLab session delete error:', err);
+    res.status(500).json({ error: 'Failed to delete session', details: err.message });
   }
 });
 

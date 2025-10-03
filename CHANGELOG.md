@@ -1,5 +1,7 @@
 # Changelog
 
+2025-10-03: Implemented full multimodal EmpathyLab integration with Hume EVI + Human library: created HumeVoiceChat component with purple wave animations (#6e42cc), EmotionFusionDisplay combining facial + vocal emotions with conflict detection, GazeOverlay for eye tracking visualization (bearing/strength/focus point); added advanced Human library features following official demo patterns (result interpolation via human.next(), real-time FPS monitoring with 30-frame rolling average, TensorFlow tensor memory tracking, enhanced config with minConfidence/maxDetected/warmup); integrated session storage with 4 API endpoints (POST/GET/DELETE /api/empathylab/sessions) storing metadata in-memory Map (MongoDB-ready schema); added Save Session and Export JSON buttons to UI; updated orchestrator context with comprehensive EmpathyLab capabilities (7 facial emotions, 48 voice emotions, gaze tracking, multimodal fusion, use cases); fixed server.js duplicate variable declaration; updated Vite config COOP headers to 'same-origin-allow-popups'; all processing local in browser, privacy-first design.
+
 2025-10-03: Fixed Vercel build: added missing UI components (Button, FormField, Panel, ActionBar) and BoothHeader to git tracking that were previously untracked causing build failures.
 
 2025-10-03: Integrated HumeTest into Settings Modal: added "Hume EVI Testing" section with toggle button to show/hide test interface, provides easy access to test Hume voice integration without leaving Settings.
@@ -64,3 +66,6 @@
 2025-10-03: Server: added Hume proxy routes (/api/hume/configs|prompts|tools) using server-side API key; kept existing /api/services/hume/token.
 2025-10-03: Client: added src/lib/services/hume.js (token + configs/prompts/tools helpers).
 2025-10-03: EmpathyLab sidebar: added EVI Configuration accordion with form + Saved EVI Configs list; uses /api/hume/configs via client helper; persisted to localStorage.
+2025-10-03: Storybook: added Planner sidebar coverage (PlannerSidebar, DraggableItem stories); exported DraggableItem for reuse in stories.
+2025-10-03: IdeaLab sidebar: enforce inline icon+text for module cards; added reusable SidebarItemCard component with Storybook stories; Storybook now loads Material Symbols via preview-head.
+2025-10-03: EmpathyLab sidebar: normalized consent rows to SidebarItemCard with toggles (new SidebarToggleItemCard) and added stories for toggle variant.

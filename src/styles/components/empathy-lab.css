@@ -593,6 +593,22 @@
     font-size: 18px;
 }
 
+/* Hume Voice Wave Animation */
+.hume-wave.active {
+    animation: hume-wave-pulse 0.8s ease-in-out infinite;
+}
+
+@keyframes hume-wave-pulse {
+    0%, 100% {
+        height: 16px;
+        background: rgba(110, 66, 204, 0.3);
+    }
+    50% {
+        height: 48px;
+        background: #6e42cc;
+    }
+}
+
 /* Responsive */
 @media (max-width: 768px) {
     .tracking-controls {

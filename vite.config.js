@@ -20,8 +20,9 @@ export default defineConfig(({ command, mode }) => {
       host: true, // Listen on all addresses (useful for Docker/network access)
 
       // Set COOP headers to allow HMR postMessage and OAuth popups
+      // Note: COOP warnings in console are expected in dev mode with HMR - they're harmless
       headers: {
-        'Cross-Origin-Opener-Policy': 'unsafe-none',
+        'Cross-Origin-Opener-Policy': 'same-origin-allow-popups',
         'Cross-Origin-Embedder-Policy': 'unsafe-none'
       },
 

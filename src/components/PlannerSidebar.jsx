@@ -189,7 +189,7 @@ const ACCORDION_SECTIONS = [
   { id: 'connectors', title: 'Connectors' },
 ];
 
-function DraggableItem({ item }) {
+export function DraggableItem({ item }) {
   const connectService = useStore((state) => state.actions.connectService);
   const setIsSettingsOpen = useStore((state) => state.actions.setIsSettingsOpen);
   // Use generic selector to avoid HMR hook ordering issues

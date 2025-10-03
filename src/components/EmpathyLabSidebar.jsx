@@ -6,6 +6,8 @@ import { useState } from 'react';
 import Panel from './ui/Panel.jsx';
 import FormField from './ui/FormField.jsx';
 import { createHumeConfig } from '../lib/services/hume.js';
+import SidebarToggleItemCard from './sidebar/SidebarToggleItemCard.jsx';
+import { getAllPrompts, getPrompt } from '../data/hume-prompts.js';
 
 export default function EmpathyLabSidebar() {
     const [consent, setConsent] = useState({
@@ -61,13 +63,20 @@ export default function EmpathyLabSidebar() {
     // Hume EVI Config form state
     const [showConfigForm, setShowConfigForm] = useState(false);
     const [showConfigsList, setShowConfigsList] = useState(false);
+    const [showPromptLibrary, setShowPromptLibrary] = useState(false);
     const [cfgName, setCfgName] = useState('');
-    const [cfgVoice, setCfgVoice] = useState('Evelyn');
-    const [cfgLatency, setCfgLatency] = useState('low');
-    const [cfgAllowTools, setCfgAllowTools] = useState(false);
+    const [cfgVoice, setCfgVoice] = useState('ITO');
+    const [cfgEviVersion, setCfgEviVersion] = useState('3');
+    const [cfgLanguageModel, setCfgLanguageModel] = useState('claude-sonnet-4-20250514');
+    const [cfgAllowWebSearch, setCfgAllowWebSearch] = useState(false);
     const [cfgPrompt, setCfgPrompt] = useState('You are an empathic AI assistant. Be warm, understanding, and supportive.');
+    const [cfgAllowShortResponses, setCfgAllowShortResponses] = useState(false);
+    const [cfgEnableGreeting, setCfgEnableGreeting] = useState(true);
+    const [cfgInactivityTimeout, setCfgInactivityTimeout] = useState(120);
     const [cfgSaving, setCfgSaving] = useState(false);
     const [cfgError, setCfgError] = useState(null);
+
+    const allPrompts = getAllPrompts();
     const [savedConfigs, setSavedConfigs] = useState(() => {
         try { return JSON.parse(localStorage.getItem('empathyLab.hume.configs') || '[]'); } catch { return []; }
     });
@@ -82,17 +91,57 @@ export default function EmpathyLabSidebar() {
         setCfgSaving(true);
         try {
             const payload = {
-                name: cfgName || undefined,
-                voice: { name: cfgVoice, provider: 'HUME_AI' },
-                latency: cfgLatency,
-                prompts: cfgPrompt ? [{ text: cfgPrompt }] : undefined,
-                tools: cfgAllowTools ? [] : []
+                evi_version: cfgEviVersion,
+                name: cfgName || `EmpathyLab Config ${savedConfigs.length + 1}`,
+                voice: {
+                    name: cfgVoice,
+                    provider: 'HUME_AI'
+                },
+                language_model: {
+                    model_provider: 'ANTHROPIC',
+                    model_resource: cfgLanguageModel
+                },
+                prompt: cfgPrompt ? {
+                    text: cfgPrompt
+                } : undefined,
+                builtin_tools: cfgAllowWebSearch ? [{
+                    name: 'web_search'
+                }] : undefined,
+                ellm_model: cfgEviVersion === '3' ? {
+                    allow_short_responses: cfgAllowShortResponses
+                } : undefined,
+                event_messages: {
+                    on_new_chat: {
+                        enabled: cfgEnableGreeting
+                    }
+                },
+                timeouts: {
+                    inactivity: {
+                        enabled: true,
+                        duration_secs: cfgInactivityTimeout
+                    }
+                }
             };
+
+            console.log('[EmpathyLab] Creating Hume config:', payload);
             const result = await createHumeConfig(payload);
-            const entry = { id: result?.id || result?.config_id || Date.now().toString(), name: result?.name || cfgName || `Config ${savedConfigs.length + 1}`, voice: cfgVoice, latency: cfgLatency };
+            console.log('[EmpathyLab] Config created:', result);
+
+            const entry = {
+                id: result?.id || Date.now().toString(),
+                name: result?.name || cfgName,
+                voice: cfgVoice,
+                languageModel: cfgLanguageModel,
+                eviVersion: cfgEviVersion
+            };
             persistConfigs([entry, ...savedConfigs]);
             setShowConfigsList(true);
+
+            // Reset form
+            setCfgName('');
+            setCfgPrompt('You are an empathic AI assistant. Be warm, understanding, and supportive.');
         } catch (e) {
+            console.error('[EmpathyLab] Config creation error:', e);
             setCfgError(e?.data?.error || e.message || 'Failed to save config');
         } finally {
             setCfgSaving(false);
@@ -119,98 +168,53 @@ export default function EmpathyLabSidebar() {
                 </div>
             </div>
 
-            <div className="consent-options">
-                        <label className="consent-item">
-                            <div className="consent-header">
-                                <input
-                                    type="checkbox"
-                                    checked={consent.faceDetection}
-                                    onChange={() => toggleConsent('faceDetection')}
-                                />
-                                <span className="icon">face</span>
-                                <strong>Face Detection</strong>
-                            </div>
-                            <p className="consent-description">
-                                Detect face position, rotation, and 3D mesh landmarks
-                            </p>
-                        </label>
-
-                        <label className="consent-item" style={{ opacity: consent.faceDetection ? 1 : 0.5 }}>
-                            <div className="consent-header">
-                                <input
-                                    type="checkbox"
-                                    checked={consent.emotionAnalysis}
-                                    onChange={() => toggleConsent('emotionAnalysis')}
-                                    disabled={!consent.faceDetection}
-                                />
-                                <span className="icon">mood</span>
-                                <strong>Emotion Analysis</strong>
-                            </div>
-                            <p className="consent-description">
-                                Analyze facial expressions for 7 basic emotions
-                            </p>
-                        </label>
-
-                        <label className="consent-item" style={{ opacity: consent.faceDetection ? 1 : 0.5 }}>
-                            <div className="consent-header">
-                                <input
-                                    type="checkbox"
-                                    checked={consent.gazeTracking}
-                                    onChange={() => toggleConsent('gazeTracking')}
-                                    disabled={!consent.faceDetection}
-                                />
-                                <span className="icon">visibility</span>
-                                <strong>Gaze Tracking</strong>
-                            </div>
-                            <p className="consent-description">
-                                Track eye direction and focus strength
-                            </p>
-                        </label>
-
-                        <label className="consent-item">
-                            <div className="consent-header">
-                                <input
-                                    type="checkbox"
-                                    checked={consent.bodyTracking}
-                                    onChange={() => toggleConsent('bodyTracking')}
-                                />
-                                <span className="icon">accessibility</span>
-                                <strong>Body Pose Tracking</strong>
-                            </div>
-                            <p className="consent-description">
-                                Track 17-point body skeleton for posture analysis
-                            </p>
-                        </label>
-
-                        <label className="consent-item">
-                            <div className="consent-header">
-                                <input
-                                    type="checkbox"
-                                    checked={consent.handTracking}
-                                    onChange={() => toggleConsent('handTracking')}
-                                />
-                                <span className="icon">back_hand</span>
-                                <strong>Hand & Gesture Tracking</strong>
-                            </div>
-                            <p className="consent-description">
-                                Track hand landmarks and recognize gestures
-                            </p>
-                        </label>
-
-                        <label className="consent-item">
-                            <div className="consent-header">
-                                <input
-                                    type="checkbox"
-                                    checked={consent.dataExport}
-                                    onChange={() => toggleConsent('dataExport')}
-                                />
-                                <span className="icon">download</span>
-                                <strong>Data Export</strong>
-                            </div>
-                            <p className="consent-description">
-                                Allow exporting anonymized session data (JSON)
-                            </p>
-                        </label>
+            <div className="consent-options" style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                <SidebarToggleItemCard
+                  icon="face"
+                  label="Face Detection"
+                  checked={!!consent.faceDetection}
+                  onChange={() => toggleConsent('faceDetection')}
+                  description="Detect face position, rotation, and 3D mesh landmarks"
+                />
+                <div style={{ opacity: consent.faceDetection ? 1 : 0.5 }}>
+                  <SidebarToggleItemCard
+                    icon="mood"
+                    label="Emotion Analysis"
+                    checked={!!consent.emotionAnalysis}
+                    onChange={() => toggleConsent('emotionAnalysis')}
+                    description="Analyze facial expressions for 7 basic emotions"
+                  />
+                </div>
+                <div style={{ opacity: consent.faceDetection ? 1 : 0.5 }}>
+                  <SidebarToggleItemCard
+                    icon="visibility"
+                    label="Gaze Tracking"
+                    checked={!!consent.gazeTracking}
+                    onChange={() => toggleConsent('gazeTracking')}
+                    description="Track eye direction and focus strength"
+                  />
+                </div>
+                <SidebarToggleItemCard
+                  icon="accessibility"
+                  label="Body Pose Tracking"
+                  checked={!!consent.bodyTracking}
+                  onChange={() => toggleConsent('bodyTracking')}
+                  description="Track 17-point body skeleton for posture analysis"
+                />
+                <SidebarToggleItemCard
+                  icon="back_hand"
+                  label="Hand & Gesture Tracking"
+                  checked={!!consent.handTracking}
+                  onChange={() => toggleConsent('handTracking')}
+                  description="Track hand landmarks and recognize gestures"
+                />
+                <SidebarToggleItemCard
+                  icon="download"
+                  label="Data Export"
+                  checked={!!consent.dataExport}
+                  onChange={() => toggleConsent('dataExport')}
+                  description="Allow exporting anonymized session data (JSON)"
+                />
             </div>
 
             {/* Hume EVI Configuration */}
@@ -224,16 +228,105 @@ export default function EmpathyLabSidebar() {
                     <div className="accordion-body">
                         <div className="sidebar-section" style={{ gap: '8px', display: 'flex', flexDirection: 'column' }}>
                             <FormField label="Name"><input type="text" value={cfgName} onChange={(e) => setCfgName(e.target.value)} placeholder="e.g., Research Default" /></FormField>
-                            <FormField label="Voice"><input type="text" value={cfgVoice} onChange={(e) => setCfgVoice(e.target.value)} placeholder="e.g., Evelyn" /></FormField>
-                            <FormField label="Latency">
-                                <select value={cfgLatency} onChange={(e) => setCfgLatency(e.target.value)}>
-                                    <option value="low">Low</option>
-                                    <option value="medium">Medium</option>
-                                    <option value="high">High</option>
+                            <FormField label="EVI Version">
+                                <select value={cfgEviVersion} onChange={(e) => setCfgEviVersion(e.target.value)}>
+                                    <option value="3">EVI 3 (Recommended)</option>
+                                    <option value="4-mini">EVI 4-mini</option>
                                 </select>
                             </FormField>
-                            <label className="checkbox-label"><input type="checkbox" checked={cfgAllowTools} onChange={(e) => setCfgAllowTools(e.target.checked)} /> Allow function tools</label>
-                            <FormField label="System Prompt"><textarea rows={3} value={cfgPrompt} onChange={(e) => setCfgPrompt(e.target.value)} /></FormField>
+                            <FormField label="Voice"><input type="text" value={cfgVoice} onChange={(e) => setCfgVoice(e.target.value)} placeholder="e.g., ITO, Kora" /></FormField>
+                            <FormField label="Language Model">
+                                <select value={cfgLanguageModel} onChange={(e) => setCfgLanguageModel(e.target.value)}>
+                                    <option value="claude-sonnet-4-20250514">Claude Sonnet 4</option>
+                                    <option value="claude-sonnet-4-5-20250929">Claude Sonnet 4.5</option>
+                                    <option value="hume-evi-3-web-search">Hume EVI 3 (Web Search)</option>
+                                    <option value="gpt-4o">GPT-4o</option>
+                                    <option value="gemini-2.5-flash">Gemini 2.5 Flash</option>
+                                </select>
+                            </FormField>
+                            <label className="checkbox-label"><input type="checkbox" checked={cfgAllowWebSearch} onChange={(e) => setCfgAllowWebSearch(e.target.checked)} /> Enable web search tool</label>
+
+                            <FormField label="System Prompt">
+                                <div style={{ display: 'flex', gap: '4px', marginBottom: '4px' }}>
+                                    <button
+                                        type="button"
+                                        className="preset-btn"
+                                        style={{ flex: 1 }}
+                                        onClick={() => setShowPromptLibrary(!showPromptLibrary)}
+                                    >
+                                        <span className="icon">auto_awesome</span>
+                                        <span>{showPromptLibrary ? 'Hide' : 'Browse'} Prompt Library</span>
+                                    </button>
+                                </div>
+                                {showPromptLibrary && (
+                                    <div style={{
+                                        maxHeight: '200px',
+                                        overflowY: 'auto',
+                                        background: 'rgba(0,0,0,0.2)',
+                                        borderRadius: '8px',
+                                        padding: '8px',
+                                        marginBottom: '8px',
+                                        display: 'flex',
+                                        flexDirection: 'column',
+                                        gap: '4px'
+                                    }}>
+                                        {allPrompts.map((p) => (
+                                            <button
+                                                key={p.id}
+                                                type="button"
+                                                className="preset-btn"
+                                                style={{
+                                                    width: '100%',
+                                                    justifyContent: 'flex-start',
+                                                    padding: '8px',
+                                                    textAlign: 'left'
+                                                }}
+                                                onClick={() => {
+                                                    setCfgPrompt(p.prompt);
+                                                    setShowPromptLibrary(false);
+                                                }}
+                                            >
+                                                <div style={{ flex: 1 }}>
+                                                    <div style={{ fontWeight: 600, marginBottom: '2px' }}>{p.name}</div>
+                                                    <div style={{ fontSize: '0.75rem', opacity: 0.7 }}>{p.description}</div>
+                                                    <div style={{ fontSize: '0.7rem', opacity: 0.5, marginTop: '2px' }}>
+                                                        {p.category.charAt(0).toUpperCase() + p.category.slice(1)}
+                                                    </div>
+                                                </div>
+                                            </button>
+                                        ))}
+                                    </div>
+                                )}
+                                <textarea rows={5} value={cfgPrompt} onChange={(e) => setCfgPrompt(e.target.value)} />
+                            </FormField>
+
+                            {/* Advanced Options */}
+                            <details style={{ marginTop: '8px' }}>
+                                <summary style={{ cursor: 'pointer', padding: '8px', background: 'rgba(255,255,255,0.05)', borderRadius: '8px', fontWeight: 600 }}>
+                                    Advanced Options
+                                </summary>
+                                <div style={{ marginTop: '8px', display: 'flex', flexDirection: 'column', gap: '8px', paddingLeft: '8px' }}>
+                                    {cfgEviVersion === '3' && (
+                                        <label className="checkbox-label">
+                                            <input type="checkbox" checked={cfgAllowShortResponses} onChange={(e) => setCfgAllowShortResponses(e.target.checked)} />
+                                            Allow quick short responses (EVI 3 only)
+                                        </label>
+                                    )}
+                                    <label className="checkbox-label">
+                                        <input type="checkbox" checked={cfgEnableGreeting} onChange={(e) => setCfgEnableGreeting(e.target.checked)} />
+                                        Enable greeting on new chat
+                                    </label>
+                                    <FormField label="Inactivity timeout (seconds)">
+                                        <input
+                                            type="number"
+                                            min="10"
+                                            max="600"
+                                            value={cfgInactivityTimeout}
+                                            onChange={(e) => setCfgInactivityTimeout(parseInt(e.target.value) || 120)}
+                                        />
+                                    </FormField>
+                                </div>
+                            </details>
                             {cfgError && (
                                 <div className="privacy-notice" style={{ borderColor: 'rgba(244,67,54,0.3)', background: 'rgba(244,67,54,0.08)' }}>
                                     <span className="icon">error</span>
@@ -269,21 +362,27 @@ export default function EmpathyLabSidebar() {
                             <div className="use-cases" style={{ gap: '8px' }}>
                                 {savedConfigs.map((c) => (
                                     <div key={c.id} className="use-case-item" style={{ alignItems: 'center', justifyContent: 'space-between' }}>
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: 1 }}>
                                             <span className="icon">settings_voice</span>
-                                            <div>
-                                                <strong>{c.name}</strong>
-                                                <p style={{ margin: 0 }}>Voice: {c.voice} · Latency: {c.latency}</p>
+                                            <div style={{ flex: 1, minWidth: 0 }}>
+                                                <strong style={{ display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.name}</strong>
+                                                <p style={{ margin: 0, fontSize: '0.75rem', color: 'var(--color-text-secondary)' }}>
+                                                    Voice: {c.voice} · EVI {c.eviVersion || '3'}
+                                                </p>
+                                                <p style={{ margin: 0, fontSize: '0.75rem', color: 'var(--color-text-secondary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                                    {c.languageModel || 'Default LLM'}
+                                                </p>
                                             </div>
                                         </div>
-                                        <div style={{ display: 'flex', gap: '8px' }}>
-                                            <button className="preset-btn" title="Use config" onClick={() => {/* future: set active */}}>
-                                                <span className="icon">check_circle</span>
-                                                <span>Use</span>
+                                        <div style={{ display: 'flex', gap: '8px', flexShrink: 0 }}>
+                                            <button className="preset-btn" title="Copy config ID" onClick={() => {
+                                                navigator.clipboard.writeText(c.id);
+                                                alert(`Config ID copied: ${c.id}`);
+                                            }}>
+                                                <span className="icon">content_copy</span>
                                             </button>
                                             <button className="preset-btn" title="Remove" onClick={() => persistConfigs(savedConfigs.filter(x => x.id !== c.id))}>
                                                 <span className="icon">delete</span>
-                                                <span>Remove</span>
                                             </button>
                                         </div>
                                     </div>

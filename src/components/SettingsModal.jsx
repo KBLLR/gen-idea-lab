@@ -933,33 +933,36 @@ export default function SettingsModal() {
                         </div>
                     </section>
 
-                    <section className="settings-section">
-                        <h3>Hume EVI Testing</h3>
-                        <p className="section-description">
-                            Test the Hume Empathic Voice Interface integration. Speak to the AI and see real-time emotion detection from your voice.
-                        </p>
-                        <div style={{ marginBottom: '1rem' }}>
-                            <button
-                                className="btn btn-primary"
-                                onClick={() => setShowHumeTest(!showHumeTest)}
-                                style={{
-                                    padding: '0.5rem 1rem',
-                                    background: showHumeTest ? '#9E9E9E' : '#2196F3',
-                                    color: 'white',
-                                    border: 'none',
-                                    borderRadius: 'var(--radius-md)',
-                                    cursor: 'pointer',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    gap: '0.5rem'
-                                }}
-                            >
-                                <span className="icon">{showHumeTest ? 'close' : 'psychology'}</span>
-                                {showHumeTest ? 'Close Hume Test' : 'Open Hume Test'}
-                            </button>
-                        </div>
-                        {showHumeTest && <HumeTest />}
-                    </section>
+                    {/* Hume Test moved to EmpathyLab - hidden for now, integrated into main app */}
+                    {false && (
+                        <section className="settings-section">
+                            <h3>Hume EVI Testing</h3>
+                            <p className="section-description">
+                                Test the Hume Empathic Voice Interface integration. Speak to the AI and see real-time emotion detection from your voice.
+                            </p>
+                            <div style={{ marginBottom: '1rem' }}>
+                                <button
+                                    className="btn btn-primary"
+                                    onClick={() => setShowHumeTest(!showHumeTest)}
+                                    style={{
+                                        padding: '0.5rem 1rem',
+                                        background: showHumeTest ? '#9E9E9E' : '#2196F3',
+                                        color: 'white',
+                                        border: 'none',
+                                        borderRadius: 'var(--radius-md)',
+                                        cursor: 'pointer',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: '0.5rem'
+                                    }}
+                                >
+                                    <span className="icon">{showHumeTest ? 'close' : 'psychology'}</span>
+                                    {showHumeTest ? 'Close Hume Test' : 'Open Hume Test'}
+                                </button>
+                            </div>
+                            {showHumeTest && <HumeTest />}
+                        </section>
+                    )}
 
                     <section className="settings-section">
                         <h3>Privacy & Data</h3>

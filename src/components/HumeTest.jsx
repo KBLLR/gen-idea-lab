@@ -24,10 +24,11 @@ const EXPRESSION_COLORS = {
 
 export default function HumeTest() {
   const [accessToken, setAccessToken] = useState(null);
+  const [configId, setConfigId] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
 
-  // Fetch access token from backend
+  // Fetch access token and optional config from backend
   const fetchToken = async () => {
     try {
       setIsLoading(true);
@@ -44,7 +45,14 @@ export default function HumeTest() {
 
       const data = await response.json();
       setAccessToken(data.accessToken);
-      console.log('Hume access token fetched successfully');
+
+      // Set configId if available from env (optional)
+      if (data.configId) {
+        setConfigId(data.configId);
+        console.log('Hume access token and config fetched successfully');
+      } else {
+        console.log('Hume access token fetched successfully (no configId - will use session settings)');
+      }
     } catch (err) {
       console.error('Token fetch error:', err);
       setError(err.message);
@@ -86,6 +94,7 @@ export default function HumeTest() {
         ) : (
           <VoiceProvider
             auth={{ type: 'accessToken', value: accessToken }}
+            configId={configId}
             onError={(error) => {
               console.error('Hume error:', error);
               setError(error.message);
@@ -100,11 +109,18 @@ export default function HumeTest() {
 }
 
 function HumeChat() {
-  const { connect, disconnect, sendSessionSettings, messages, isPlaying, status } = useVoice();
+  const voice = useVoice();
+  const { connect, disconnect, sendSessionSettings, messages, isPlaying, status } = voice;
   const [isConnected, setIsConnected] = useState(false);
+
+  // Debug: log all available methods from useVoice
+  useEffect(() => {
+    console.log('[HumeTest] useVoice hook methods:', Object.keys(voice));
+  }, [voice]);
 
   const handleConnect = async () => {
     try {
+      console.log('[HumeTest] Attempting to connect to Hume...');
       await connect({
         audioConstraints: {
           echoCancellation: true,
@@ -112,9 +128,10 @@ function HumeChat() {
           autoGainControl: true
         }
       });
+      console.log('[HumeTest] Connected successfully');
       setIsConnected(true);
     } catch (err) {
-      console.error('Connection error:', err);
+      console.error('[HumeTest] Connection error:', err);
     }
   };
 
@@ -128,14 +145,27 @@ function HumeChat() {
   useEffect(() => {
     if (!isConnected || hasConfiguredRef.current) return;
     const statusText = typeof status === 'string' ? status : (status && typeof status.value === 'string' ? status.value : '');
+    console.log('[HumeTest] Status update:', statusText);
     if (statusText && /connected|ready|open/i.test(statusText)) {
+      console.log('[HumeTest] Sending session settings...');
       sendSessionSettings({
         type: 'session_settings',
         systemPrompt: 'You are an empathic AI assistant. Be warm, understanding, and supportive.'
-      }).catch((e) => console.warn('Failed to send session settings:', e));
-      hasConfiguredRef.current = true;
+      }).then(() => {
+        console.log('[HumeTest] Session settings sent successfully');
+        hasConfiguredRef.current = true;
+      }).catch((e) => {
+        console.warn('[HumeTest] Failed to send session settings:', e);
+      });
     }
   }, [isConnected, status, sendSessionSettings]);
+
+  // Debug: log messages
+  useEffect(() => {
+    if (messages.length > 0) {
+      console.log('[HumeTest] Messages updated:', messages);
+    }
+  }, [messages]);
 
   // Extract emotions from latest message
   const latestEmotions = messages.length > 0
@@ -163,15 +193,6 @@ function HumeChat() {
         )}
 
         <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          <span
-            className="icon"
-            style={{
-              color: isConnected ? '#4CAF50' : '#9E9E9E',
-              fontSize: '1.5rem'
-            }}
-          >
-            {isConnected ? 'mic' : 'mic_off'}
-          </span>
           {(() => {
             const statusText = typeof status === 'string' ? status : (status && typeof status.value === 'string' ? status.value : '');
             return (
@@ -180,13 +201,55 @@ function HumeChat() {
               </span>
             );
           })()}
-          {isPlaying && (
-            <span className="icon" style={{ color: '#2196F3', animation: 'pulse 1.5s infinite' }}>
-              graphic_eq
-            </span>
-          )}
         </div>
       </div>
+
+      {/* Hume Listening Indicator (Purple Waves) */}
+      {isConnected && (
+        <div className="hume-listening-indicator" style={{
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: '1.5rem',
+          marginBottom: '1rem',
+          background: 'var(--color-surface)',
+          border: '1px solid var(--color-surface-border)',
+          borderRadius: 'var(--radius-md)'
+        }}>
+          <div className="hume-voice-waves" style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '6px',
+            height: '60px',
+            marginBottom: '0.5rem'
+          }}>
+            {[0, 1, 2, 3, 4].map(i => (
+              <div
+                key={i}
+                className={`hume-wave ${isPlaying ? 'active' : ''}`}
+                style={{
+                  width: '3px',
+                  height: '16px',
+                  background: 'rgba(110, 66, 204, 0.3)',
+                  borderRadius: '2px',
+                  transition: 'all 0.3s ease',
+                  willChange: 'height, background',
+                  animationDelay: `${i * 0.15}s`
+                }}
+              />
+            ))}
+          </div>
+          <div style={{
+            fontSize: '0.875rem',
+            color: 'var(--color-text-secondary)',
+            textAlign: 'center'
+          }}>
+            {isPlaying ? '🎤 Listening...' : '👂 Ready to listen'}
+          </div>
+        </div>
+      )}
 
       {/* Emotion Display */}
       {latestEmotions && (
@@ -333,18 +396,37 @@ function HumeChat() {
         >
           <strong>💡 Tip:</strong> Try saying "I'm feeling anxious about my presentation" or
           "This is so exciting!" to see emotion detection in action.
+          <br/><br/>
+          <strong>🔍 Debug:</strong> Check the browser console (F12) for detailed connection logs and status updates.
         </div>
       )}
     </div>
   );
 }
 
-// Add pulse animation
+// Add animations for Hume purple waves and pulse
 const style = document.createElement('style');
 style.textContent = `
   @keyframes pulse {
     0%, 100% { opacity: 1; }
     50% { opacity: 0.5; }
+  }
+
+  @keyframes hume-wave-pulse {
+    0%, 100% {
+      height: 16px;
+      background: rgba(110, 66, 204, 0.3);
+      transform: scaleY(1);
+    }
+    50% {
+      height: 48px;
+      background: #6e42cc;
+      transform: scaleY(1.05);
+    }
+  }
+
+  .hume-wave.active {
+    animation: hume-wave-pulse 1.2s infinite ease-in-out;
   }
 `;
 document.head.appendChild(style);
