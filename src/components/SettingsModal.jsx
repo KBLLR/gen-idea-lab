@@ -8,6 +8,7 @@ import useStore from '../lib/store';
 import { useAvailableModels } from '../hooks/useAvailableModels';
 import { SiFigma, SiGithub, SiNotion, SiGoogledrive, SiOpenai, SiGoogle, SiGmail } from 'react-icons/si';
 import { RiRobot2Line, RiBrainLine, RiSearchLine, RiImageLine, RiCalendarLine, RiCloudLine, RiServerLine, RiCpuLine, RiMovieLine, RiSchoolLine } from 'react-icons/ri';
+import HumeTest from './HumeTest.jsx';
 
 const serviceCategories = {
     productivity: {
@@ -851,7 +852,8 @@ export default function SettingsModal() {
     const setIsSettingsOpen = useStore((state) => state.actions.setIsSettingsOpen);
     const fetchConnectedServices = useStore((state) => state.actions.fetchConnectedServices);
     const fetchServiceConfig = useStore((state) => state.actions.fetchServiceConfig);
-    
+    const [showHumeTest, setShowHumeTest] = useState(false);
+
     useEffect(() => {
         if (isSettingsOpen) {
             fetchConnectedServices();
@@ -932,10 +934,38 @@ export default function SettingsModal() {
                     </section>
 
                     <section className="settings-section">
+                        <h3>Hume EVI Testing</h3>
+                        <p className="section-description">
+                            Test the Hume Empathic Voice Interface integration. Speak to the AI and see real-time emotion detection from your voice.
+                        </p>
+                        <div style={{ marginBottom: '1rem' }}>
+                            <button
+                                className="btn btn-primary"
+                                onClick={() => setShowHumeTest(!showHumeTest)}
+                                style={{
+                                    padding: '0.5rem 1rem',
+                                    background: showHumeTest ? '#9E9E9E' : '#2196F3',
+                                    color: 'white',
+                                    border: 'none',
+                                    borderRadius: 'var(--radius-md)',
+                                    cursor: 'pointer',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '0.5rem'
+                                }}
+                            >
+                                <span className="icon">{showHumeTest ? 'close' : 'psychology'}</span>
+                                {showHumeTest ? 'Close Hume Test' : 'Open Hume Test'}
+                            </button>
+                        </div>
+                        {showHumeTest && <HumeTest />}
+                    </section>
+
+                    <section className="settings-section">
                         <h3>Privacy & Data</h3>
                         <div className="privacy-info">
                             <p>
-                                Your connected service tokens are stored securely and encrypted. 
+                                Your connected service tokens are stored securely and encrypted.
                                 We only access the minimum permissions needed for the features you use.
                             </p>
                             <p>
