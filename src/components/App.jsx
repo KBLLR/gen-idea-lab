@@ -24,6 +24,7 @@ import Assistant from './Assistant.jsx'
 import PlannerSidebar from './PlannerSidebar.jsx'
 import PlannerCanvas from './PlannerCanvas.jsx'
 import CalendarAI from './CalendarAI.jsx'
+import CalendarAISidebar from './CalendarAISidebar.jsx'
 import GlassDock from './GlassDock.jsx'
 import SystemInfoModal from './SystemInfoModal.jsx'
 import CommandPalette from './CommandPalette.jsx'
@@ -187,6 +188,8 @@ export default function App() {
         return <WorkflowsList />;
       case 'planner':
         return <PlannerSidebar />;
+      case 'calendarAI':
+        return <CalendarAISidebar />;
       default:
         return null;
     }
