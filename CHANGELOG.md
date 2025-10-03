@@ -25,12 +25,29 @@
 2025-10-02: Fixed ArchivAI workflow validation errors by adding proper workflow structure, enabled assistant web search with OLLAMA_API_KEY fallback, fixed screen awareness content-based app detection, and implemented AI-generated template-specific mock data using Gemini with example template references.
 
 2025-10-02: Implemented sanitized Markdown rendering across ArchivAI, added filesystem-backed mock persistence, centered and standardized headers, and introduced a collapsible bottom drawer for Archiva and Image Booth.
+
 2025-10-02: Added reusable UI primitives (Button, FormField, Panel), standardized square icon ActionBar, refactored GlassDock with a large toolbar and modular VoiceChatPanel; integrated DockItemsRow and MinimizedDock; added Storybook stories for new components.
+
 2025-10-03: UI a11y + stories/tests; Panel adoption in Archiva/VizGen; ActionBar size/roving focus; added UI docs.
+
 2025-10-03: CalendarAI now uses shared BoothHeader with stacked actions, selected event summary, and status based on Google Calendar connection.
+
 2025-10-03: CalendarAI UI: more rounded event cards; countdown styled to match user-actions bar with dividers and tokens.
+
 2025-10-03: CalendarAI countdown now uses shared ActionBar for reusability; CSS positions container only.
+
 2025-10-03: Added CalendarAI stories: Countdown as ActionBar and basic EventCard.
+
 2025-10-03: CalendarAI grid gutter increased (gap = 1.5x spacing-md) for clearer separation between cards.
+
 2025-10-03: Added interactive CalendarGrid with day popover (Create/See events), date filter banner, default date for new event; responsive gutters (2x on >=1200px).
+
 2025-10-03: Removed in-page Calendar grid (moved to sidebar design); kept events list and header intact.
+
+2025-10-03: Sidebar calendar: added day click tooltip with 'Create event' and 'See events' actions; integrates with CalendarAI via localStorage + setActiveApp.
+
+2025-10-03: Sidebar day-actions tooltip: raised z-index and increased semi-solid backgrounds (dark/light) with hover; added backdrop blur.
+
+2025-10-03: Sidebar tooltip now closes on outside click and Escape; added dialog role and ref containment.
+
+2025-10-03: Sidebar tooltip positioned to the right of day; vertical stack; added caret arrow matching theme.

@@ -286,3 +286,66 @@
 .calendar-ai-sidebar::-webkit-scrollbar-thumb:hover {
   background: color-mix(in lab, var(--color-surface-border) 80%, white 20%);
 }
+
+/* Tooltip for day actions */
+.calendar-day-tooltip {
+  position: fixed;
+  transform: translate(0, -50%);
+  background: rgba(13, 16, 24, 0.95);
+  border: 1px solid var(--color-surface-border);
+  border-radius: var(--border-radius-md);
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  z-index: 4000;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.25);
+  backdrop-filter: blur(8px);
+}
+
+.calendar-day-tooltip::before {
+  content: '';
+  position: absolute;
+  left: -6px;
+  top: 50%;
+  width: 10px;
+  height: 10px;
+  transform: translateY(-50%) rotate(45deg);
+  background: rgba(13, 16, 24, 0.95);
+  border-left: 1px solid var(--color-surface-border);
+  border-bottom: 1px solid var(--color-surface-border);
+}
+
+.calendar-day-tooltip .action {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  border-radius: var(--border-radius-sm);
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+}
+
+.calendar-day-tooltip .action:hover {
+  background: rgba(255, 255, 255, 0.18);
+}
+
+[data-theme="light"] .calendar-day-tooltip {
+  background: rgba(255, 255, 255, 0.98);
+  border-color: rgba(0, 0, 0, 0.1);
+}
+
+[data-theme="light"] .calendar-day-tooltip .action {
+  background: rgba(0, 0, 0, 0.05);
+  border-color: rgba(0, 0, 0, 0.1);
+}
+
+[data-theme="light"] .calendar-day-tooltip .action:hover {
+  background: rgba(0, 0, 0, 0.08);
+}
+
+[data-theme="light"] .calendar-day-tooltip::before {
+  background: rgba(255, 255, 255, 0.98);
+  border-left-color: rgba(0, 0, 0, 0.1);
+  border-bottom-color: rgba(0, 0, 0, 0.1);
+}

@@ -197,6 +197,14 @@ npm run dev
 - `npm run preview` — Preview production build
 - `npm run generate-thumbnails` — Generate AI-powered thumbnails
 
+### UI Development (Storybook)
+- Start Storybook: `npm run storybook` (http://localhost:6006)
+- UI tests: `npm run test:ui` (Vitest + `@storybook/test`, jsdom)
+- Stories live under `src/**/*.stories.jsx` (examples: `src/components/BoothHeader.stories.jsx`, `src/components/ui/*.stories.jsx`, `src/stories/Tokens.stories.jsx`).
+- Use the “Accessibility” panel to scan for WCAG issues; the “Interactions” panel can step through play functions.
+- Tokens: inspect color/typography via `Tokens/Overview` story.
+ - Docs: UI tokens (`docs/ui/tokens.md`) and components (`docs/ui/components.md`).
+
 ## Deployment
 
 ### Vercel (Recommended)

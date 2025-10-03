@@ -10,6 +10,8 @@ import DOMPurify from 'dompurify';
 import { marked } from 'marked';
 import useStore from '../lib/store.js';
 import { templates } from '../lib/archiva/templates.js';
+import BoothHeader from './BoothHeader.jsx';
+import Panel from './ui/Panel.jsx';
 import { render as renderProcessJournal } from '../lib/archiva/templates/process_journal.js';
 import { render as renderExperimentReport } from '../lib/archiva/templates/experiment_report.js';
 import { render as renderPromptCard } from '../lib/archiva/templates/prompt_card.js';
@@ -467,108 +469,15 @@ Return a JSON object with sample values for each field listed above. Return ONLY
   return (
     <div className="booth-viewer">
       {/* Header Section with Template Information */}
-      <div className="booth-header">
-        <div className="booth-title">
-          <h1>
-            <span className="icon">description</span>
-            {templateInfo?.name}
-          </h1>
-          <div className="mode-meta">
-            <span className="mode-type">{templateInfo?.type} Template</span>
-            <span className={`mode-status ${hasRenderer ? 'ready' : 'pending'}`}>
-              {hasRenderer ? 'Ready' : 'Coming Soon'}
-            </span>
-          </div>
-        </div>
-
-        <div className="booth-description" style={{
-          display: 'flex',
-          flexDirection: 'column',
-          justifyContent: 'flex-end',
-          alignItems: 'flex-start'
-        }}>
-          <p className="description-text">{templateInfo?.purpose}</p>
-          {hasRenderer && (() => {
-            // Template-specific content based on selected template
-            const templateSpecificContent = {
-              'Code_Studies': {
-                title: 'Code Studies Use Cases',
-                items: [
-                  'Analyze complex codebases and architectural patterns',
-                  'Document performance optimizations and benchmarks',
-                  'Study framework implementations and design decisions',
-                  'Compare different approaches to solving similar problems'
-                ]
-              },
-              'Process_Journal': {
-                title: 'Process Journal Applications',
-                items: [
-                  'Track daily development progress and iterations',
-                  'Document decision-making processes and rationales',
-                  'Record feedback loops and improvement cycles',
-                  'Maintain sprint retrospectives and learnings'
-                ]
-              },
-              'Experiments': {
-                title: 'Experiments Framework',
-                items: [
-                  'Test hypotheses with controlled code experiments',
-                  'A/B test different implementation approaches',
-                  'Benchmark performance across different solutions',
-                  'Validate proof-of-concepts before full implementation'
-                ]
-              },
-              'Design_Sketchbook': {
-                title: 'Design Exploration Methods',
-                items: [
-                  'Iterate on interface concepts and visual directions',
-                  'Document design system evolution and decisions',
-                  'Capture inspiration sources and mood boards',
-                  'Test user experience flows and interactions'
-                ]
-              },
-              'Learning_Lab': {
-                title: 'Learning Lab Methodology',
-                items: [
-                  'Structure experimental learning with clear objectives',
-                  'Test new technologies in controlled environments',
-                  'Document skill acquisition and knowledge gaps',
-                  'Create reusable learning resources for teams'
-                ]
-              }
-            };
-
-            const content = templateSpecificContent[selectedTemplate] || {
-              title: 'Template Applications',
-              items: [
-                'Structured documentation with consistent formatting',
-                'Searchable knowledge base for project insights',
-                'Collaborative workspace for team documentation',
-                'Version-controlled content with markdown support'
-              ]
-            };
-
-            return (
-              <div className="prompt-info">
-                <h4>{content.title}</h4>
-                <ul>
-                  {content.items.map((item, index) => (
-                    <li key={index}>{item}</li>
-                  ))}
-                </ul>
-              </div>
-            );
-          })()}
-        </div>
-
-        {hasRenderer && (
-          <div className="booth-actions" style={{
-            display: 'flex',
-            flexDirection: 'column',
-            justifyContent: 'center',
-            alignItems: 'center',
-            gap: '12px'
-          }}>
+      <BoothHeader
+        icon="description"
+        title={templateInfo?.name}
+        typeText={`${templateInfo?.type} Template`}
+        status={hasRenderer ? 'ready' : 'pending'}
+        description={templateInfo?.purpose}
+        align="top"
+        actions={hasRenderer ? (
+          <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', gap: '12px' }}>
             <button
               className="secondary"
               onClick={handleTestRealWorkflow}
@@ -597,8 +506,80 @@ Return a JSON object with sample values for each field listed above. Return ONLY
               Save Mock → Archiva
             </button>
           </div>
-        )}
-      </div>
+        ) : null}
+      >
+        {hasRenderer && (() => {
+          // Template-specific content based on selected template
+          const templateSpecificContent = {
+            'Code_Studies': {
+              title: 'Code Studies Use Cases',
+              items: [
+                'Analyze complex codebases and architectural patterns',
+                'Document performance optimizations and benchmarks',
+                'Study framework implementations and design decisions',
+                'Compare different approaches to solving similar problems'
+              ]
+            },
+            'Process_Journal': {
+              title: 'Process Journal Applications',
+              items: [
+                'Track daily development progress and iterations',
+                'Document decision-making processes and rationales',
+                'Record feedback loops and improvement cycles',
+                'Maintain sprint retrospectives and learnings'
+              ]
+            },
+            'Experiments': {
+              title: 'Experiments Framework',
+              items: [
+                'Test hypotheses with controlled code experiments',
+                'A/B test different implementation approaches',
+                'Benchmark performance across different solutions',
+                'Validate proof-of-concepts before full implementation'
+              ]
+            },
+            'Design_Sketchbook': {
+              title: 'Design Exploration Methods',
+              items: [
+                'Iterate on interface concepts and visual directions',
+                'Document design system evolution and decisions',
+                'Capture inspiration sources and mood boards',
+                'Test user experience flows and interactions'
+              ]
+            },
+            'Learning_Lab': {
+              title: 'Learning Lab Methodology',
+              items: [
+                'Structure experimental learning with clear objectives',
+                'Test new technologies in controlled environments',
+                'Document skill acquisition and knowledge gaps',
+                'Create reusable learning resources for teams'
+              ]
+            }
+          };
+
+          const content = templateSpecificContent[selectedTemplate] || {
+            title: 'Template Applications',
+            items: [
+              'Structured documentation with consistent formatting',
+              'Searchable knowledge base for project insights',
+              'Collaborative workspace for team documentation',
+              'Version-controlled content with markdown support'
+            ]
+          };
+
+          return (
+            <div className="prompt-info">
+              <h4>{content.title}</h4>
+              <ul>
+                {content.items.map((item, index) => (
+                  <li key={index}>{item}</li>
+                ))}
+              </ul>
+            </div>
+          );
+        })()}
+      </BoothHeader>
 
       {/* Main Canvas Section - Two Frame Layout */}
       <div className="booth-main" style={{
@@ -618,58 +599,54 @@ Return a JSON object with sample values for each field listed above. Return ONLY
             maxWidth: '1200px'
           }}>
             {/* Markdown Frame */}
-            <div className="image-container input-container" style={{
-              flex: '1',
-              minWidth: '0',
-              maxWidth: '480px'
-            }}>
-              <div className="image-header">
-                <h3>
-                  <span className="icon">code</span>
-                  Markdown
-                </h3>
-                <span className="image-info">Source Format</span>
-              </div>
+            <Panel
+              variant="input"
+              title={<><span className="icon">code</span> Markdown</>}
+              info="Source Format"
+              style={{ flex: '1', minWidth: '0', maxWidth: '480px' }}
+              footer={(
+                <>
+                  <button
+                    className="image-action-btn"
+                    onClick={() => {
+                      const newContent = prompt('Edit the markdown content:', renderedContent.md);
+                      if (newContent !== null) {
+                        setRenderedContent({
+                          md: newContent,
+                          html: markdownToHtml(newContent)
+                        });
+                      }
+                    }}
+                    title="Edit markdown content"
+                  >
+                    <span className="icon">edit</span>
+                    Edit
+                  </button>
+                  <button
+                    className="image-action-btn"
+                    onClick={handleDownloadMD}
+                    title="Download Markdown file"
+                  >
+                    <span className="icon">download</span>
+                    Download
+                  </button>
+                  <button
+                    className="image-action-btn"
+                    onClick={() => handleCopyToClipboard('md')}
+                    title="Copy Markdown to clipboard"
+                  >
+                    <span className="icon">content_copy</span>
+                    Copy
+                  </button>
+                </>
+              )}
+            >
               <div className="template-canvas">
                 <div className="preview-content markdown-preview">
                   <pre className="markdown-raw">{renderedContent.md}</pre>
                 </div>
               </div>
-              <div className="image-actions">
-                <button
-                  className="image-action-btn"
-                  onClick={() => {
-                    const newContent = prompt('Edit the markdown content:', renderedContent.md);
-                    if (newContent !== null) {
-                      setRenderedContent({
-                        md: newContent,
-                        html: markdownToHtml(newContent)
-                      });
-                    }
-                  }}
-                  title="Edit markdown content"
-                >
-                  <span className="icon">edit</span>
-                  Edit
-                </button>
-                <button
-                  className="image-action-btn"
-                  onClick={handleDownloadMD}
-                  title="Download Markdown file"
-                >
-                  <span className="icon">download</span>
-                  Download
-                </button>
-                <button
-                  className="image-action-btn"
-                  onClick={() => handleCopyToClipboard('md')}
-                  title="Copy Markdown to clipboard"
-                >
-                  <span className="icon">content_copy</span>
-                  Copy
-                </button>
-              </div>
-            </div>
+            </Panel>
 
             {/* Transform Arrow */}
             <div className="transformation-arrow">
@@ -678,18 +655,32 @@ Return a JSON object with sample values for each field listed above. Return ONLY
             </div>
 
             {/* HTML Frame */}
-            <div className="image-container output-container" style={{
-              flex: '1',
-              minWidth: '0',
-              maxWidth: '480px'
-            }}>
-              <div className="image-header">
-                <h3>
-                  <span className="icon">web</span>
-                  HTML Preview
-                </h3>
-                <span className="image-info">Rendered Output</span>
-              </div>
+            <Panel
+              variant="output"
+              title={<><span className="icon">web</span> HTML Preview</>}
+              info="Rendered Output"
+              style={{ flex: '1', minWidth: '0', maxWidth: '480px' }}
+              footer={(
+                <>
+                  <button
+                    className="image-action-btn"
+                    onClick={handleDownloadHTML}
+                    title="Download HTML file"
+                  >
+                    <span className="icon">download</span>
+                    Download
+                  </button>
+                  <button
+                    className="image-action-btn"
+                    onClick={() => handleCopyToClipboard('html')}
+                    title="Copy HTML to clipboard"
+                  >
+                    <span className="icon">content_copy</span>
+                    Copy
+                  </button>
+                </>
+              )}
+            >
               <div className="template-canvas">
                 <div
                   className="preview-content html-preview"
@@ -698,25 +689,7 @@ Return a JSON object with sample values for each field listed above. Return ONLY
                   }}
                 />
               </div>
-              <div className="image-actions">
-                <button
-                  className="image-action-btn"
-                  onClick={handleDownloadHTML}
-                  title="Download HTML file"
-                >
-                  <span className="icon">download</span>
-                  Download
-                </button>
-                <button
-                  className="image-action-btn"
-                  onClick={() => handleCopyToClipboard('html')}
-                  title="Copy HTML to clipboard"
-                >
-                  <span className="icon">content_copy</span>
-                  Copy
-                </button>
-              </div>
-            </div>
+            </Panel>
           </div>
         ) : (
           <div className="placeholder-content">

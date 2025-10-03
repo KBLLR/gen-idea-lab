@@ -13,6 +13,11 @@ import { useLiveAPI } from '../lib/voice';
 import { AudioRecorder } from '../lib/voice';
 import { AVAILABLE_VOICES, DEFAULT_VOICE } from '../lib/voice';
 import NodeModePanel from './NodeModePanel';
+import ActionBar from './ui/ActionBar.jsx';
+import GlassDockToolbar from './glassdock/GlassDockToolbar.jsx';
+import VoiceChatPanel from './glassdock/VoiceChatPanel.jsx';
+import DockItemsRow from './glassdock/DockItemsRow.jsx';
+import MinimizedDock from './glassdock/MinimizedDock.jsx';
 import '../styles/components/glass-dock.css';
 import '../styles/components/node-mode-panel.css';
 
@@ -858,21 +863,7 @@ Use this context to provide more relevant and specific answers about what the us
   // Minimized view - single orchestrator icon
   if (isMinimized && dockMode === 'chat' && !isLiveVoiceChatOpen) {
     return (
-      <div
-        className="glass-dock minimized"
-        style={{
-          left: `${position.x}px`,
-          top: `${position.y}px`,
-          width: '64px',
-          height: '64px'
-        }}
-        onClick={() => setIsMinimized(false)}
-        title="Click to open Orchestrator"
-      >
-        <div className="minimized-icon">
-          <span className="icon">psychology</span>
-        </div>
-      </div>
+      <MinimizedDock position={position} onOpen={() => setIsMinimized(false)} />
     );
   }
 
@@ -901,186 +892,101 @@ Use this context to provide more relevant and specific answers about what the us
 
       {/* Expandable Voice Chat Section */}
       {dockMode === 'chat' && isLiveVoiceChatOpen && (
-        <div
-          className="voice-chat-section"
-          onClick={(e) => e.stopPropagation()}
-          style={{
-            width: `${voiceChatWidth}px`,
-            maxHeight: `${voiceChatHeight}px`
+        <VoiceChatPanel
+          connected={connected}
+          recording={isRecording}
+          screenAware={isScreenAware}
+          selectedVoice={selectedVoice}
+          messages={messages}
+          inputTranscript={inputTranscript}
+          outputTranscript={outputTranscript}
+          endRef={messagesEndRef}
+          width={voiceChatWidth}
+          height={voiceChatHeight}
+          onClose={(e) => {
+            e?.stopPropagation?.();
+            if (connected) {
+              disconnect();
+              if (recorderRef.current) {
+                recorderRef.current.stop();
+                recorderRef.current = null;
+              }
+              setIsRecording(false);
+            }
+            setIsLiveVoiceChatOpen(false);
           }}
-        >
-          <div className="voice-chat-header-minimal">
-            <div className="status-light-container">
-              <div className={`status-light ${connected ? 'online' : 'offline'}`}>
-                {connected && <div className="status-pulse"></div>}
-              </div>
-            </div>
-            <button
-              className="icon-btn close-btn"
-              onClick={(e) => {
-                e.stopPropagation();
-                if (connected) {
-                  disconnect();
-                  if (recorderRef.current) {
-                    recorderRef.current.stop();
-                    recorderRef.current = null;
-                  }
-                  setIsRecording(false);
+          onResizeStart={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            const startX = e.clientX;
+            const startY = e.clientY;
+            const startWidth = voiceChatWidth;
+            const startHeight = voiceChatHeight;
+            const handleMouseMove = (moveEvent) => {
+              moveEvent.preventDefault();
+              moveEvent.stopPropagation();
+              const deltaX = moveEvent.clientX - startX;
+              const deltaY = moveEvent.clientY - startY;
+              const newWidth = Math.max(300, Math.min(startWidth + deltaX, 600));
+              const newHeight = Math.max(350, Math.min(startHeight + deltaY, 600));
+              setVoiceChatWidth(newWidth);
+              setVoiceChatHeight(newHeight);
+            };
+            const handleMouseUp = (upEvent) => {
+              upEvent.preventDefault();
+              upEvent.stopPropagation();
+              window.removeEventListener('mousemove', handleMouseMove);
+              window.removeEventListener('mouseup', handleMouseUp);
+              document.body.style.cursor = '';
+              document.body.style.userSelect = '';
+            };
+            document.body.style.cursor = 'nwse-resize';
+            document.body.style.userSelect = 'none';
+            window.addEventListener('mousemove', handleMouseMove);
+            window.addEventListener('mouseup', handleMouseUp);
+          }}
+        />
+      )}
+
+      {/* Dock Toolbar (Square Icon Actions) */}
+      {dockMode === 'chat' && (
+        <GlassDockToolbar
+          liveOpen={isLiveVoiceChatOpen}
+          listening={isVoiceListening}
+          awarenessOn={isScreenAware}
+          subtitlesOn={showSubtitles}
+          onToggleLive={async () => {
+            if (isLiveVoiceChatOpen) {
+              if (connected) {
+                disconnect();
+                if (recorderRef.current) {
+                  recorderRef.current.stop();
+                  recorderRef.current = null;
                 }
-                setIsLiveVoiceChatOpen(false);
-              }}
-              title="Close & Disconnect"
-            >
-              <span className="icon">close</span>
-            </button>
-          </div>
-
-          {/* System Messages Overlay (top) */}
-          <div className="system-messages-overlay">
-            {messages.filter(msg => msg.role === 'system').map((msg) => (
-              <div key={msg.id} className="system-message-toast">
-                {msg.content}
-              </div>
-            ))}
-          </div>
-
-          {/* Display Canvas */}
-          <div className="voice-chat-canvas">
-            {connected ? (
-              <div className="voice-visualization">
-                <div className="voice-waves-container">
-                  <div className="voice-waves">
-                    <div className={`wave ${isRecording ? 'active' : ''}`}></div>
-                    <div className={`wave ${isRecording ? 'active' : ''}`}></div>
-                    <div className={`wave ${isRecording ? 'active' : ''}`}></div>
-                    <div className={`wave ${isRecording ? 'active' : ''}`}></div>
-                    <div className={`wave ${isRecording ? 'active' : ''}`}></div>
-                  </div>
-                  {isScreenAware && (
-                    <>
-                      <span className="awareness-plus">+</span>
-                      <svg className="eye-icon blinking" width="32" height="32" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <path d="M12 5C7 5 2.73 8.11 1 12.5C2.73 16.89 7 20 12 20C17 20 21.27 16.89 23 12.5C21.27 8.11 17 5 12 5Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                        <circle cx="12" cy="12.5" r="3" stroke="currentColor" strokeWidth="2" fill="currentColor"/>
-                      </svg>
-                    </>
-                  )}
-                </div>
-                <div className="voice-status-text">
-                  {isRecording ? 'Listening...' : 'Ready to listen'}
-                </div>
-              </div>
-            ) : (
-              <div className="voice-connect-prompt">
-                <span className="icon">mic</span>
-                <p>Click the dock icon to connect</p>
-                <span className="voice-name">Voice: {selectedVoice}</span>
-              </div>
-            )}
-
-            <div className="voice-chat-messages">
-              {messages.filter(msg => msg.role !== 'system').map((msg) => (
-                <div key={msg.id} className={`message message-${msg.role}`}>
-                  <div className="message-content">{msg.content}</div>
-                </div>
-              ))}
-              {inputTranscript && !messages.find(m => m.content === inputTranscript) && (
-                <div className="message message-user message-transcribing">
-                  <div className="message-content">{inputTranscript}</div>
-                </div>
-              )}
-              {outputTranscript && (
-                <div className="message message-assistant message-transcribing">
-                  <div className="message-content">{outputTranscript}</div>
-                </div>
-              )}
-              <div ref={messagesEndRef} />
-            </div>
-          </div>
-
-          {/* Resize handle */}
-          <div
-            className="voice-chat-resize-handle"
-            onMouseDown={(e) => {
-              e.preventDefault();
-              e.stopPropagation();
-
-              const startX = e.clientX;
-              const startY = e.clientY;
-              const startWidth = voiceChatWidth;
-              const startHeight = voiceChatHeight;
-
-              const handleMouseMove = (moveEvent) => {
-                moveEvent.preventDefault();
-                moveEvent.stopPropagation();
-                const deltaX = moveEvent.clientX - startX;
-                const deltaY = moveEvent.clientY - startY;
-                const newWidth = Math.max(300, Math.min(startWidth + deltaX, 600));
-                const newHeight = Math.max(350, Math.min(startHeight + deltaY, 600));
-                setVoiceChatWidth(newWidth);
-                setVoiceChatHeight(newHeight);
-              };
-
-              const handleMouseUp = (upEvent) => {
-                upEvent.preventDefault();
-                upEvent.stopPropagation();
-                window.removeEventListener('mousemove', handleMouseMove);
-                window.removeEventListener('mouseup', handleMouseUp);
-                document.body.style.cursor = '';
-                document.body.style.userSelect = '';
-              };
-
-              document.body.style.cursor = 'nwse-resize';
-              document.body.style.userSelect = 'none';
-              window.addEventListener('mousemove', handleMouseMove);
-              window.addEventListener('mouseup', handleMouseUp);
-            }}
-            title="Drag to resize"
-          >
-            <span className="icon">open_in_full</span>
-          </div>
-
-        </div>
+                setIsRecording(false);
+              }
+              setIsLiveVoiceChatOpen(false);
+            } else {
+              setIsLiveVoiceChatOpen(true);
+              try { await handleConnect(); } catch (e) {}
+            }
+          }}
+          onToggleListen={toggleVoiceListening}
+          onToggleAwareness={toggleScreenAwareness}
+          onToggleSubtitles={toggleSubtitles}
+          onOpenHelp={() => setShowCapabilitiesInfo(true)}
+          onOpenSettings={() => setIsSettingsOpen(true)}
+        />
       )}
 
       {/* Dock Items (Bottom Row) */}
-      <div className="dock-container">
-        {visibleItems.map((item, index) => (
-          <div
-            key={item.id}
-            className={`dock-item ${item.type} ${item.isActive ? 'active' : ''} ${item.type === 'voice' && isVoiceListening ? 'listening' : ''}`}
-            onClick={() => handleItemClick(item)}
-            title={item.status || item.label}
-          >
-            <span className="icon" aria-label={item.label}>
-              {getIconFallback(item.icon)}
-            </span>
-
-            {item.type === 'voice' && isVoiceListening && (
-              <div className="listening-animation">
-                <div className="pulse"></div>
-                <div className="pulse"></div>
-                <div className="pulse"></div>
-              </div>
-            )}
-
-            {((item.type === 'navigation' && item.isActive) || (item.type === 'voice' && item.isActive)) && (
-              <div className="active-indicator" />
-            )}
-
-            <button
-              className="remove-item"
-              onClick={(e) => {
-                e.stopPropagation();
-                removeItem(item.id);
-              }}
-              title={`Remove ${item.label}`}
-            >
-              <span className="icon" aria-label="Remove">close</span>
-            </button>
-          </div>
-        ))}
-      </div>
+      <DockItemsRow
+        items={visibleItems}
+        isVoiceListening={isVoiceListening}
+        onClickItem={handleItemClick}
+        onRemoveItem={removeItem}
+        getIconFallback={getIconFallback}
+      />
 
       <div className="dock-handle">
         <span className="icon">drag_indicator</span>

@@ -3,6 +3,10 @@
  * SPDX-License-Identifier: Apache-2.0
 */
 import { useMemo, useRef, useState } from 'react';
+import BoothHeader from './BoothHeader.jsx';
+import Button from './ui/Button.jsx';
+import Panel from './ui/Panel.jsx';
+import FormField from './ui/FormField.jsx';
 import useStore from '../lib/store';
 import { generateImage, setInputImage } from '../lib/actions';
 import ImageUploader from './ImageUploader';
@@ -122,73 +126,59 @@ export default function BoothViewer() {
 
     return (
         <div className="booth-viewer">
-            {/* Header Section with Detailed Information */}
-            <div className="booth-header">
-                <div className="booth-title">
-                    <h1>{modeDetails.emoji} {modeDetails.name}</h1>
-                    <div className="mode-meta">
-                        <span className="mode-type">VizGen Transformation</span>
-                        <span className="mode-status">Ready</span>
-                    </div>
-                </div>
-
-                <div className="booth-description">
-                    <p className="description-text">{modeDetails.description}</p>
-                    <div className="prompt-info">
-                        <h4>AI Prompt</h4>
-                        <p className="prompt-text">"{modeDetails.prompt}"</p>
-                    </div>
-                </div>
-
-                <div className="booth-actions">
+            {/* Header Section (shared component) */}
+            <BoothHeader
+                icon={modeDetails.emoji}
+                title={modeDetails.name}
+                typeText="VizGen Transformation"
+                status={isGenerating ? 'pending' : 'ready'}
+                description={modeDetails.description}
+                align="top"
+                actions={(
+                  <>
                     <div className="provider-controls">
-                        <label htmlFor="image-provider-select" className="provider-label">
-                            Image Provider
-                        </label>
-                        <select
+                        <FormField label="Image Provider" htmlFor="image-provider-select">
+                          <select
                             id="image-provider-select"
                             value={imageProvider}
                             onChange={(e) => setImageProvider(e.target.value)}
                             className="provider-select"
-                        >
+                          >
                             {providerOptions.map(option => (
-                                <option key={option.value} value={option.value}>
-                                    {option.label}
-                                </option>
+                              <option key={option.value} value={option.value}>
+                                {option.label}
+                              </option>
                             ))}
-                        </select>
-                        <label htmlFor="image-provider-model" className="provider-label secondary">
-                            Model (optional)
-                        </label>
-                        <input
+                          </select>
+                        </FormField>
+                        <FormField label="Model (optional)" htmlFor="image-provider-model" secondary>
+                          <input
                             id="image-provider-model"
                             type="text"
                             value={currentModelValue || ''}
                             onChange={(e) => setImageModel(e.target.value)}
                             placeholder={DEFAULT_IMAGE_MODELS[imageProvider] || 'Leave blank for provider default'}
                             className="provider-model-input"
-                        />
+                          />
+                        </FormField>
                     </div>
-                    <button
-                        className="booth-generate-btn primary"
-                        onClick={generateImage}
-                        disabled={isGenerating}
-                    >
-                        <span className="icon">auto_awesome</span>
-                        {isGenerating ? 'Generating...' : 'Generate'}
-                    </button>
+                    <Button variant="primary" icon="auto_awesome" onClick={generateImage} disabled={isGenerating} style={{ alignSelf: 'center', minWidth: 200 }}>
+                      {isGenerating ? 'Generating...' : 'Generate'}
+                    </Button>
+                  </>
+                )}
+            >
+                <div className="prompt-info">
+                    <h4>AI Prompt</h4>
+                    <p className="prompt-text">"{modeDetails.prompt}"</p>
                 </div>
-            </div>
+            </BoothHeader>
 
             {/* Main Content Section */}
             <div className="booth-main">
                 {isGenerating && <LoadingSpinner />}
                 <div className="current-work">
-                    <div className="image-container input-container">
-                        <div className="image-header">
-                            <h3>Input Image</h3>
-                            <span className="image-info">Source</span>
-                        </div>
+                    <Panel variant="input" title="Input Image" info="Source">
                         <div
                             className="image-content replaceable"
                             role="button"
@@ -214,20 +204,30 @@ export default function BoothViewer() {
                                 tabIndex={-1}
                             />
                         </div>
-                    </div>
+                    </Panel>
 
                     <div className="transformation-arrow">
                         <span className="icon">arrow_forward</span>
                         <span className="transform-label">{modeDetails.name}</span>
                     </div>
 
-                    <div className="image-container output-container">
-                        <div className="image-header">
-                            <h3>Generated Result</h3>
-                            <span className="image-info">
-                                {outputImage ? 'Complete' : 'Pending'}
-                            </span>
-                        </div>
+                    <Panel
+                        variant="output"
+                        title="Generated Result"
+                        info={outputImage ? 'Complete' : 'Pending'}
+                        footer={outputImage ? (
+                            <>
+                                <button className="image-action-btn">
+                                    <span className="icon">download</span>
+                                    Download
+                                </button>
+                                <button className="image-action-btn">
+                                    <span className="icon">share</span>
+                                    Share
+                                </button>
+                            </>
+                        ) : null}
+                    >
                         <div className="image-content">
                             {outputImage ? (
                                 <img src={outputImage} alt="Generated Output" />
@@ -245,19 +245,7 @@ export default function BoothViewer() {
                                 </div>
                             )}
                         </div>
-                        {outputImage && (
-                            <div className="image-actions">
-                                <button className="image-action-btn">
-                                    <span className="icon">download</span>
-                                    Download
-                                </button>
-                                <button className="image-action-btn">
-                                    <span className="icon">share</span>
-                                    Share
-                                </button>
-                            </div>
-                        )}
-                    </div>
+                    </Panel>
                 </div>
 
                 {generationError && (

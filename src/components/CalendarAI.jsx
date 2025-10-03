@@ -3,8 +3,10 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import useStore from '../lib/store';
+import BoothHeader from './BoothHeader.jsx';
+import ActionBar from './ui/ActionBar.jsx';
 import '../styles/components/calendar-ai.css';
 
 const CalendarAI = () => {
@@ -16,6 +18,10 @@ const CalendarAI = () => {
   const [editingEvent, setEditingEvent] = useState(null);
   const [imageFit, setImageFit] = useState('contain'); // 'contain' or 'cover'
   const [gridMode, setGridMode] = useState('single'); // 'single' or 'multi'
+  const [currentMonth, setCurrentMonth] = useState(() => new Date());
+  const [dayFilter, setDayFilter] = useState(null); // 'YYYY-MM-DD'
+  const [calendarPopover, setCalendarPopover] = useState({ open: false, x: 0, y: 0, date: null });
+  const [newEventDefaultWhen, setNewEventDefaultWhen] = useState('');
 
   const fileInputRef = useRef(null);
   const icsInputRef = useRef(null);
@@ -44,8 +50,43 @@ const CalendarAI = () => {
 
   // Update grid mode based on event count
   useEffect(() => {
-    setGridMode(events.length <= 1 ? 'single' : 'multi');
-  }, [events.length]);
+    const list = dayFilter
+      ? events.filter((e) => isSameDay(getEventDate(e), new Date(dayFilter)))
+      : events;
+    setGridMode(list.length <= 1 ? 'single' : 'multi');
+  }, [events.length, dayFilter]);
+
+  // Date helpers and event filtering
+  const pad2 = (n) => String(n).padStart(2, '0');
+  const toYMD = (d) => `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
+  function isSameDay(a, b) {
+    if (!a || !b) return false;
+    return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
+  }
+  function getEventDate(e) {
+    if (!e) return null;
+    if (typeof e.when === 'string') return e.when ? new Date(e.when) : null;
+    if (e.when?.dateTime) return new Date(e.when.dateTime);
+    if (e.when?.date) return new Date(e.when.date);
+    return null;
+  }
+
+  const eventsByDay = useMemo(() => {
+    const map = new Map();
+    for (const e of events) {
+      const d = getEventDate(e);
+      if (!d) continue;
+      const key = toYMD(d);
+      map.set(key, (map.get(key) || 0) + 1);
+    }
+    return map;
+  }, [events]);
+
+  const eventsToRender = useMemo(() => {
+    if (!dayFilter) return events;
+    const day = new Date(dayFilter);
+    return events.filter((e) => isSameDay(getEventDate(e), day));
+  }, [events, dayFilter]);
 
   // Save events to localStorage
   const saveEvents = useCallback((newEvents) => {
@@ -104,6 +145,24 @@ const CalendarAI = () => {
       fetchGoogleCalendarEvents();
     }
   }, [isCalendarConnected, fetchGoogleCalendarEvents]);
+
+  // Listen for sidebar-initiated actions (filter or create)
+  useEffect(() => {
+    try {
+      const pendingFilter = localStorage.getItem('calendarai.ui.filterDate');
+      if (pendingFilter) {
+        setDayFilter(pendingFilter);
+        localStorage.removeItem('calendarai.ui.filterDate');
+      }
+      const pendingNew = localStorage.getItem('calendarai.ui.newEventDate');
+      if (pendingNew) {
+        setNewEventDefaultWhen(pendingNew);
+        setEditingEvent(null);
+        setShowEventModal(true);
+        localStorage.removeItem('calendarai.ui.newEventDate');
+      }
+    } catch {}
+  }, []);
 
   // Create or update event
   const saveEvent = useCallback((eventData) => {
@@ -285,55 +344,96 @@ const CalendarAI = () => {
 
   return (
     <div className="calendar-ai">
-      {/* Top toolbar */}
-      <div className="calendar-ai-topbar">
-        <button
-          className="icon-btn"
-          onClick={() => icsInputRef.current?.click()}
-          data-tip="Import from Calendar (.ics)"
-        >
-          <svg viewBox="0 0 24 24">
-            <path d="M20 16.5a3.5 3.5 0 0 0-1-6.9 5 5 0 0 0-9.7-1.7A4 4 0 0 0 4 11.5a4 4 0 0 0 1 7.9h12"/>
-          </svg>
-        </button>
-        <button
-          className="icon-btn"
-          onClick={() => setShowHelp(true)}
-          data-tip="Shortcuts (?)"
-        >
-          <svg viewBox="0 0 24 24">
-            <path d="M9 9a3 3 0 1 1 3 3v2M12 17h.01"/>
-          </svg>
-        </button>
-        <button
-          className="icon-btn"
-          onClick={() => {
-            setEditingEvent(null);
-            setShowEventModal(true);
-          }}
-          data-tip="New Event (N)"
-        >
-          <svg viewBox="0 0 24 24">
-            <path d="M12 5v14M5 12h14"/>
-          </svg>
-        </button>
-        {isCalendarConnected && (
-          <button
-            className="icon-btn"
-            onClick={fetchGoogleCalendarEvents}
-            data-tip="Sync Google Calendar"
-          >
-            <svg viewBox="0 0 24 24">
-              <path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8"/>
-              <path d="M21 3v5h-5"/>
-            </svg>
-          </button>
+      {/* Header (shared BoothHeader) */}
+      <BoothHeader
+        icon="calendar_month"
+        title="CalendarAI"
+        typeText="Event Planner"
+        status={isCalendarConnected ? 'ready' : 'pending'}
+        description={
+          isCalendarConnected
+            ? 'Connected to Google Calendar. Create, import, and sync events.'
+            : 'Create, import, and preview events. Connect Google Calendar to sync.'
+        }
+        align="top"
+        actions={(
+          <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', gap: '12px' }}>
+            <button
+              className="secondary"
+              onClick={() => icsInputRef.current?.click()}
+              title="Import from Calendar (.ics)"
+            >
+              <span className="icon">upload</span>
+              Import .ics
+            </button>
+            <button
+              className="booth-generate-btn primary"
+              onClick={() => { setEditingEvent(null); setShowEventModal(true); }}
+              title="New Event (N)"
+            >
+              <span className="icon">add</span>
+              New Event
+            </button>
+            {isCalendarConnected ? (
+              <button
+                className="secondary"
+                onClick={fetchGoogleCalendarEvents}
+                title="Sync Google Calendar"
+              >
+                <span className="icon">sync</span>
+                Sync Calendar
+              </button>
+            ) : (
+              <button
+                className="secondary"
+                onClick={() => setShowHelp(true)}
+                title="Shortcuts (?)"
+              >
+                <span className="icon">help</span>
+                Shortcuts
+              </button>
+            )}
+            <button
+              className="secondary"
+              onClick={() => setShowSettings(true)}
+              title="Open Settings (⌘,)"
+            >
+              <span className="icon">settings</span>
+              Settings
+            </button>
+          </div>
         )}
-      </div>
+      >
+        {selectedEvent ? (
+          <div className="prompt-info">
+            <h4>Selected Event</h4>
+            <p style={{ margin: 0, color: 'var(--text-secondary)' }}>
+              {selectedEvent.name || selectedEvent.title}
+            </p>
+            {selectedEvent.when && (
+              <p style={{ margin: 0, color: 'var(--text-tertiary)', fontSize: '12px' }}>{new Date(selectedEvent.when).toLocaleString()}</p>
+            )}
+            {selectedEvent.where && (
+              <p style={{ margin: 0, color: 'var(--text-tertiary)', fontSize: '12px' }}>{selectedEvent.where}</p>
+            )}
+          </div>
+        ) : (
+          <div className="prompt-info">
+            <h4>Quick Tips</h4>
+            <ul style={{ margin: 0, paddingLeft: '18px' }}>
+              <li>Press N to create a new event</li>
+              <li>Press I to import a .ics file</li>
+              <li>Press ⌘, (Ctrl,) to open Settings; ? for help</li>
+            </ul>
+          </div>
+        )}
+      </BoothHeader>
+
+      {/* Calendar grid removed (lives in sidebar). */}
 
       {/* Event grid */}
       <main className={`calendar-ai-grid ${gridMode}`}>
-        {events.length === 0 && (
+        {eventsToRender.length === 0 && (
           <div className="empty-state">
             <p>
               Create your first event (it will fill the screen). Add more and the grid will auto-fit each image.
@@ -349,7 +449,7 @@ const CalendarAI = () => {
           </div>
         )}
 
-        {events.map(event => (
+        {eventsToRender.map(event => (
           <EventCard
             key={event.id}
             event={event}
@@ -383,10 +483,12 @@ const CalendarAI = () => {
       {showEventModal && (
         <EventModal
           event={editingEvent}
+          defaultWhen={newEventDefaultWhen}
           onSave={saveEvent}
           onDelete={deleteEvent}
           onClose={() => {
             setShowEventModal(false);
+            setNewEventDefaultWhen('');
             setEditingEvent(null);
           }}
           fileInputRef={fileInputRef}
@@ -494,13 +596,15 @@ const EventCard = ({ event, imageFit, onEdit, onExport, onSelect, isSelected }) 
       </div>
 
       <div className="countdown">
-        <CountdownPart label="Days" value={countdown.days} />
-        <span className="dot">:</span>
-        <CountdownPart label="Hours" value={String(countdown.hours).padStart(2, '0')} />
-        <span className="dot">:</span>
-        <CountdownPart label="Minutes" value={String(countdown.minutes).padStart(2, '0')} />
-        <span className="dot">:</span>
-        <CountdownPart label="Seconds" value={String(countdown.seconds).padStart(2, '0')} />
+        <ActionBar
+          ariaLabel="Event countdown"
+          items={[
+            { key: 'd', title: 'Days', content: <CountdownPart label="Days" value={countdown.days} /> },
+            { key: 'h', title: 'Hours', content: <CountdownPart label="Hours" value={String(countdown.hours).padStart(2, '0')} /> },
+            { key: 'm', title: 'Minutes', content: <CountdownPart label="Minutes" value={String(countdown.minutes).padStart(2, '0')} /> },
+            { key: 's', title: 'Seconds', content: <CountdownPart label="Seconds" value={String(countdown.seconds).padStart(2, '0')} /> }
+          ]}
+        />
       </div>
 
       <div className="card-actions">
@@ -527,9 +631,11 @@ const CountdownPart = ({ label, value }) => (
 );
 
 // Event Modal Component
-const EventModal = ({ event, onSave, onDelete, onClose, fileInputRef }) => {
+const EventModal = ({ event, defaultWhen, onSave, onDelete, onClose, fileInputRef }) => {
   const [name, setName] = useState(event?.name || '');
-  const [when, setWhen] = useState(event?.when ? new Date(event.when).toISOString().slice(0, 16) : '');
+  const [when, setWhen] = useState(
+    event?.when ? new Date(event.when).toISOString().slice(0, 16) : (defaultWhen || '')
+  );
   const [where, setWhere] = useState(event?.where || '');
   const [imageFile, setImageFile] = useState(null);
 
@@ -738,6 +844,71 @@ const parseICS = (text) => {
 
   return events;
 };
+
+// Named export for Storybook reuse
+export { EventCard };
+
+// Calendar grid component
+function CalendarGrid({ monthDate, eventsByDay, onPrevMonth, onNextMonth, onDayClick }) {
+  const year = monthDate.getFullYear();
+  const month = monthDate.getMonth();
+  const startOfMonth = new Date(year, month, 1);
+  const startDay = startOfMonth.getDay(); // 0 (Sun) - 6 (Sat)
+  const gridStart = new Date(year, month, 1 - startDay);
+
+  const weeks = [];
+  for (let w = 0; w < 6; w++) {
+    const days = [];
+    for (let d = 0; d < 7; d++) {
+      const index = w * 7 + d;
+      const date = new Date(gridStart.getFullYear(), gridStart.getMonth(), gridStart.getDate() + index);
+      days.push(date);
+    }
+    weeks.push(days);
+  }
+
+  const monthLabel = monthDate.toLocaleString(undefined, { month: 'long', year: 'numeric' });
+
+  const pad2 = (n) => String(n).padStart(2, '0');
+  const toYMD = (d) => `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
+
+  const weekdayLabels = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+
+  return (
+    <div className="calendar-grid-wrapper">
+      <div className="calendar-grid-header">
+        <button className="nav" onClick={onPrevMonth} title="Previous month">
+          <span className="icon">chevron_left</span>
+        </button>
+        <h3>{monthLabel}</h3>
+        <button className="nav" onClick={onNextMonth} title="Next month">
+          <span className="icon">chevron_right</span>
+        </button>
+      </div>
+      <div className="calendar-grid">
+        {weekdayLabels.map((lbl) => (
+          <div key={lbl} className="calendar-weekday">{lbl}</div>
+        ))}
+        {weeks.flat().map((date) => {
+          const isCurrentMonth = date.getMonth() === month;
+          const key = toYMD(date);
+          const count = eventsByDay.get(key) || 0;
+          return (
+            <button
+              key={key}
+              className={`calendar-cell ${isCurrentMonth ? '' : 'muted'}`}
+              onClick={(e) => onDayClick(date, e)}
+              title={count ? `${count} event${count > 1 ? 's' : ''}` : 'No events'}
+            >
+              <span className="date-num">{date.getDate()}</span>
+              {count > 0 && <span className="event-dot" aria-hidden="true" />}
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
 
 const icsToLocal = (value) => {
   if (!value) return '';

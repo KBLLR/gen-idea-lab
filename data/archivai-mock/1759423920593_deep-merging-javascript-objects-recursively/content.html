@@ -1,0 +1,165 @@
+
+      <header class="template-header">
+        <h1>Code Notebook</h1>
+        <p class="template-purpose">Save useful code with context</p>
+      </header>
+    <div class="template-content"><div class="field-date">
+          <strong>Date:</strong> 02/10/2025
+        </div>
+<div class="field-text">
+          <strong>Title:</strong> Deep Merging JavaScript Objects Recursively
+        </div>
+<section>
+          <h3>Problem / Context</h3>
+          <div class="markdown-content"><p>Often, when dealing with configuration objects, state management in UI libraries (like React or Vue), or combining user-provided options with default settings, a simple shallow merge isn't sufficient. Methods like <code>Object.assign()</code> or the spread operator (<code>{...obj1, ...obj2}</code>) only merge properties at the top level. If there are nested objects, they are overwritten entirely rather than merged.</p>
+<p>This snippet addresses the need for a <strong>deep merge</strong>, where nested objects and arrays are also merged recursively, preserving existing keys and adding new ones, without losing data from either source object. This is particularly useful for creating robust, customizable systems where defaults can be overridden incrementally.</p>
+</div>
+        </section>
+<section>
+          <h3>Code Snippet</h3>
+          <pre><code>/**
+ * Recursively merges two or more objects deeply.
+ * Properties in later objects will overwrite properties in earlier ones.
+ * Handles nested objects and arrays. Arrays are concatenated.
+ *
+ * @param {object} target The target object to merge into. This object will be modified.
+ * @param {...object} sources The source objects to merge from.
+ * @returns {object} The deeply merged object.
+ */
+function deepMerge(target, ...sources) {
+  if (sources.length === 0) {
+    return target;
+  }
+
+  const source = sources.shift(); // Get the next source object
+
+  // Ensure target is an object and not null, otherwise return source or handle as non-mergeable
+  if (typeof target !== &#39;object&#39; || target === null) {
+    return source; // If target is not an object, can&#39;t merge into it, just use source
+  }
+
+  // Ensure source is an object and not null
+  if (typeof source !== &#39;object&#39; || source === null) {
+    return source; // If source is not an object, it&#39;s the final value for this path
+  }
+
+  // Handle arrays differently
+  if (Array.isArray(target) &amp;&amp; Array.isArray(source)) {
+    // Concatenate arrays. For more complex logic (e.g., merging objects within arrays based on ID),
+    // this section would be more elaborate.
+    return [...target, ...source];
+  }
+
+  // If one is an array and the other is not, the source takes precedence.
+  // This avoids trying to merge an array into an object or vice-versa.
+  if (Array.isArray(target) !== Array.isArray(source)) {
+      return source;
+  }
+
+  // Iterate over properties of the source object
+  for (const key in source) {
+    if (Object.prototype.hasOwnProperty.call(source, key)) {
+      const targetValue = target[key];
+      const sourceValue = source[key];
+
+      if (typeof sourceValue === &#39;object&#39; &amp;&amp; sourceValue !== null &amp;&amp; typeof targetValue === &#39;object&#39; &amp;&amp; targetValue !== null) {
+        // Both are objects/arrays, recurse
+        target[key] = deepMerge(targetValue, sourceValue);
+      } else {
+        // Otherwise, directly assign/overwrite
+        target[key] = sourceValue;
+      }
+    }
+  }
+
+  // Recursively merge the remaining sources
+  return deepMerge(target, ...sources);
+}</code></pre>
+        </section>
+<section>
+          <h3>Explanation</h3>
+          <div class="markdown-content"><ul>
+<li><p><strong>What it does:</strong> This <code>deepMerge</code> function takes a <code>target</code> object and one or more <code>source</code> objects. It recursively traverses the properties of the source objects, merging them into the target. If a property exists in both target and source and both are objects (or arrays), it calls itself recursively to merge those nested structures. Otherwise, it directly assigns the source's value, effectively overwriting the target's value for primitive types or when types don't match (e.g., an object trying to merge with a string). Arrays are handled by concatenating their elements.</p>
+</li>
+<li><p><strong>Key lines:</strong></p>
+<ul>
+<li><strong>Lines 10-16:</strong> Handles base cases where either target or source is not an object or is null, preventing errors and providing a sensible return value for non-mergeable paths.</li>
+<li><strong>Lines 19-24:</strong> Specifically handles array merging. If both are arrays, they are concatenated. If one is an array and the other isn't, the source array takes precedence. This avoids type mismatch errors during recursion.</li>
+<li><strong>Lines 31-34:</strong> This is the core recursive step. It checks if both <code>targetValue</code> and <code>sourceValue</code> are objects (and not null). If so, it calls <code>deepMerge</code> again for that nested path, ensuring a deep merge.</li>
+<li><strong>Line 36:</strong> For all other cases (primitives, or when one is an object and the other isn't after the array check), the <code>sourceValue</code> directly overwrites the <code>targetValue</code>.</li>
+<li><strong>Line 41:</strong> The function processes additional <code>sources</code> arguments sequentially, ensuring all provided objects are merged in order of precedence.</li>
+</ul>
+</li>
+</ul>
+</div>
+        </section>
+<section>
+          <h3>Usage</h3>
+          <div class="markdown-content"><ul>
+<li><p><strong>How to integrate:</strong>
+Simply copy-paste the <code>deepMerge</code> function into your JavaScript codebase. You can place it in a utility file (<code>utils.js</code>) and import it, or define it directly where needed.</p>
+</li>
+<li><p><strong>Example call:</strong>
+javascript
+const defaultSettings = {
+  theme: {
+primaryColor: '#007bff',
+typography: {
+  fontSize: '16px',
+  fontFamily: 'Arial, sans-serif'
+}
+  },
+  api: {
+baseUrl: '<a href="https://api.example.com/v1">https://api.example.com/v1</a>',
+timeout: 5000
+  },
+  features: ['dark-mode', 'notifications']
+};</p>
+<p>const userSettings = {
+  theme: {
+primaryColor: '#6f42c1',
+typography: {
+  fontSize: '14px' // Override font size
+}
+  },
+  api: {
+timeout: 10000 // Override API timeout
+  },
+  features: ['notifications', 'analytics'] // Concatenate features
+};</p>
+<p>const finalSettings = deepMerge(defaultSettings, userSettings);</p>
+<p>console.log(finalSettings);
+/* Expected Output:
+{
+  theme: {
+primaryColor: '#6f42c1', // Overridden
+typography: {
+  fontSize: '14px',     // Overridden
+  fontFamily: 'Arial, sans-serif' // Retained from default
+}
+  },
+  api: {
+baseUrl: '<a href="https://api.example.com/v1">https://api.example.com/v1</a>', // Retained
+timeout: 10000 // Overridden
+  },
+  features: ['dark-mode', 'notifications', 'notifications', 'analytics'] // Concatenated
+}
+*/</p>
+<p>const immutableMerge = deepMerge({}, defaultSettings, userSettings); // To create a new object
+console.log(immutableMerge);</p>
+</li>
+</ul>
+</div>
+        </section>
+<section>
+          <h3>References</h3>
+          <div class="markdown-content"><ul>
+<li><a href="https://stackoverflow.com/questions/27936772/how-to-deep-merge-two-javascript-objects">Stack Overflow: How to deep merge two Javascript objects?</a> – A great resource for various approaches and considerations.</li>
+<li><a href="https://lodash.com/docs/4.17.15#merge">Lodash <code>_.merge</code> documentation</a> – For a more robust, production-ready solution, libraries like Lodash offer battle-tested <code>_.merge</code> functionality, often with more advanced options (like custom array merging resolvers).</li>
+<li>Related concept: <code>Object.assign()</code> and Spread Syntax (<code>{...obj}</code>), for understanding shallow vs. deep merges.</li>
+</ul>
+</div>
+        </section>
+<div class="field-text">
+          <strong>Tags / Keywords:</strong> javascript, object-manipulation, deep-merge, recursion, utility-function, configuration, immutable-data
+        </div></div>

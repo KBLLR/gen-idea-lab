@@ -3,13 +3,36 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import useStore from '../lib/store';
 import '../styles/components/calendar-ai-sidebar.css';
 
 const CalendarAISidebar = () => {
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [currentMonth, setCurrentMonth] = useState(new Date());
+  const [tooltip, setTooltip] = useState({ open: false, x: 0, y: 0, date: null });
+  const tooltipRef = useRef(null);
+
+  // Close tooltip on outside click or Escape
+  useEffect(() => {
+    if (!tooltip.open) return;
+    const handleOutside = (e) => {
+      if (tooltipRef.current && !tooltipRef.current.contains(e.target)) {
+        setTooltip({ open: false, x: 0, y: 0, date: null });
+      }
+    };
+    const handleKey = (e) => {
+      if (e.key === 'Escape') {
+        setTooltip({ open: false, x: 0, y: 0, date: null });
+      }
+    };
+    document.addEventListener('mousedown', handleOutside);
+    document.addEventListener('keydown', handleKey);
+    return () => {
+      document.removeEventListener('mousedown', handleOutside);
+      document.removeEventListener('keydown', handleKey);
+    };
+  }, [tooltip.open]);
 
   // Get events from localStorage (we'll need to sync this with CalendarAI component state)
   const events = useMemo(() => {
@@ -171,12 +194,19 @@ const CalendarAISidebar = () => {
 
           <div className="days-grid">
             {calendarDays.map((dayInfo, i) => (
-              <div
+              <button
                 key={i}
                 className={`day ${!dayInfo.isCurrentMonth ? 'other-month' : ''} ${isToday(dayInfo.date) ? 'today' : ''} ${hasEventOnDay(dayInfo.date) ? 'has-event' : ''}`}
+                onClick={(e) => {
+                  const rect = e.currentTarget.getBoundingClientRect();
+                  const x = rect.right + window.scrollX + 8; // place tooltip to the right of the day
+                  const y = rect.top + window.scrollY + rect.height / 2; // vertically centered
+                  setTooltip({ open: true, x, y, date: dayInfo.date });
+                }}
+                title={hasEventOnDay(dayInfo.date) ? 'See events' : 'Create event'}
               >
                 {dayInfo.day}
-              </div>
+              </button>
             ))}
           </div>
         </div>
@@ -254,6 +284,50 @@ const CalendarAISidebar = () => {
       <div className="connection-status">
         <CalendarConnectionStatus />
       </div>
+
+      {tooltip.open && (
+        <div
+          ref={tooltipRef}
+          className="calendar-day-tooltip"
+          style={{ left: tooltip.x, top: tooltip.y }}
+          role="dialog"
+          aria-label="Day actions"
+        >
+          <button
+            className="action"
+            onClick={() => {
+              try {
+                const d = new Date(tooltip.date);
+                d.setHours(9, 0, 0, 0);
+                const isoLocal = new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+                localStorage.setItem('calendarai.ui.newEventDate', isoLocal);
+              } catch {}
+              useStore.getState().actions.setActiveApp('calendarAI');
+              setTooltip({ open: false, x: 0, y: 0, date: null });
+            }}
+          >
+            <span className="icon">add</span>
+            Create event
+          </button>
+          <button
+            className="action"
+            onClick={() => {
+              try {
+                const d = new Date(tooltip.date);
+                const y = d.getFullYear();
+                const m = String(d.getMonth() + 1).padStart(2, '0');
+                const day = String(d.getDate()).padStart(2, '0');
+                localStorage.setItem('calendarai.ui.filterDate', `${y}-${m}-${day}`);
+              } catch {}
+              useStore.getState().actions.setActiveApp('calendarAI');
+              setTooltip({ open: false, x: 0, y: 0, date: null });
+            }}
+          >
+            <span className="icon">event</span>
+            See events
+          </button>
+        </div>
+      )}
     </div>
   );
 };

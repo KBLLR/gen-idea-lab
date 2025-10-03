@@ -46,6 +46,7 @@
 
 ## Recent Changes & Rationale
 - For a concise summary of the latest implementation updates (Markdown rendering, mock persistence, drawer UI, centered layouts, headers), see `docs/IMPLEMENTATION_NOTES.md`.
+- UI primitives and usage are documented in `docs/ui/components.md`; tokens are described in `docs/ui/tokens.md`.
 
 ## Changelog Process (All Agents)
 - Before committing and pushing changes:
