@@ -54,10 +54,18 @@ export async function createHumeTool(payload) {
   return jsonOrThrow(res);
 }
 
+export async function listHumeVoices(provider = 'HUME_AI', pageNumber = 0, pageSize = 100) {
+  const res = await fetch(`/api/hume/voices?provider=${provider}&page_number=${pageNumber}&page_size=${pageSize}`, {
+    credentials: 'include'
+  });
+  return jsonOrThrow(res);
+}
+
 export default {
   fetchHumeAccessToken,
   createHumeConfig,
   createHumePrompt,
-  createHumeTool
+  createHumeTool,
+  listHumeVoices
 };
 

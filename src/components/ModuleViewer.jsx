@@ -6,6 +6,7 @@ import useStore from '../lib/store';
 import { personalities } from '../lib/assistant/personalities';
 import { toggleModuleChat, updateModuleResourceUrl } from '../lib/actions';
 import ModuleKnowledgeSection from './ModuleKnowledgeSection';
+import ActionBar from './ui/ActionBar.jsx';
 import c from 'clsx';
 
 // Official brand icons via react-icons (Simple Icons set)
@@ -123,48 +124,28 @@ export default function ModuleViewer() {
                     <p>{module['Module Code']} - {personality.title}</p>
                 </div>
                 <div className="module-connectors">
-                    {module.resources.map(resource => {
-                        const Icon = resourceIcons[resource.type];
-                        const hasUrl = resource.url && resource.url.trim() !== '';
-                        const isConnected = connectedServices?.[resource.type]?.connected || false;
-                        return (
-                            <button
-                                key={resource.type}
-                                className={c('icon-btn', {
-                                    'has-url': hasUrl,
-                                    'connected': isConnected
-                                })}
-                                data-service={resource.type}
-                                data-connected={isConnected ? 'true' : 'false'}
-                                title={`${resource.type}${isConnected ? ' (Connected)' : ' (Disconnected)'}`}
-                                aria-label={resource.type}
-                                onClick={() => handleResourceClick(resource.type, resource.url)}
-                            >
-                                <Icon size={20} />
-                                <span className={c('connection-indicator', {
-                                    'connected': isConnected,
-                                    'disconnected': !isConnected
-                                })}></span>
-                            </button>
-                        );
-                    })}
-                    <button className="icon-btn" title="Documentation" aria-label="Documentation"><span className="icon">description</span></button>
-                    <button
-                        className={c('icon-btn', { 'active': showKnowledgeSection })}
-                        onClick={() => actions.toggleKnowledgeSection()}
-                        title="Module Knowledge Base"
-                        aria-label="Module Knowledge Base"
-                    >
-                        <span className="icon">database</span>
-                    </button>
-                    <button
-                        className="icon-btn assistant-chat-icon"
-                        onClick={toggleModuleChat}
-                        title={`Toggle chat with ${personality.name}`}
-                        aria-label={`Toggle chat with ${personality.name}`}
-                    >
-                        <span className="icon">chat</span>
-                    </button>
+                    {(() => {
+                        const items = [];
+                        module.resources.forEach((resource) => {
+                            const Icon = resourceIcons[resource.type];
+                            const isConnected = !!(connectedServices?.[resource.type]?.connected);
+                            items.push({
+                                key: `res-${resource.type}`,
+                                title: resource.type,
+                                content: (
+                                  <span style={{ position: 'relative', display: 'inline-flex', alignItems: 'center' }}>
+                                    <Icon size={18} />
+                                    <span className={`status-dot ${isConnected ? 'connected' : 'disconnected'}`} style={{ position: 'absolute', top: -2, right: -6 }} />
+                                  </span>
+                                ),
+                                onClick: () => handleResourceClick(resource.type, resource.url)
+                            });
+                        });
+                        items.push({ key: 'docs', title: 'Documentation', icon: 'description', onClick: () => {} });
+                        items.push({ key: 'kb', title: 'Knowledge', icon: 'database', onClick: () => actions.toggleKnowledgeSection(), ariaPressed: !!showKnowledgeSection });
+                        items.push({ key: 'chat', title: 'Chat', icon: 'chat', onClick: toggleModuleChat });
+                        return <ActionBar items={items} showDividers={true} ariaLabel="Module actions" />;
+                    })()}
                 </div>
             </div>
             <div className="module-viewer-content">

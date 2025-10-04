@@ -84,9 +84,14 @@ export default function HumeVoiceChat({ onEmotionUpdate, selectedConfigId }) {
         <VoiceProvider
           auth={{ type: 'accessToken', value: accessToken }}
           configId={selectedConfigId}
+          onMessage={(msg) => {
+            console.log('[HumeVoiceChat] Hume message:', msg);
+          }}
           onError={(error) => {
-            console.error('[HumeVoiceChat] Hume error:', error);
-            setError(error.message);
+            console.error('[HumeVoiceChat] Hume VoiceProvider error:', error);
+            console.error('[HumeVoiceChat] Error type:', typeof error);
+            console.error('[HumeVoiceChat] Error keys:', Object.keys(error || {}));
+            setError(error?.message || String(error));
           }}
         >
           <VoiceChatInterface onEmotionUpdate={onEmotionUpdate} />
@@ -102,6 +107,18 @@ function VoiceChatInterface({ onEmotionUpdate }) {
   const [isConnected, setIsConnected] = useState(false);
   const messagesEndRef = useRef(null);
   const hasConfiguredRef = useRef(false);
+
+  // Debug: Log full voice object
+  useEffect(() => {
+    console.log('[HumeVoiceChat] Full voice object:', {
+      status: typeof status,
+      statusValue: status,
+      isPlaying,
+      messagesCount: messages.length,
+      isConnected,
+      allVoiceKeys: Object.keys(voice)
+    });
+  }, [status, isPlaying, messages.length, isConnected, voice]);
 
   // Auto-scroll messages
   useEffect(() => {
@@ -133,6 +150,7 @@ function VoiceChatInterface({ onEmotionUpdate }) {
   const handleConnect = async () => {
     try {
       console.log('[HumeVoiceChat] Attempting to connect...');
+      console.log('[HumeVoiceChat] Current status before connect:', status);
       await connect({
         audioConstraints: {
           echoCancellation: true,
@@ -140,25 +158,46 @@ function VoiceChatInterface({ onEmotionUpdate }) {
           autoGainControl: true
         }
       });
-      console.log('[HumeVoiceChat] Connected successfully');
+      console.log('[HumeVoiceChat] Connect promise resolved');
+      console.log('[HumeVoiceChat] Status after connect:', status);
       setIsConnected(true);
     } catch (err) {
       console.error('[HumeVoiceChat] Connection error:', err);
+      console.error('[HumeVoiceChat] Error details:', {
+        message: err.message,
+        stack: err.stack,
+        name: err.name
+      });
     }
   };
 
   const handleDisconnect = () => {
+    console.log('[HumeVoiceChat] Disconnecting...');
     disconnect();
     setIsConnected(false);
     hasConfiguredRef.current = false;
+    console.log('[HumeVoiceChat] Disconnected');
   };
 
   // Configure session settings when connected
   useEffect(() => {
-    if (!isConnected || hasConfiguredRef.current) return;
+    console.log('[HumeVoiceChat] Session config effect triggered:', {
+      isConnected,
+      hasConfigured: hasConfiguredRef.current,
+      status,
+      statusType: typeof status
+    });
+
+    if (!isConnected || hasConfiguredRef.current) {
+      console.log('[HumeVoiceChat] Skipping session config:', {
+        reason: !isConnected ? 'not connected' : 'already configured'
+      });
+      return;
+    }
 
     const statusText = typeof status === 'string' ? status : (status && typeof status.value === 'string' ? status.value : '');
-    console.log('[HumeVoiceChat] Status:', statusText);
+    console.log('[HumeVoiceChat] Extracted status text:', statusText);
+    console.log('[HumeVoiceChat] Testing status regex:', /connected|ready|open/i.test(statusText));
 
     if (statusText && /connected|ready|open/i.test(statusText)) {
       console.log('[HumeVoiceChat] Sending session settings...');
@@ -166,11 +205,13 @@ function VoiceChatInterface({ onEmotionUpdate }) {
         type: 'session_settings',
         systemPrompt: 'You are an empathic AI assistant integrated with multimodal emotion detection. You can sense emotions from both voice and facial expressions. Be warm, understanding, and supportive. When you detect emotional conflicts (e.g., happy words but anxious voice), gently acknowledge what you notice.'
       }).then(() => {
-        console.log('[HumeVoiceChat] Session settings sent');
+        console.log('[HumeVoiceChat] Session settings sent successfully');
         hasConfiguredRef.current = true;
       }).catch((e) => {
-        console.warn('[HumeVoiceChat] Failed to send session settings:', e);
+        console.error('[HumeVoiceChat] Failed to send session settings:', e);
       });
+    } else {
+      console.log('[HumeVoiceChat] Status not ready for config yet:', statusText);
     }
   }, [isConnected, status, sendSessionSettings]);
 
@@ -186,6 +227,15 @@ function VoiceChatInterface({ onEmotionUpdate }) {
     : [];
 
   const statusText = typeof status === 'string' ? status : (status && typeof status.value === 'string' ? status.value : '');
+
+  console.log('[HumeVoiceChat] Rendering UI with:', {
+    isConnected,
+    statusText,
+    isPlaying,
+    showWaves: isConnected,
+    showEmotions: !!latestEmotions,
+    messagesCount: messages.length
+  });
 
   return (
     <div className="hume-voice-chat-interface" style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
@@ -263,7 +313,9 @@ function VoiceChatInterface({ onEmotionUpdate }) {
             color: 'var(--color-text-secondary)',
             textAlign: 'center'
           }}>
-            {isPlaying ? '🎤 Listening...' : '👂 Ready to listen'}
+            <span className="icon">mic</span>
+            <br />
+            {isPlaying ? 'Listening...' : 'Start speaking...'}
           </div>
         </div>
       )}

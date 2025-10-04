@@ -2200,6 +2200,7 @@ main.workflows-layout .right-column {
   transition: all 0.2s;
   text-align: center;
   font-size: 12px;
+  position: relative;
 }
 .mode-item:hover {
   transform: translateY(-3px);
@@ -2227,6 +2228,14 @@ main.workflows-layout .right-column {
   align-items: center;
   justify-content: center;
 }
+
+/* Status dot for ThumbCard */
+.mode-item .status-dot { position: absolute; top: 6px; right: 6px; width: 8px; height: 8px; border-radius: 50%; box-shadow: 0 0 4px rgba(0,0,0,0.3); }
+.mode-item .status-dot.connected { background: #10b981; }
+.mode-item .status-dot.disconnected { background: #6b7280; }
+
+/* Settings: tile grid override using mode-grid */
+.service-mode-grid { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: var(--space-3); }
 
 .booth-viewer {
   display: flex;
@@ -2471,11 +2480,24 @@ main.workflows-layout .right-column {
   color: var(--text-secondary);
   cursor: pointer;
   transition: all 0.2s ease;
+  position: relative;
 }
 
 .user-actions .action-btn .icon {
   font-size: 20px;
 }
+
+/* Small status dot for action buttons (service state) */
+.user-actions .action-btn .status-dot {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+}
+.user-actions .action-btn .status-dot.connected { background: #10b981; }
+.user-actions .action-btn .status-dot.disconnected { background: #6b7280; }
 
 .user-actions .action-btn:hover {
   color: var(--text-primary);
@@ -2570,6 +2592,81 @@ main.workflows-layout .right-column {
 .glass-banner-close:hover {
   background: rgba(255,255,255,0.08);
   color: var(--text-primary);
+}
+
+/* Generic Sidebar Tooltip */
+.sidebar-tooltip {
+  position: fixed;
+  transform: translate(8px, -50%);
+  background: rgba(13, 16, 24, 0.96);
+  border: 1px solid var(--glass-panel-border);
+  border-radius: var(--radius-md);
+  padding: var(--space-2) var(--space-3);
+  color: var(--text-primary);
+  z-index: 10000; /* highest */
+  box-shadow: 0 10px 30px rgba(0,0,0,0.35);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  opacity: 0;
+  transition: opacity 160ms ease-in-out, transform 160ms ease-in-out;
+  pointer-events: none;
+}
+.sidebar-tooltip.is-visible {
+  opacity: 1;
+  transform: translate(0, -50%);
+}
+.sidebar-tooltip::before {
+  content: '';
+  position: absolute;
+  left: -6px;
+  top: 50%;
+  width: 10px;
+  height: 10px;
+  transform: translateY(-50%) rotate(45deg);
+  background: rgba(13, 16, 24, 0.96);
+  border-left: 1px solid var(--glass-panel-border);
+  border-bottom: 1px solid var(--glass-panel-border);
+}
+/* Left placement */
+.sidebar-tooltip--left { transform: translate(-8px, -50%); }
+.sidebar-tooltip--left.is-visible { transform: translate(0, -50%); }
+.sidebar-tooltip--left::before {
+  left: auto;
+  right: -6px;
+  border-left: none;
+  border-bottom: none;
+  border-right: 1px solid var(--glass-panel-border);
+  border-top: 1px solid var(--glass-panel-border);
+}
+[data-theme="light"] .sidebar-tooltip {
+  background: rgba(255, 255, 255, 0.98);
+  color: var(--text-primary);
+}
+[data-theme="light"] .sidebar-tooltip::before {
+  background: rgba(255, 255, 255, 0.98);
+}
+/* Top placement */
+.sidebar-tooltip--top { transform: translate(-50%, -8px); }
+.sidebar-tooltip--top.is-visible { transform: translate(-50%, 0); }
+.sidebar-tooltip--top { left: var(--_x, 0); top: var(--_y, 0); }
+.sidebar-tooltip--top::before {
+  left: 50%;
+  top: auto;
+  bottom: -6px;
+  transform: translateX(-50%) rotate(45deg);
+  border-left: 1px solid var(--glass-panel-border);
+  border-bottom: 1px solid var(--glass-panel-border);
+}
+/* Bottom placement */
+.sidebar-tooltip--bottom { transform: translate(-50%, 8px); }
+.sidebar-tooltip--bottom.is-visible { transform: translate(-50%, 0); }
+.sidebar-tooltip--bottom { left: var(--_x, 0); top: var(--_y, 0); }
+.sidebar-tooltip--bottom::before {
+  left: 50%;
+  top: -6px;
+  transform: translateX(-50%) rotate(45deg);
+  border-right: 1px solid var(--glass-panel-border);
+  border-top: 1px solid var(--glass-panel-border);
 }
 
 /* Archiva Styles */
@@ -3295,7 +3392,7 @@ main.workflows-layout .right-column {
 .user-info {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: var(--space-3);
   font-size: 14px;
   flex-grow: 1;
   min-width: 0;
@@ -3333,7 +3430,7 @@ main.workflows-layout .right-column {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 20px;
+  padding: var(--panel-padding-md);
   border-bottom: 1px solid var(--border-primary);
   flex-shrink: 0;
 }
@@ -3347,16 +3444,16 @@ main.workflows-layout .right-column {
 .settings-content {
   flex-grow: 1;
   overflow-y: auto;
-  padding: 20px;
+  padding: var(--panel-padding-md);
   display: flex;
   flex-direction: column;
-  gap: 30px;
+  gap: var(--space-6);
 }
 
 .settings-section {
   display: flex;
   flex-direction: column;
-  gap: 15px;
+  gap: var(--space-4);
 }
 
 .settings-section h3 {
@@ -3364,7 +3461,7 @@ main.workflows-layout .right-column {
   font-weight: 700;
   color: var(--text-primary);
   margin: 0;
-  padding-bottom: 10px;
+  padding-bottom: var(--space-3);
   border-bottom: 1px solid var(--border-secondary);
 }
 
@@ -3377,16 +3474,16 @@ main.workflows-layout .right-column {
 
 /* Account Section */
 .account-info {
-  padding: 15px;
+  padding: var(--panel-padding-md);
   background: var(--bg-item);
   border: 1px solid var(--border-secondary);
-  border-radius: 8px;
+  border-radius: var(--radius-lg);
 }
 
 .account-details {
   display: flex;
   align-items: center;
-  gap: 15px;
+  gap: var(--space-4);
 }
 
 .account-avatar {
@@ -3411,17 +3508,40 @@ main.workflows-layout .right-column {
 }
 
 /* Service Connectors */
-.service-connectors {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
+/* Old card grid kept for reference, now we use tiles + modal */
+.service-connectors { display: none; }
+
+.service-tiles {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: var(--space-4);
 }
 
-.service-connector {
+.service-tile {
+  position: relative;
   display: flex;
+  flex-direction: column;
   align-items: center;
-  justify-content: space-between;
-  padding: 16px;
+  gap: var(--space-2);
+  padding: var(--space-3);
+  background: var(--bg-item);
+  border: 1px solid var(--border-secondary);
+  border-radius: var(--radius-md);
+  transition: border-color 0.2s, transform 0.15s ease;
+}
+.service-tile:hover { border-color: var(--border-accent); transform: translateY(-1px); }
+.service-tile-icon { width: 40px; height: 40px; display: grid; place-items: center; background: var(--bg-main); border-radius: 10px; }
+.service-tile-name { font-size: 13px; color: var(--text-primary); text-align: center; }
+.tile-status-dot { position: absolute; top: 8px; right: 8px; width: 8px; height: 8px; border-radius: 50%; box-shadow: 0 0 4px rgba(0,0,0,0.3); }
+.tile-status-dot.connected { background: #10b981; }
+.tile-status-dot.disconnected { background: #6b7280; }
+
+.service-connector {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--panel-padding-md);
   background: var(--bg-item);
   border: 1px solid var(--border-secondary);
   border-radius: 8px;
@@ -3435,7 +3555,7 @@ main.workflows-layout .right-column {
 .service-info {
   display: flex;
   align-items: center;
-  gap: 15px;
+  gap: var(--space-3);
   flex-grow: 1;
 }
 
@@ -3466,9 +3586,106 @@ main.workflows-layout .right-column {
   line-height: 1.4;
 }
 
-.service-actions {
-  flex-shrink: 0;
+.service-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: 12px;
+  border: 1px solid var(--border-secondary);
+  color: var(--text-secondary);
 }
+.service-badge.ok { border-color: rgba(16,185,129,0.4); color: #10b981; }
+.service-badge.warn { border-color: rgba(245,158,11,0.4); color: #f59e0b; }
+.service-badge.neutral { border-color: var(--border-secondary); color: var(--text-secondary); }
+
+.redirect-row {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  border: 1px dashed var(--border-secondary);
+  border-radius: 8px;
+}
+.redirect-label { font-size: 12px; color: var(--text-tertiary); }
+.redirect-value { font-size: 12px; color: var(--text-secondary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.copy-btn { border: 1px solid var(--border-secondary); border-radius: 6px; padding: 2px 6px; color: var(--text-secondary); }
+.copy-btn:hover { background: var(--bg-button-icon-hover); color: var(--text-primary); }
+
+/* Centered dialog for service details */
+.dialog-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.5);
+  z-index: 2000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  backdrop-filter: blur(2px);
+}
+.dialog-card {
+  width: min(800px, 92vw);
+  max-height: 85vh;
+  overflow: auto;
+  background: var(--glass-panel-bg);
+  border: 1px solid var(--glass-panel-border);
+  border-radius: 16px;
+  box-shadow: var(--glass-panel-shadow);
+}
+.dialog-card-header { display: flex; align-items: center; justify-content: space-between; padding: var(--panel-padding-sm) var(--panel-padding-md); border-bottom: 1px solid var(--glass-panel-border); }
+.dialog-card-header .left { display: flex; align-items: center; gap: var(--space-2); }
+.dialog-card-header .title { font-size: 14px; font-weight: 700; }
+.dialog-card-body { padding: var(--panel-padding-md); }
+
+/* Accent color selector */
+.accent-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+  gap: var(--space-4);
+}
+.accent-swatch {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-2);
+  background: var(--bg-item);
+  border: 1px solid var(--border-secondary);
+  border-radius: var(--radius-md);
+  padding: var(--space-3);
+  cursor: pointer;
+  transition: border-color 0.15s ease, transform 0.12s ease;
+}
+.accent-swatch:hover { border-color: var(--border-accent); transform: translateY(-1px); }
+.accent-swatch.selected { outline: 2px solid var(--border-accent); outline-offset: 2px; }
+.accent-circle { width: 40px; height: 40px; border-radius: 50%; border: 1px solid var(--border-secondary); }
+.accent-name { font-size: var(--fs-caption); color: var(--text-secondary); }
+
+.service-actions { flex-shrink: 0; display: flex; gap: var(--space-3); align-items: center; justify-content: space-between; flex-wrap: wrap; }
+
+.help-icon {
+  margin-left: 4px;
+  border: 1px solid var(--border-secondary);
+  border-radius: 6px;
+  padding: 2px 6px;
+  display: inline-flex;
+  align-items: center;
+  color: var(--text-secondary);
+}
+.help-icon:hover { background: var(--bg-button-icon-hover); color: var(--text-primary); }
+
+.card-status-dot {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  box-shadow: 0 0 4px rgba(0,0,0,0.3);
+}
+.card-status-dot.connected { background: #10b981; }
+.card-status-dot.disconnected { background: #6b7280; }
 
 .service-connected {
   display: flex;
@@ -3506,11 +3723,12 @@ main.workflows-layout .right-column {
   border-radius: 6px;
   font-size: 14px;
   font-weight: 600;
-  transition: transform 0.2s;
+  transition: transform 120ms ease, box-shadow 120ms ease;
 }
 
 .connect-btn:hover:not(:disabled) {
-  transform: scale(1.05);
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(30, 136, 229, 0.2);
 }
 
 .connect-btn:disabled {
@@ -3754,7 +3972,7 @@ main.workflows-layout .right-column {
 
 .input-actions {
   display: flex;
-  gap: 10px;
+  gap: var(--space-3);
 }
 
 .connect-btn.primary {
@@ -3764,13 +3982,13 @@ main.workflows-layout .right-column {
   border-radius: 6px;
   font-size: 14px;
   font-weight: 600;
-  transition: transform 0.2s, box-shadow 0.2s;
+  transition: transform 120ms ease, box-shadow 120ms ease;
   border: none;
 }
 
 .connect-btn.primary:hover:not(:disabled) {
   transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(30, 136, 229, 0.3);
+  box-shadow: 0 3px 10px rgba(30, 136, 229, 0.22);
 }
 
 .cancel-btn {
@@ -4715,6 +4933,15 @@ main.workflows-layout .right-column {
   min-width: 24px;
   text-align: center;
   font-weight: 600;
+}
+
+/* Sidebar horizontal separator */
+.sidebar-separator {
+  width: 100%;
+  height: 1px;
+  background: var(--glass-divider-strong);
+  border: 0;
+  margin: var(--space-3) 0;
 }
 
 .create-btn {

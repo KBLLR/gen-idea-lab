@@ -57,6 +57,7 @@ const store = immer((set, get) => ({
   isSystemInfoOpen: false,
   isLiveVoiceChatOpen: false,
   theme: 'dark',
+  accentTheme: 'azure',
 
   // Glass Dock state
   dockPosition: { x: 20, y: window.innerHeight - 100 },
@@ -137,6 +138,41 @@ const store = immer((set, get) => ({
   archivaEntries: {}, // Store entries by ID
   activeEntryId: null,
   selectedTemplateForPreview: null, // For ArchivAI template preview
+
+  // EmpathyLab State
+  empathyLab: {
+    consent: {
+      faceDetection: false,
+      emotionAnalysis: false,
+      bodyTracking: false,
+      handTracking: false,
+      gazeTracking: false,
+      dataExport: false
+    },
+    selectedHumeConfigId: null,
+    isModelLoaded: false,
+    overlays: {
+      // General toggles
+      drawBoxes: true,
+      drawPoints: true,
+      drawPolygons: true,
+      drawLabels: true,
+      // Face-specific
+      drawFaceMesh: false,
+      drawIris: false,
+      drawGaze: true,
+      drawAttention: false,
+      // Body-specific
+      drawBodySkeleton: true,
+      drawBodyPoints: true,
+      // Hand-specific
+      drawHandSkeleton: true,
+      drawHandPoints: true,
+      // Advanced overlays
+      showGazeOverlay: false,
+      showEmotionFusion: true
+    }
+  },
 
   // Orchestrator Saved Sessions
   orchestratorSavedSessions: [], // Array of { id, title, createdAt, model, history }
@@ -623,6 +659,41 @@ const store = immer((set, get) => ({
       state.theme = theme;
     }),
 
+    setAccentTheme: (name) => set((state) => {
+      state.accentTheme = name || 'azure';
+      try {
+        const apply = (accent) => {
+          const id = 'accent-theme-style';
+          let tag = document.getElementById(id);
+          if (!tag) {
+            tag = document.createElement('style');
+            tag.id = id;
+            document.head.appendChild(tag);
+          }
+          const css = `:root{--text-accent:${accent.dark};--border-accent:${accent.dark};--bg-button-primary:${accent.dark}} [data-theme="light"]{--text-accent:${accent.light};--border-accent:${accent.light};--bg-button-primary:${accent.light}}`;
+          tag.textContent = css;
+        };
+
+        const ACCENTS = {
+          azure:   { dark: '#1e88e5', light: '#1e88e5' },
+          emerald: { dark: '#10b981', light: '#059669' },
+          amber:   { dark: '#f59e0b', light: '#d97706' },
+          violet:  { dark: '#8b5cf6', light: '#7c3aed' },
+          rose:    { dark: '#ef4444', light: '#dc2626' },
+          teal:    { dark: '#14b8a6', light: '#0d9488' },
+          indigo:  { dark: '#6366f1', light: '#4f46e5' },
+          magenta: { dark: '#d946ef', light: '#c026d3' },
+          cyan:    { dark: '#06b6d4', light: '#0891b2' },
+          lime:    { dark: '#84cc16', light: '#65a30d' },
+        };
+
+        const sel = ACCENTS[state.accentTheme] || ACCENTS.azure;
+        apply(sel);
+      } catch (e) {
+        // ignore if document is not available (SSR or tests)
+      }
+    }),
+
     // Workflow actions
     setSelectedWorkflow: (workflow) => set((state) => {
       state.selectedWorkflow = workflow;
@@ -781,7 +852,47 @@ const store = immer((set, get) => ({
         state.loadedResourceIds.clear();
         state.moduleKnowledgeCache = {};
       });
-    }
+    },
+
+    // EmpathyLab Actions
+    setEmpathyLabConsent: (consentKey, value) => set((state) => {
+      state.empathyLab.consent[consentKey] = value;
+    }),
+
+    setEmpathyLabConsentAll: (consent) => set((state) => {
+      state.empathyLab.consent = consent;
+    }),
+
+    setEmpathyLabHumeConfig: (configId) => set((state) => {
+      state.empathyLab.selectedHumeConfigId = configId;
+    }),
+
+    setEmpathyLabModelLoaded: (loaded) => set((state) => {
+      state.empathyLab.isModelLoaded = loaded;
+    }),
+
+    setEmpathyLabOverlay: (overlayKey, value) => set((state) => {
+      // Initialize overlays object if it doesn't exist (for users with old persisted state)
+      if (!state.empathyLab.overlays) {
+        state.empathyLab.overlays = {
+          drawBoxes: true,
+          drawPoints: true,
+          drawPolygons: true,
+          drawLabels: true,
+          drawFaceMesh: false,
+          drawIris: false,
+          drawGaze: true,
+          drawAttention: false,
+          drawBodySkeleton: true,
+          drawBodyPoints: true,
+          drawHandSkeleton: true,
+          drawHandPoints: true,
+          showGazeOverlay: false,
+          showEmotionFusion: true
+        };
+      }
+      state.empathyLab.overlays[overlayKey] = value;
+    })
   }
 }));
 
@@ -793,6 +904,7 @@ export default createSelectorFunctions(
         // Persist relevant state across sessions
         activeModuleId: state.activeModuleId,
         theme: state.theme,
+        accentTheme: state.accentTheme,
         orchestratorHistory: state.orchestratorHistory,
         orchestratorModel: state.orchestratorModel,
         workflowAutoTitleModel: state.workflowAutoTitleModel,
@@ -800,6 +912,7 @@ export default createSelectorFunctions(
         orchestratorSavedSessions: state.orchestratorSavedSessions,
         assistantHistories: state.assistantHistories,
         archivaEntries: state.archivaEntries,
+        empathyLab: state.empathyLab,
         connectedServices: state.connectedServices,
         serviceCredentials: state.serviceCredentials,
         imageProvider: state.imageProvider,

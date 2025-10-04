@@ -3,12 +3,15 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
+import React from 'react';
 import useStore from '../lib/store';
 import { useAvailableModels } from '../hooks/useAvailableModels';
 import { SiFigma, SiGithub, SiNotion, SiGoogledrive, SiOpenai, SiGoogle, SiGmail } from 'react-icons/si';
 import { RiRobot2Line, RiBrainLine, RiSearchLine, RiImageLine, RiCalendarLine, RiCloudLine, RiServerLine, RiCpuLine, RiMovieLine, RiSchoolLine } from 'react-icons/ri';
 import HumeTest from './HumeTest.jsx';
+import SidebarTooltip from './sidebar/SidebarTooltip.jsx';
+import ThumbCard from './ui/ThumbCard.jsx';
 
 const serviceCategories = {
     productivity: {
@@ -345,12 +348,34 @@ function ServiceConnector({ service }) {
             : 'http'
     );
     const [error, setError] = useState('');
+    const infoRef = useRef(null);
+    const [tip, setTip] = useState({ open: false, x: 0, y: 0, text: '', placement: 'right' });
     
     const isConnected = connectedServices[service.id]?.connected || false;
     const cfg = serviceConfig?.[service.id];
     const isConfigured = cfg ? !!cfg.configured : true; // default true if not reported
     const hasStoredCredentials = !!serviceCredentials[service.id];
     const Icon = service.icon;
+
+    const showHelpTooltip = () => {
+        if (!infoRef.current) return;
+        const rect = infoRef.current.getBoundingClientRect();
+        const xRight = rect.right + window.scrollX + 8;
+        const yMid = rect.top + window.scrollY + rect.height / 2;
+        // naive auto-flip if near right edge
+        const placement = (rect.right + 320 > window.innerWidth) ? 'left' : 'right';
+        const x = placement === 'right' ? xRight : (rect.left + window.scrollX - 8);
+        const content = (
+          <div style={{ maxWidth: 280 }}>
+            <div style={{ marginBottom: 6 }}>{service.helpText || service.description || service.name}</div>
+            {service.setupUrl && (
+              <a href={service.setupUrl} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--text-accent)', fontSize: 12 }}>Open Console</a>
+            )}
+          </div>
+        );
+        setTip({ open: true, x, y: yMid, text: '', placement, content });
+    };
+    const hideHelpTooltip = () => setTip({ open: false, x: 0, y: 0, text: '', placement: 'right' });
 
     const handleConnect = async () => {
         if (!isConfigured) {
@@ -496,6 +521,7 @@ function ServiceConnector({ service }) {
 
     return (
         <div className="service-connector">
+            <span className={`card-status-dot ${isConnected ? 'connected' : 'disconnected'}`} title={isConnected ? 'Connected' : 'Disconnected'} />
             <div className="service-info">
                 <div className="service-icon">
                     <Icon size={24} style={{ color: service.color }} />
@@ -514,8 +540,31 @@ function ServiceConnector({ service }) {
                                 <span className="icon">open_in_new</span>
                             </a>
                         )}
+                        {service.helpText && (
+                            <button
+                              type="button"
+                              ref={infoRef}
+                              className="help-icon"
+                              aria-label={`Help for ${service.name}`}
+                              onMouseEnter={showHelpTooltip}
+                              onMouseLeave={hideHelpTooltip}
+                            >
+                              <span className="icon">help</span>
+                            </button>
+                        )}
                     </div>
                     <p className="service-description">{service.description}</p>
+                    <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', margin: '4px 0 8px' }}>
+                        <span className={`service-badge ${isConfigured ? 'ok' : 'warn'}`}>{isConfigured ? 'Configured' : 'Not configured'}</span>
+                        <span className="service-badge neutral">{service.requiresApiKey ? 'API Key' : 'OAuth'}</span>
+                    </div>
+                    {serviceConfig?.[service.id]?.redirectUri && (
+                        <div className="redirect-row">
+                            <span className="redirect-label">Redirect URI</span>
+                            <code className="redirect-value">{serviceConfig[service.id].redirectUri}</code>
+                            <button className="copy-btn" onClick={async () => { try { await navigator.clipboard.writeText(serviceConfig[service.id].redirectUri); } catch {} }} title="Copy redirect URI"><span className="icon">content_copy</span></button>
+                        </div>
+                    )}
                     {!isConfigured && (
                         <div className="service-warning" style={{ color: '#f59e0b', fontSize: 12 }}>
                             Not configured on server. Missing: {(cfg?.missing || []).join(', ') || 'environment variables'}
@@ -563,7 +612,7 @@ function ServiceConnector({ service }) {
             
             <div className="service-actions">
                 {error && (
-                    <div className="service-error">
+                    <div className="service-error" role="alert" aria-live="polite">
                         <span className="icon">error</span>
                         {error}
                     </div>
@@ -582,12 +631,10 @@ function ServiceConnector({ service }) {
                                 </span>
                             )}
                         </div>
-                        <button 
-                            className="disconnect-btn"
-                            onClick={handleDisconnect}
-                        >
-                            Disconnect
-                        </button>
+                        <div style={{ marginLeft: 'auto', display: 'flex', gap: 8 }}>
+                          <button className="connect-btn" onClick={() => useStore.getState().actions.testServiceConnection(service.id)}>Test</button>
+                          <button className="disconnect-btn" onClick={handleDisconnect}>Disconnect</button>
+                        </div>
                     </div>
                 ) : showApiKeyInput ? (
                     <div className="input-container">
@@ -764,6 +811,8 @@ function ServiceConnector({ service }) {
                     </button>
                 )}
             </div>
+            {/* Tooltip for provider help/instructions with auto placement */}
+            <SidebarTooltip text={tip.text} content={tip.content} x={tip.x} y={tip.y} visible={tip.open} placement={tip.placement} />
         </div>
     );
 }
@@ -853,6 +902,7 @@ export default function SettingsModal() {
     const fetchConnectedServices = useStore((state) => state.actions.fetchConnectedServices);
     const fetchServiceConfig = useStore((state) => state.actions.fetchServiceConfig);
     const [showHumeTest, setShowHumeTest] = useState(false);
+    const [activeService, setActiveService] = useState(null);
 
     useEffect(() => {
         if (isSettingsOpen) {
@@ -905,13 +955,21 @@ export default function SettingsModal() {
                                 {categoryId === 'search' && 'Enable search capabilities to give your assistants access to real-time information.'}
                             </p>
                             
-                            <div className="service-connectors">
-                                {category.services.map(service => (
-                                    <ServiceConnector 
-                                        key={service.id} 
-                                        service={service} 
-                                    />
-                                ))}
+                            <div className="mode-grid service-mode-grid">
+                                {category.services.map(service => {
+                                    const isConnected = useStore.getState().connectedServices?.[service.id]?.connected;
+                                    const Icon = service.icon;
+                                    return (
+                                        <ThumbCard
+                                            key={service.id}
+                                            title={service.name}
+                                            imageSrc={null}
+                                            icon={<Icon size={24} style={{ color: service.color }} />}
+                                            connected={!!isConnected}
+                                            onClick={() => setActiveService(service)}
+                                        />
+                                    );
+                                })}
                             </div>
                         </section>
                     ))}
@@ -931,6 +989,12 @@ export default function SettingsModal() {
                             </p>
                             <WorkflowAutoTitleModelSelector />
                         </div>
+                    </section>
+
+                    <section className="settings-section">
+                        <h3>UI Customization</h3>
+                        <p className="section-description">Choose an accent color set (day/night) for the interface.</p>
+                        <AccentColorSelector />
                     </section>
 
                     {/* Hume Test moved to EmpathyLab - hidden for now, integrated into main app */}
@@ -977,7 +1041,59 @@ export default function SettingsModal() {
                         </div>
                     </section>
                 </div>
+
+                {activeService && (
+                  <div className="dialog-overlay" onClick={() => setActiveService(null)}>
+                    <div className="dialog-card" onClick={(e) => e.stopPropagation()}>
+                      <div className="dialog-card-header">
+                        <div className="left">
+                          <span className="icon">tune</span>
+                          <div className="title">{activeService.name}</div>
+                        </div>
+                        <button className="close-btn" onClick={() => setActiveService(null)} title="Close">
+                          <span className="icon">close</span>
+                        </button>
+                      </div>
+                      <div className="dialog-card-body">
+                        <ServiceConnector service={activeService} />
+                      </div>
+                    </div>
+                  </div>
+                )}
             </div>
+        </div>
+    );
+}
+
+function AccentColorSelector() {
+    const accentTheme = useStore.use.accentTheme();
+    const setAccentTheme = useStore.use.actions().setAccentTheme;
+    const palettes = [
+        { id: 'azure',    name: 'Azure',    day: '#1e88e5', night: '#1e88e5' },
+        { id: 'emerald',  name: 'Emerald',  day: '#059669', night: '#10b981' },
+        { id: 'amber',    name: 'Amber',    day: '#d97706', night: '#f59e0b' },
+        { id: 'violet',   name: 'Violet',   day: '#7c3aed', night: '#8b5cf6' },
+        { id: 'rose',     name: 'Rose',     day: '#dc2626', night: '#ef4444' },
+        { id: 'teal',     name: 'Teal',     day: '#0d9488', night: '#14b8a6' },
+        { id: 'indigo',   name: 'Indigo',   day: '#4f46e5', night: '#6366f1' },
+        { id: 'magenta',  name: 'Magenta',  day: '#c026d3', night: '#d946ef' },
+        { id: 'cyan',     name: 'Cyan',     day: '#0891b2', night: '#06b6d4' },
+        { id: 'lime',     name: 'Lime',     day: '#65a30d', night: '#84cc16' },
+    ];
+    return (
+        <div className="accent-grid">
+            {palettes.map(p => (
+                <button
+                    key={p.id}
+                    className={`accent-swatch ${accentTheme === p.id ? 'selected' : ''}`}
+                    onClick={() => setAccentTheme(p.id)}
+                    title={`${p.name} (Day/Night)`}
+                    type="button"
+                >
+                    <div className="accent-circle" style={{ background: `linear-gradient(90deg, ${p.night} 50%, ${p.day} 50%)` }} />
+                    <div className="accent-name">{p.name}</div>
+                </button>
+            ))}
         </div>
     );
 }

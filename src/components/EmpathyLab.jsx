@@ -7,248 +7,88 @@ import BoothHeader from './BoothHeader.jsx';
 import Button from './ui/Button.jsx';
 import Panel from './ui/Panel.jsx';
 import FormField from './ui/FormField.jsx';
-import VideoFrame from './empathy/VideoFrame.jsx';
-import RecordingIndicator from './empathy/RecordingIndicator.jsx';
-import HumeVoiceChat from './empathy/HumeVoiceChat.jsx';
+import WebcamStream from './empathy/WebcamStream.jsx';
+import EmotionsList from './empathy/EmotionsList.jsx';
 import EmotionFusionDisplay from './empathy/EmotionFusionDisplay.jsx';
+import AllEmotionsList from './empathy/AllEmotionsList.jsx';
+import HumeVoiceChat from './empathy/HumeVoiceChat.jsx';
+import StatsRow from './empathy/StatsRow.jsx';
 import GazeOverlay from './empathy/GazeOverlay.jsx';
+import useStore from '../lib/store.js';
 
 export default function EmpathyLab() {
+    // Get consent, config and overlays from store
+    const consent = useStore.use.empathyLab().consent;
+    const selectedHumeConfigId = useStore.use.empathyLab().selectedHumeConfigId;
+    const overlays = useStore.use.empathyLab().overlays || {
+        drawBoxes: true,
+        drawLabels: true,
+        drawFaceMesh: false,
+        drawGaze: true,
+        drawBodySkeleton: true,
+        drawHandSkeleton: true,
+        showGazeOverlay: false,
+        showEmotionFusion: true
+    };
+    const setEmpathyLabModelLoaded = useStore.use.actions().setEmpathyLabModelLoaded;
+
     const videoRef = useRef(null);
-    const canvasRef = useRef(null);
     const overlayCanvasRef = useRef(null);
-    const humanRef = useRef(null);
-    const animationFrameRef = useRef(null);
 
     const [isTracking, setIsTracking] = useState(false);
-    const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState(null);
     const [results, setResults] = useState(null);
     const [sessionStartTime, setSessionStartTime] = useState(null);
     const [sessionData, setSessionData] = useState([]);
 
-    const [trackingMode, setTrackingMode] = useState('face'); // 'face', 'body', 'hands', 'all'
-    const [showOverlays, setShowOverlays] = useState(true);
-    const [showMesh, setShowMesh] = useState(false);
-
-    // Performance monitoring
+    // Performance monitoring (from WebcamStream)
     const [fps, setFps] = useState(0);
     const [tensors, setTensors] = useState(0);
-    const fpsHistoryRef = useRef([]);
-
-    // Model loading state
-    const [loadingStatus, setLoadingStatus] = useState('');
-    const [isModelReady, setIsModelReady] = useState(false);
-
-    const [consent, setConsent] = useState({
-        faceDetection: false,
-        emotionAnalysis: false,
-        bodyTracking: false,
-        handTracking: false,
-        gazeTracking: false
-    });
 
     // Hume integration state
     const [humeEmotions, setHumeEmotions] = useState(null);
-    const [selectedConfigId, setSelectedConfigId] = useState(null);
 
     // Multimodal layout state
     const [showVoiceChat, setShowVoiceChat] = useState(false);
     const [showPrivacyBanner, setShowPrivacyBanner] = useState(true);
 
-    // Initialize Human library
-    useEffect(() => {
-        const initHuman = async () => {
-            try {
-                setIsLoading(true);
-                setIsModelReady(false);
-                setLoadingStatus('Importing Human library...');
-
-                // Dynamically import Human library
-                const Human = (await import('@vladmandic/human')).default;
-
-                setLoadingStatus('Configuring detection models...');
-
-                const config = {
-                    // Auto-detect best backend with fallback: webgpu > webgl > wasm > cpu
-                    backend: 'webgl',
-                    modelBasePath: 'https://cdn.jsdelivr.net/npm/@vladmandic/human/models',
-
-                    // Performance optimizations
-                    async: true,
-                    warmup: 'face', // Warmup specific module for better first-run performance
-
-                    face: {
-                        enabled: consent.faceDetection,
-                        detector: {
-                            rotation: true,
-                            maxDetected: 5, // Limit to 5 faces for performance
-                            skipFrames: 0, // Process every frame
-                            return: true
-                        },
-                        mesh: { enabled: true },
-                        iris: { enabled: consent.gazeTracking },
-                        description: { enabled: false }, // disable face recognition for privacy
-                        emotion: {
-                            enabled: consent.emotionAnalysis,
-                            minConfidence: 0.3
-                        },
-                        age: { enabled: false },
-                        gender: { enabled: false }
-                    },
-
-                    body: {
-                        enabled: consent.bodyTracking,
-                        maxDetected: 1, // Track single person for performance
-                        minConfidence: 0.3
-                    },
-
-                    hand: {
-                        enabled: consent.handTracking,
-                        landmarks: true,
-                        minConfidence: 0.3,
-                        maxDetected: 2
-                    },
-
-                    gesture: {
-                        enabled: consent.handTracking
-                    },
-
-                    segmentation: {
-                        enabled: false
-                    },
-
-                    // Filter low-confidence results
-                    filter: {
-                        enabled: true,
-                        equalization: false,
-                        flip: false
-                    }
-                };
-
-                humanRef.current = new Human(config);
-
-                // Load models (this downloads TensorFlow models from CDN)
-                setLoadingStatus('Downloading AI models from CDN (5-20MB)...');
-                await humanRef.current.load();
-
-                // Warmup for better first-run performance (recommended by docs)
-                setLoadingStatus('Warming up TensorFlow backend...');
-                console.log('Human library loaded, warming up...');
-                await humanRef.current.warmup();
-
-                console.log('Human library ready:', humanRef.current.version);
-                setLoadingStatus('');
-                setIsModelReady(true);
-            } catch (err) {
-                console.error('Failed to initialize Human library:', err);
-                setError('Failed to load AI models. Please refresh and try again.');
-                setLoadingStatus('');
-            } finally {
-                setIsLoading(false);
-            }
-        };
-
-        // Only initialize if any consent is given
-        if (Object.values(consent).some(v => v)) {
-            initHuman();
-        } else {
-            setIsModelReady(false);
-            setLoadingStatus('');
-        }
-
-        return () => {
-            if (humanRef.current) {
-                humanRef.current = null;
-            }
-        };
-    }, [consent]);
+    const [isLoading, setIsLoading] = useState(false);
 
     // Start webcam and tracking
-    const startTracking = useCallback(async () => {
+    const startTracking = useCallback(() => {
         if (!Object.values(consent).some(v => v)) {
             setError('Please enable at least one tracking option in Privacy Settings');
             return;
         }
+        setSessionStartTime(Date.now());
+        setSessionData([]);
+        setError(null);
+        setIsTracking(true);
+        setEmpathyLabModelLoaded(true);
+    }, [consent, setEmpathyLabModelLoaded]);
 
-        try {
-            setError(null);
-            setIsLoading(true);
-
-            const stream = await navigator.mediaDevices.getUserMedia({
-                video: {
-                    width: { ideal: 1280 },
-                    height: { ideal: 720 },
-                    facingMode: 'user'
-                }
-            });
-
-            videoRef.current.srcObject = stream;
-            await videoRef.current.play();
-
-            // Set canvas sizes to match video
-            const { videoWidth, videoHeight } = videoRef.current;
-            canvasRef.current.width = videoWidth;
-            canvasRef.current.height = videoHeight;
-            overlayCanvasRef.current.width = videoWidth;
-            overlayCanvasRef.current.height = videoHeight;
-
-            setIsTracking(true);
-            setSessionStartTime(Date.now());
-            setSessionData([]);
-
-            detectLoop();
-        } catch (err) {
-            console.error('Failed to start webcam:', err);
-            setError('Failed to access webcam. Please grant camera permissions.');
-        } finally {
-            setIsLoading(false);
-        }
-    }, [consent]);
-
-    // Stop tracking
     const stopTracking = useCallback(() => {
-        if (animationFrameRef.current) {
-            cancelAnimationFrame(animationFrameRef.current);
-        }
-
-        if (videoRef.current?.srcObject) {
-            const tracks = videoRef.current.srcObject.getTracks();
-            tracks.forEach(track => track.stop());
-            videoRef.current.srcObject = null;
-        }
-
         setIsTracking(false);
         setResults(null);
+        setFps(0);
+        setTensors(0);
     }, []);
 
-    // Main detection loop
-    const detectLoop = useCallback(async () => {
-        if (!isTracking || !humanRef.current || !videoRef.current) return;
+    // Handle results from WebcamStream
+    const handleWebcamResults = useCallback((human, result, interpolated) => {
+        setResults(interpolated);
 
-        try {
-            const result = await humanRef.current.detect(videoRef.current);
+        // Update performance stats
+        if (result.performance?.total) {
+            setFps(Math.round(1000 / result.performance.total));
+        }
+        const memoryInfo = human.tf?.engine().memory();
+        if (memoryInfo?.numTensors !== undefined) {
+            setTensors(memoryInfo.numTensors);
+        }
 
-            // Use interpolation for smoother results
-            const interpolated = humanRef.current.next(result);
-            setResults(interpolated);
-
-            // Performance monitoring
-            if (result.performance?.total) {
-                const currentFps = 1000 / result.performance.total;
-                fpsHistoryRef.current.push(currentFps);
-                if (fpsHistoryRef.current.length > 30) fpsHistoryRef.current.shift();
-                const avgFps = fpsHistoryRef.current.reduce((a, b) => a + b, 0) / fpsHistoryRef.current.length;
-                setFps(Math.round(avgFps));
-            }
-
-            // Memory monitoring
-            const memoryInfo = humanRef.current.tf?.engine().memory();
-            if (memoryInfo?.numTensors !== undefined) {
-                setTensors(memoryInfo.numTensors);
-            }
-
-            // Record session data
+        // Record session data
+        if (sessionStartTime) {
             const timestamp = Date.now() - sessionStartTime;
             const dataPoint = {
                 timestamp,
@@ -256,54 +96,37 @@ export default function EmpathyLab() {
                 bodyCount: interpolated.body?.length || 0,
                 handCount: interpolated.hand?.length || 0,
                 gestureCount: interpolated.gesture?.length || 0,
-                fps: Math.round(1000 / result.performance?.total || 0),
+                fps: Math.round(1000 / (result.performance?.total || 1)),
                 tensors: memoryInfo?.numTensors || 0
             };
-
-            // Add emotion data if available
-            if (interpolated.face?.[0]?.emotion) {
+            if (interpolated.face?.[0]?.emotion?.[0]) {
                 const topEmotion = interpolated.face[0].emotion[0];
                 dataPoint.emotion = topEmotion.emotion;
                 dataPoint.emotionScore = topEmotion.score;
             }
-
-            // Add gaze data if available
             if (interpolated.face?.[0]?.rotation?.gaze) {
                 dataPoint.gazeBearing = interpolated.face[0].rotation.gaze.bearing;
                 dataPoint.gazeStrength = interpolated.face[0].rotation.gaze.strength;
             }
-
             setSessionData(prev => [...prev, dataPoint]);
-
-            // Draw video frame to main canvas
-            const ctx = canvasRef.current.getContext('2d');
-            ctx.drawImage(videoRef.current, 0, 0);
-
-            // Draw overlays if enabled
-            if (showOverlays) {
-                drawOverlays(interpolated);
-            }
-        } catch (err) {
-            console.error('Detection error:', err);
         }
+    }, [sessionStartTime]);
 
-        animationFrameRef.current = requestAnimationFrame(detectLoop);
-    }, [isTracking, sessionStartTime, showOverlays]);
-
-    // Draw overlays on canvas
-    const drawOverlays = useCallback((result) => {
-        const ctx = overlayCanvasRef.current.getContext('2d');
-        ctx.clearRect(0, 0, overlayCanvasRef.current.width, overlayCanvasRef.current.height);
+    // Draw overlays on canvas (called by WebcamStream)
+    const drawOverlays = useCallback((result, overlayCtx) => {
+        if (!overlayCtx) return;
 
         // Draw face detection
         if (result.face?.length > 0 && consent.faceDetection) {
             result.face.forEach(face => {
-                drawFaceBox(ctx, face);
-                if (showMesh && face.mesh) {
-                    drawFaceMesh(ctx, face.mesh);
+                if (overlays.drawBoxes) {
+                    drawFaceBox(overlayCtx, face);
                 }
-                if (consent.gazeTracking && face.rotation?.gaze) {
-                    drawGaze(ctx, face);
+                if (overlays.drawFaceMesh && face.mesh) {
+                    drawFaceMesh(overlayCtx, face.mesh);
+                }
+                if (overlays.drawGaze && consent.gazeTracking && face.rotation?.gaze) {
+                    drawGaze(overlayCtx, face);
                 }
             });
         }
@@ -311,22 +134,26 @@ export default function EmpathyLab() {
         // Draw body pose
         if (result.body?.length > 0 && consent.bodyTracking) {
             result.body.forEach(body => {
-                drawBodySkeleton(ctx, body);
+                if (overlays.drawBodySkeleton) {
+                    drawBodySkeleton(overlayCtx, body);
+                }
             });
         }
 
         // Draw hands
         if (result.hand?.length > 0 && consent.handTracking) {
             result.hand.forEach(hand => {
-                drawHandLandmarks(ctx, hand);
+                if (overlays.drawHandSkeleton) {
+                    drawHandLandmarks(overlayCtx, hand);
+                }
             });
         }
 
         // Draw gestures
-        if (result.gesture?.length > 0 && consent.handTracking) {
-            drawGestures(ctx, result.gesture);
+        if (result.gesture?.length > 0 && consent.handTracking && overlays.drawLabels) {
+            drawGestures(overlayCtx, result.gesture);
         }
-    }, [consent, showMesh]);
+    }, [consent, overlays]);
 
     // Drawing helper functions
     const drawFaceBox = (ctx, face) => {
@@ -492,7 +319,7 @@ export default function EmpathyLab() {
                 body: JSON.stringify({
                     sessionData,
                     consent,
-                    humeConfigId: selectedConfigId
+                    humeConfigId: selectedHumeConfigId
                 })
             });
 
@@ -507,7 +334,7 @@ export default function EmpathyLab() {
             console.error('Failed to save session:', err);
             alert('Failed to save session. Please try again.');
         }
-    }, [sessionData, consent, selectedConfigId]);
+    }, [sessionData, consent, selectedHumeConfigId]);
 
     // Export session data (fallback for offline usage)
     const exportSessionData = useCallback(() => {
@@ -532,7 +359,8 @@ export default function EmpathyLab() {
 
     // Handle Hume emotion updates
     const handleHumeEmotionUpdate = useCallback((emotionData) => {
-        setHumeEmotions(emotionData.emotions);
+        // Use topEmotions array which has [{name, score}] format
+        setHumeEmotions(emotionData.topEmotions || []);
     }, []);
 
     // Extract Human facial emotions for fusion
@@ -562,6 +390,8 @@ export default function EmpathyLab() {
                                 <div className="glass-banner-title">Your Privacy Matters</div>
                                 <div className="glass-banner-body">
                                     All AI processing happens locally in your browser. No video or images are sent to servers. Session data is automatically deleted when you close this tab.
+                                    <br /><br />
+                                    Learn more about ethical AI: <a href="https://thehumeinitiative.org/guidelines/" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--color-accent)', textDecoration: 'underline' }}>Hume Initiative Guidelines</a>
                                 </div>
                             </div>
                         </div>
@@ -584,7 +414,7 @@ export default function EmpathyLab() {
                                 onClick={startTracking}
                                 disabled={isLoading || !Object.values(consent).some(v => v)}
                             >
-                                {isLoading ? 'Loading Models...' : 'Start Tracking'}
+                                {isLoading ? 'Loading...' : 'Start Tracking'}
                             </Button>
                         ) : (
                             <>
@@ -613,49 +443,9 @@ export default function EmpathyLab() {
                                 </Button>
                             </>
                         )}
-                        <Button
-                            variant={showVoiceChat ? 'primary' : 'secondary'}
-                            icon={showVoiceChat ? 'mic_off' : 'mic'}
-                            onClick={() => setShowVoiceChat(!showVoiceChat)}
-                        >
-                            {showVoiceChat ? 'Hide' : 'Show'} Voice Chat
-                        </Button>
                     </>
                 }
             >
-                <div className="tracking-controls">
-                    <FormField label="Tracking Mode">
-                        <select
-                            value={trackingMode}
-                            onChange={(e) => setTrackingMode(e.target.value)}
-                            disabled={isTracking}
-                        >
-                            <option value="face">Face Only</option>
-                            <option value="body">Body Only</option>
-                            <option value="hands">Hands Only</option>
-                            <option value="all">All Features</option>
-                        </select>
-                    </FormField>
-
-                    <label className="checkbox-label">
-                        <input
-                            type="checkbox"
-                            checked={showOverlays}
-                            onChange={(e) => setShowOverlays(e.target.checked)}
-                        />
-                        Show Overlays
-                    </label>
-
-                    <label className="checkbox-label">
-                        <input
-                            type="checkbox"
-                            checked={showMesh}
-                            onChange={(e) => setShowMesh(e.target.checked)}
-                            disabled={!consent.faceDetection}
-                        />
-                        Show Face Mesh
-                    </label>
-                </div>
             </BoothHeader>
 
             <div className="empathy-lab-main">
@@ -672,200 +462,73 @@ export default function EmpathyLab() {
                     </div>
                 )}
 
-                {/* Split-screen layout: Webcam + Voice Chat */}
+                {/* 3-panel layout: Camera + Emotions + Voice Chat */}
                 <div style={{
+                    flex: '1 1 auto',
                     display: 'grid',
-                    gridTemplateColumns: showVoiceChat ? '1fr 1fr' : '1fr',
+                    gridTemplateColumns: '1fr auto 1fr',
                     gap: '1rem',
-                    marginBottom: '1rem'
+                    minHeight: 0,
+                    overflow: 'hidden'
                 }}>
-                    {/* Left: Webcam with Gaze Overlay */}
+                    {/* Left: Webcam */}
                     <Panel title="Webcam Viewer" info={isTracking ? 'Live' : 'Idle'}>
-                        <div style={{ position: 'relative' }}>
-                            <VideoFrame
-                                videoRef={videoRef}
-                                canvasRef={canvasRef}
-                                overlayCanvasRef={overlayCanvasRef}
-                                active={isTracking}
-                                error={!!error}
-                            >
-                                <RecordingIndicator active={isTracking} />
-                            </VideoFrame>
-
-                            {/* Gaze overlay on top of video */}
-                            {isTracking && consent.gazeTracking && getGazeData() && videoRef.current && (
+                        <div style={{ position: 'relative', width: '100%', height: '100%' }}>
+                            <WebcamStream
+                                consent={consent}
+                                isActive={isTracking}
+                                onResults={handleWebcamResults}
+                                onError={(err) => setError(err?.message || String(err))}
+                                onStatusChange={setIsLoading}
+                                showOverlays={Object.values(overlays).some(v => v)}
+                                drawOverlays={drawOverlays}
+                            />
+                            {/* Sci-Fi Gaze Overlay */}
+                            {overlays.showGazeOverlay && isTracking && results?.face?.[0]?.rotation?.gaze && (
                                 <GazeOverlay
-                                    gazeData={getGazeData()}
-                                    videoWidth={videoRef.current.videoWidth || 1280}
-                                    videoHeight={videoRef.current.videoHeight || 720}
+                                    gazeData={results.face[0].rotation.gaze}
+                                    videoWidth={videoRef.current?.videoWidth || 1280}
+                                    videoHeight={videoRef.current?.videoHeight || 720}
                                 />
                             )}
                         </div>
                     </Panel>
 
+                    {/* Middle: Emotions */}
+                    <Panel title="Emotion Analysis" info={results ? 'Active' : 'Idle'} style={{ minWidth: '280px' }}>
+                        <AllEmotionsList
+                            humeEmotions={
+                                // Convert array to object for AllEmotionsList
+                                humeEmotions?.reduce((obj, { name, score }) => {
+                                    obj[name] = score;
+                                    return obj;
+                                }, {}) || {}
+                            }
+                        />
+                    </Panel>
+
                     {/* Right: Hume Voice Chat */}
-                    {showVoiceChat && (
-                        <Panel title="Empathic Voice Chat" info="Hume EVI">
-                            <HumeVoiceChat
-                                onEmotionUpdate={handleHumeEmotionUpdate}
-                                selectedConfigId={selectedConfigId}
-                            />
-                        </Panel>
-                    )}
+                    <Panel title="Empathic Voice Chat" info="Hume EVI">
+                        <HumeVoiceChat
+                            onEmotionUpdate={handleHumeEmotionUpdate}
+                            selectedConfigId={selectedHumeConfigId}
+                        />
+                    </Panel>
                 </div>
 
-                {/* Emotion Fusion Display */}
-                {showVoiceChat && (
-                    <EmotionFusionDisplay
-                        humanEmotions={getHumanEmotions()}
-                        humeEmotions={humeEmotions}
-                    />
-                )}
-
-                {/* Stats Panel */}
+                {/* Stats Row */}
                 {results && (
-                    <ResultsPanel
-                        results={results}
-                        sessionDuration={Date.now() - sessionStartTime}
-                        dataPointsCount={sessionData.length}
-                        fps={fps}
-                        tensors={tensors}
-                    />
+                    <div style={{ flexShrink: 0 }}>
+                        <StatsRow
+                            results={results}
+                            sessionDuration={Date.now() - sessionStartTime}
+                            dataPointsCount={sessionData.length}
+                            fps={fps}
+                            tensors={tensors}
+                        />
+                    </div>
                 )}
             </div>
         </div>
     );
-}
-
-function ResultsPanel({ results, sessionDuration, dataPointsCount, fps, tensors }) {
-    const formatDuration = (ms) => {
-        const seconds = Math.floor(ms / 1000);
-        const minutes = Math.floor(seconds / 60);
-        const remainingSeconds = seconds % 60;
-        return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
-    };
-
-    return (
-        <Panel variant="info" title="Detection Results" className="results-panel">
-            <div className="results-grid">
-                <div className="result-stat">
-                    <span className="icon">timer</span>
-                    <div>
-                        <strong>{formatDuration(sessionDuration)}</strong>
-                        <small>Session Duration</small>
-                    </div>
-                </div>
-
-                <div className="result-stat">
-                    <span className="icon">speed</span>
-                    <div>
-                        <strong>{fps} FPS</strong>
-                        <small>Performance</small>
-                    </div>
-                </div>
-
-                <div className="result-stat">
-                    <span className="icon">memory</span>
-                    <div>
-                        <strong>{tensors}</strong>
-                        <small>TF Tensors</small>
-                    </div>
-                </div>
-
-                <div className="result-stat">
-                    <span className="icon">face</span>
-                    <div>
-                        <strong>{results.face?.length || 0}</strong>
-                        <small>Faces Detected</small>
-                    </div>
-                </div>
-
-                <div className="result-stat">
-                    <span className="icon">accessibility</span>
-                    <div>
-                        <strong>{results.body?.length || 0}</strong>
-                        <small>Bodies Tracked</small>
-                    </div>
-                </div>
-
-                <div className="result-stat">
-                    <span className="icon">back_hand</span>
-                    <div>
-                        <strong>{results.hand?.length || 0}</strong>
-                        <small>Hands Detected</small>
-                    </div>
-                </div>
-
-                <div className="result-stat">
-                    <span className="icon">gesture</span>
-                    <div>
-                        <strong>{results.gesture?.length || 0}</strong>
-                        <small>Gestures Recognized</small>
-                    </div>
-                </div>
-
-                <div className="result-stat">
-                    <span className="icon">data_usage</span>
-                    <div>
-                        <strong>{dataPointsCount}</strong>
-                        <small>Data Points</small>
-                    </div>
-                </div>
-            </div>
-
-            {results.face?.[0]?.emotion && (
-                <div className="emotion-breakdown">
-                    <h4>Detected Emotions</h4>
-                    <div className="emotion-bars">
-                        {results.face[0].emotion.slice(0, 5).map((emotion, i) => (
-                            <div key={i} className="emotion-bar">
-                                <span className="emotion-name">{emotion.emotion}</span>
-                                <div className="emotion-progress">
-                                    <div
-                                        className="emotion-fill"
-                                        style={{
-                                            width: `${emotion.score * 100}%`,
-                                            backgroundColor: getEmotionColor(emotion.emotion)
-                                        }}
-                                    />
-                                </div>
-                                <span className="emotion-score">
-                                    {Math.round(emotion.score * 100)}%
-                                </span>
-                            </div>
-                        ))}
-                    </div>
-                </div>
-            )}
-
-            {results.gesture?.length > 0 && (
-                <div className="gestures-list">
-                    <h4>Active Gestures</h4>
-                    {results.gesture
-                        .filter(g => g.confidence > 0.5)
-                        .map((gesture, i) => (
-                            <div key={i} className="gesture-item">
-                                <span className="gesture-name">{gesture.name}</span>
-                                <span className="gesture-confidence">
-                                    {Math.round(gesture.confidence * 100)}%
-                                </span>
-                            </div>
-                        ))}
-                </div>
-            )}
-        </Panel>
-    );
-}
-
-function getEmotionColor(emotion) {
-    const colors = {
-        happy: '#4CAF50',
-        sad: '#2196F3',
-        angry: '#F44336',
-        surprise: '#FF9800',
-        fear: '#9C27B0',
-        disgust: '#795548',
-        neutral: '#9E9E9E'
-    };
-    return colors[emotion] || '#9E9E9E';
 }

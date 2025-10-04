@@ -1,5 +1,15 @@
 # Changelog
 
+2025-10-05: EmpathyLab enhancements: added AllEmotionsList component displaying all 52 Hume emotions with real-time sorting (active emotions at top), emotion-specific icons and colors from Hume's official color palette, circular color indicators, scrollable list with overflow handling; integrated sci-fi GazeOverlay (animated SVG with pulsing focus point, direction line, strength display) and EmotionFusionDisplay (multimodal analysis with conflict detection, valence/arousal metrics); added comprehensive sidebar visualization controls (9 overlay toggles including face mesh, gaze, body/hand skeletons, advanced overlays); fixed real-time overlay toggling via useRef pattern in useHumanWebcam hook; fixed loading state stuck on stop; added extensive Hume debug logging for connection troubleshooting; fixed 3-panel grid layout overflow by adding proper flex constraints to Panels (min-height: 0, overflow-y: auto on .image-content) ensuring emotion analysis column is scrollable and stats bar always visible as footer.
+
+2025-10-03: Added reusable ImageViewer (image/camera modes) and useHumanWebcam hook with requestVideoFrameCallback fallback and device picker support; integrated EmpathyLab to use the hook (clean start/stop, smoother loop, selectable camera) and replaced VideoFrame usage to centralize canvas/video rendering; added Storybook stories for ImageViewer (image, camera placeholder, canvas overlay mock).
+
+2025-10-03: Added WebcamStream component docs and stories; created Empathy/StatsRow story. WebcamStream wraps useHumanWebcam for a self-contained camera + overlay experience and is intended for EmpathyLab and related apps.
+
+2025-10-03: Designed glassy stat cards for EmpathyLab StatsRow (stat-card--glass) with backdrop blur, glass border/shadow, and subtle hover micro-interaction; added Storybook variant to preview the glass style.
+
+2025-10-03: Extracted reusable StatCard component and refactored StatsRow to use it. Added StatCard stories (solid, glass, grid) and short docs.
+
 2025-10-03: Implemented full multimodal EmpathyLab integration with Hume EVI + Human library: created HumeVoiceChat component with purple wave animations (#6e42cc), EmotionFusionDisplay combining facial + vocal emotions with conflict detection, GazeOverlay for eye tracking visualization (bearing/strength/focus point); added advanced Human library features following official demo patterns (result interpolation via human.next(), real-time FPS monitoring with 30-frame rolling average, TensorFlow tensor memory tracking, enhanced config with minConfidence/maxDetected/warmup); integrated session storage with 4 API endpoints (POST/GET/DELETE /api/empathylab/sessions) storing metadata in-memory Map (MongoDB-ready schema); added Save Session and Export JSON buttons to UI; updated orchestrator context with comprehensive EmpathyLab capabilities (7 facial emotions, 48 voice emotions, gaze tracking, multimodal fusion, use cases); fixed server.js duplicate variable declaration; updated Vite config COOP headers to 'same-origin-allow-popups'; all processing local in browser, privacy-first design.
 
 2025-10-03: Fixed Vercel build: added missing UI components (Button, FormField, Panel, ActionBar) and BoothHeader to git tracking that were previously untracked causing build failures.
@@ -76,3 +86,10 @@
 2025-10-03: Privacy banner: added glass-style overlay banner centered in EmpathyLab right column with close button; reusable UI/GlassBanner component + story.
 2025-10-03: Privacy notice moved: removed old sidebar privacy notice from EmpathyLab sidebar (left column); keep only floating glass banner in the right column.
 2025-10-03: Agent docs: added UI spacing migration note to AGENTS.md, CODEX.md, CLAUDE.md, GEMINI.md (use --space-* or semantic tokens when touching styles).
+2025-10-03: Sidebar tooltips: added generic SidebarTooltip (glass style, high z-index, smooth animation); integrated with EmpathyLab consent items to show explanations on hover; added story.
+2025-10-03: EmpathyLab sidebar: added glass-style section separators between Presets, Tracking, EVI Configuration, and Saved Configs for clearer grouping.
+2025-10-03: Settings UI: refactored services into a responsive card grid with status light, help tooltip (auto left/right placement), API key/URL inputs, and confirm actions; added help icon to show provider instructions.
+2025-10-03: Settings UI (tiles): switched to small service tiles (icon + title). Clicking opens a centered modal card with full provider configuration (inputs, instructions, actions). Reused existing ServiceConnector inside the dialog.
+2025-10-03: UI: added ThumbCard (thumbnail + title) component reusing image booth card style; Settings tile grid now uses ThumbCard for visual consistency.
+2025-10-03: Modal polish: applied semantic typography tokens (title/subtitle/body line-heights) to Settings inner content; softened button micro‑interactions (removed scale, subtle translateY/shadow with 120ms ease).
+2025-10-03: Settings UI Customization: added Accent Color selector with 10 day/night palettes (split-circle swatches). Added store `accentTheme` with persistent override for accent variables; applied via injected CSS for dark/light.

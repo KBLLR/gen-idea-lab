@@ -1,7 +1,7 @@
 import React from 'react';
 import SidebarItemCard from './SidebarItemCard.jsx';
 
-export default function SidebarToggleItemCard({ icon, label, checked, onChange, description, title }) {
+export default function SidebarToggleItemCard({ icon, label, checked, onChange, description, title, tooltip, ...rest }) {
   const handleClick = (e) => {
     e.preventDefault();
     onChange?.(!checked);
@@ -32,11 +32,11 @@ export default function SidebarToggleItemCard({ icon, label, checked, onChange, 
         label={label}
         rightSlot={rightSlot}
         title={title}
+        {...rest}
       />
-      {description && (
+      {!tooltip && description && (
         <div className="toggle-description" style={{ paddingLeft: '34px' }}>{description}</div>
       )}
     </div>
   );
 }
-

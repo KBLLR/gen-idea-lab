@@ -1449,6 +1449,34 @@ app.post('/api/hume/tools', requireAuth, async (req, res) => {
   }
 });
 
+// List Hume voices
+app.get('/api/hume/voices', requireAuth, async (req, res) => {
+  try {
+    const apiKey = process.env.HUME_API_KEY;
+    if (!apiKey) return res.status(500).json({ error: 'HUME_API_KEY not configured' });
+
+    const provider = req.query.provider || 'HUME_AI'; // HUME_AI or CUSTOM_VOICE
+    const pageNumber = req.query.page_number || 0;
+    const pageSize = req.query.page_size || 100; // Get max voices per request
+
+    const r = await fetch(`https://api.hume.ai/v0/tts/voices?provider=${provider}&page_number=${pageNumber}&page_size=${pageSize}`, {
+      method: 'GET',
+      headers: {
+        'X-Hume-Api-Key': apiKey
+      }
+    });
+    const data = await r.json().catch(() => ({}));
+    if (!r.ok) {
+      logger.error('Hume list voices failed', { status: r.status, data });
+      return res.status(r.status).json(data);
+    }
+    res.json(data);
+  } catch (err) {
+    logger.error('Hume list voices error:', err);
+    res.status(500).json({ error: 'Failed to list Hume voices', details: err.message });
+  }
+});
+
 // EmpathyLab Session Storage
 // In-memory storage (will persist to MongoDB when MONGODB_URI is configured)
 const empathyLabSessions = new Map();
