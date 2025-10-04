@@ -29,4 +29,3 @@ export const Grid = () => (
     <StatCard icon="gesture" value={2} label="Gestures" variant="glass" />
   </div>
 );
-

@@ -520,6 +520,7 @@ export default function EmpathyLab() {
                 {results && (
                     <div style={{ flexShrink: 0 }}>
                         <StatsRow
+                            variant="glass"
                             results={results}
                             sessionDuration={Date.now() - sessionStartTime}
                             dataPointsCount={sessionData.length}
