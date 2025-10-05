@@ -174,6 +174,11 @@ const store = immer((set, get) => ({
     }
   },
 
+  // Assistant Chat Settings
+  assistantModel: 'gemini-2.5-flash',
+  assistantSystemPrompts: {}, // per-module override: { [moduleId]: string }
+  moduleAssistantSavedChats: {}, // { [moduleId]: Array<{ id, title, createdAt, model, messages }> }
+
   // GestureLab State
   gestureLab: {
     mode: 'whiteboard', // 'whiteboard' | '3d'
@@ -577,6 +582,27 @@ const store = immer((set, get) => ({
 
     setIsSettingsOpen: (open) => set((state) => {
       state.isSettingsOpen = open;
+    }),
+
+    // Assistant settings
+    setAssistantModel: (model) => set((state) => { state.assistantModel = model || 'gemini-2.5-flash'; }),
+    setAssistantSystemPrompt: (moduleId, text) => set((state) => {
+      if (!moduleId) return;
+      state.assistantSystemPrompts[moduleId] = text || '';
+    }),
+
+    saveAssistantChat: (title) => set((state) => {
+      const moduleId = state.activeModuleId;
+      if (!moduleId) return;
+      const history = state.assistantHistories[moduleId] || [];
+      if (!state.moduleAssistantSavedChats[moduleId]) state.moduleAssistantSavedChats[moduleId] = [];
+      state.moduleAssistantSavedChats[moduleId].push({
+        id: String(Date.now()),
+        title: title || `Chat ${new Date().toLocaleString()}`,
+        createdAt: new Date().toISOString(),
+        model: state.assistantModel,
+        messages: [...history]
+      });
     }),
 
     setIsSystemInfoOpen: (open) => set((state) => {

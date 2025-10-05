@@ -537,11 +537,14 @@ export const sendAssistantMessage = async (content) => {
     const user = get().user;
     const conversationId = `${activeModuleId}_${Date.now()}`;
 
+    const model = get().assistantModel || 'gemini-2.5-flash';
+    const systemPromptOverride = get().assistantSystemPrompts?.[activeModuleId] || '';
     const response = await getAssistantResponse(currentHistory, activeModuleId, {
         enableTools: true,
-        model: 'gemini-2.5-flash',
+        model,
         userId: user?.email || 'anonymous',
-        conversationId
+        conversationId,
+        systemPromptOverride
     });
 
     set(state => {

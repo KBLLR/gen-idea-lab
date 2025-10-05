@@ -14,7 +14,7 @@ import { ASSISTANT_TOOLS, executeAssistantTool } from './assistantTools.js';
  * @returns {Promise<Object>} - Response object with responseText
  */
 export const getAssistantResponse = async (history, activePersonalityId, options = {}) => {
-    const { enableTools = true, model = 'gemini-2.5-flash', userId, conversationId } = options;
+    const { enableTools = true, model = 'gemini-2.5-flash', userId, conversationId, systemPromptOverride } = options;
 
     const activePersonality = personalities[activePersonalityId];
     if (!activePersonality) {
@@ -52,7 +52,11 @@ export const getAssistantResponse = async (history, activePersonalityId, options
             }));
 
         // Build system instruction
-        const systemInstruction = `${activePersonality.systemInstruction}${retrievalContext}
+        const baseInstruction = (typeof systemPromptOverride === 'string' && systemPromptOverride.trim().length > 0)
+            ? systemPromptOverride
+            : activePersonality.systemInstruction;
+
+        const systemInstruction = `${baseInstruction}${retrievalContext}
 
 You must respond in a friendly, conversational way, in character with your persona. Your response should contain helpful information and project ideas relevant to the user's query.`;
 
@@ -88,7 +92,10 @@ You must respond in a friendly, conversational way, in character with your perso
  */
 async function getAssistantResponseWithTools({ messages, systemInstruction, model, moduleId, userId, conversationId }) {
     const tools = Object.values(ASSISTANT_TOOLS);
-    const provider = model.startsWith('gpt-') ? 'openai' : model.startsWith('claude-') ? 'claude' : 'gemini';
+    let provider = 'gemini';
+    if (model.startsWith('gpt-')) provider = 'openai';
+    else if (model.startsWith('claude-')) provider = 'claude';
+    else if (model.startsWith('ollama:')) provider = 'ollama';
 
     // First request
     const requestBody = {

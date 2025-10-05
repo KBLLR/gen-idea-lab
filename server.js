@@ -19,6 +19,7 @@ import { verifyGoogleToken, generateJWT, requireAuth, optionalAuth } from './src
 import { DEFAULT_IMAGE_MODELS } from './src/lib/imageProviders.js';
 import { renderTemplate, getTemplateIds } from './src/lib/archiva/templates/library.js';
 import { setupLiveApiProxy } from './src/lib/liveApiProxy.js';
+import { getDb } from './src/lib/db.js';
 
 // In ES modules, __dirname is not available. path.resolve() provides the project root.
 const __dirname = path.resolve();
@@ -223,6 +224,46 @@ async function findAvailablePort(startPort, maxAttempts = 10) {
 
   throw new Error(`No available port found starting from ${startPort}`);
 }
+
+// Module Assistant Chats (MongoDB persistence)
+app.post('/api/module-chats/save', async (req, res) => {
+  try {
+    const { moduleId, title, model, messages } = req.body || {};
+    if (!moduleId || !Array.isArray(messages)) return res.status(400).json({ error: 'Invalid payload' });
+    const db = await getDb();
+    const doc = {
+      moduleId,
+      title: title || `Chat ${new Date().toLocaleString()}`,
+      model: model || 'gemini-2.5-flash',
+      messages,
+      createdAt: new Date().toISOString(),
+    };
+    const r = await db.collection('module_assistant_chats').insertOne(doc);
+    res.json({ ok: true, id: r.insertedId });
+  } catch (e) {
+    console.error('save chat failed:', e);
+    res.status(500).json({ error: 'Save failed' });
+  }
+});
+
+app.get('/api/module-chats', async (req, res) => {
+  try {
+    const moduleId = req.query.moduleId;
+    const limit = Number(req.query.limit || 20);
+    if (!moduleId) return res.status(400).json({ error: 'moduleId required' });
+    const db = await getDb();
+    const items = await db
+      .collection('module_assistant_chats')
+      .find({ moduleId })
+      .sort({ createdAt: -1 })
+      .limit(limit)
+      .toArray();
+    res.json({ ok: true, items });
+  } catch (e) {
+    console.error('fetch chats failed:', e);
+    res.status(500).json({ error: 'Fetch failed' });
+  }
+});
 
 // University API proxy endpoints
 app.post('/api/university/auth', requireAuth, async (req, res) => {

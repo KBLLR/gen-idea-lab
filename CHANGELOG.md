@@ -11,6 +11,7 @@
 2025-10-05: GestureLab 3D Stellar: integrated Three.js scene with star core, dust field, aura sprite, dynamic flare lines, and post-processing (bloom + afterimage). Added pulse() and rotate(dx, dy) APIs and wired fist → pulse and two-hands → rotate. Sidebar “Examples” now controls mode (Whiteboard vs 3D Navigation) exclusively.
 2025-10-05: GestureLab 3D overlay: render hand landmarks above the Stellar scene (red theme), fixed sizing when whiteboard canvas isn’t present, and relaxed loop guard to allow overlay-only rendering in 3D.
 2025-10-05: GestureLab UI Control: added interactive UI canvas with tiles (Wi‑Fi/Lights/Music) and a volume slider. Mirrored pointer aligned to landmarks; pinch to toggle tiles or set volume. Implemented ref-based hover/press/bounce states with springy animations for tiles and knob. Fixed draw guard to avoid errors when non-whiteboard modes are active.
+2025-10-05: Module Assistant Chat: added model selector (Gemini + service-aware models for Ollama/OpenAI/Claude) and per‑module system prompt editor. sendAssistantMessage now uses selected model + override prompt. Added Save button to persist current chat in module profile.
 
 2025-10-05: EmpathyLab layout restructure: removed middle AllEmotionsList column for 2-panel layout (camera + chat) with more space; added EmotionsFooter component showing top 10 active emotions as horizontal scrollable chips with icons, colors, and percentage scores; each panel now has dedicated footer (camera: StatsRow stats, chat: EmotionsFooter with emotion chips).
 
