@@ -35,7 +35,8 @@ export const toggleTheme = () => {
 
 
 // --- App Switching Actions ---
-const apps = ['ideaLab', 'imageBooth', 'archiva', 'workflows', 'planner', 'calendarAI', 'empathyLab'];
+// Order must match AppSwitcher for prev/next to align with displayed title
+const apps = ['ideaLab', 'imageBooth', 'archiva', 'workflows', 'planner', 'calendarAI', 'empathyLab', 'gestureLab'];
 
 export const switchApp = (direction) => {
   set(state => {

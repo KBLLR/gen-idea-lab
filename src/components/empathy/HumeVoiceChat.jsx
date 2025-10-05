@@ -6,7 +6,64 @@ import { useState, useEffect, useRef } from 'react';
 import { VoiceProvider, useVoice } from '@humeai/voice-react';
 import Button from '../ui/Button.jsx';
 
-// Import Hume emotion colors
+// Import Hume emotion colors and icons
+const EMOTION_ICONS = {
+    'Admiration': 'star',
+    'Adoration': 'favorite',
+    'Aesthetic Appreciation': 'palette',
+    'Amusement': 'mood',
+    'Anger': 'whatshot',
+    'Annoyance': 'sentiment_dissatisfied',
+    'Anxiety': 'psychology',
+    'Awe': 'auto_awesome',
+    'Awkwardness': 'sentiment_neutral',
+    'Boredom': 'bedtime',
+    'Calmness': 'spa',
+    'Concentration': 'visibility',
+    'Contemplation': 'lightbulb',
+    'Confusion': 'help',
+    'Contempt': 'thumb_down',
+    'Contentment': 'sentiment_satisfied',
+    'Craving': 'restaurant',
+    'Determination': 'bolt',
+    'Disappointment': 'trending_down',
+    'Disapproval': 'block',
+    'Disgust': 'sick',
+    'Distress': 'warning',
+    'Doubt': 'contact_support',
+    'Ecstasy': 'celebration',
+    'Embarrassment': 'face',
+    'Empathic Pain': 'healing',
+    'Enthusiasm': 'emoji_events',
+    'Entrancement': 'remove_red_eye',
+    'Envy': 'visibility_off',
+    'Excitement': 'fireplace',
+    'Fear': 'sentiment_very_dissatisfied',
+    'Gratitude': 'volunteer_activism',
+    'Guilt': 'error',
+    'Horror': 'bug_report',
+    'Interest': 'search',
+    'Joy': 'sentiment_very_satisfied',
+    'Love': 'favorite_border',
+    'Nostalgia': 'history',
+    'Pain': 'local_hospital',
+    'Pride': 'military_tech',
+    'Realization': 'tips_and_updates',
+    'Relief': 'check_circle',
+    'Romance': 'favorite',
+    'Sadness': 'sentiment_sad',
+    'Sarcasm': 'chat_bubble',
+    'Satisfaction': 'done_all',
+    'Sexual Desire': 'favorite',
+    'Shame': 'hide_source',
+    'Surprise': 'new_releases',
+    'Surprise (Negative)': 'priority_high',
+    'Surprise (Positive)': 'stars',
+    'Sympathy': 'psychology',
+    'Tiredness': 'snooze',
+    'Triumph': 'emoji_events'
+};
+
 const EMOTION_COLORS = {
     'Admiration': '#ffc58f',
     'Adoration': '#ffc6cc',
@@ -64,7 +121,7 @@ const EMOTION_COLORS = {
     'Triumph': '#ec8132'
 };
 
-export default function HumeVoiceChat({ onEmotionUpdate, selectedConfigId }) {
+export default function HumeVoiceChat({ onEmotionUpdate, selectedConfigId, humeEmotions }) {
   const [accessToken, setAccessToken] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -139,8 +196,6 @@ export default function HumeVoiceChat({ onEmotionUpdate, selectedConfigId }) {
         </div>
       ) : (
         <VoiceProvider
-          auth={{ type: 'accessToken', value: accessToken }}
-          configId={selectedConfigId}
           onMessage={(msg) => {
             console.log('[HumeVoiceChat] Hume message:', msg);
           }}
@@ -149,7 +204,12 @@ export default function HumeVoiceChat({ onEmotionUpdate, selectedConfigId }) {
             setError(error?.message || String(error));
           }}
         >
-          <VoiceChatInterface onEmotionUpdate={onEmotionUpdate} />
+          <VoiceChatInterface
+            onEmotionUpdate={onEmotionUpdate}
+            accessToken={accessToken}
+            configId={selectedConfigId}
+            humeEmotions={humeEmotions}
+          />
         </VoiceProvider>
       )}
     </div>
@@ -237,13 +297,81 @@ function MicFFT({ fft = [] }) {
   );
 }
 
-function VoiceChatInterface({ onEmotionUpdate }) {
+// Horizontal scrollable emotions footer for Panel
+export function EmotionsFooter({ emotions }) {
+  const activeEmotions = emotions
+    ?.filter(e => e.score > 0.1)
+    .sort((a, b) => b.score - a.score)
+    .slice(0, 10) || [];
+
+  if (activeEmotions.length === 0) {
+    return (
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: '1rem',
+        background: 'var(--color-surface)',
+        borderTop: '1px solid var(--color-surface-border)',
+        color: 'var(--color-text-secondary)',
+        fontSize: '0.75rem'
+      }}>
+        No active emotions detected
+      </div>
+    );
+  }
+
+  return (
+    <div style={{
+      display: 'flex',
+      gap: '0.5rem',
+      padding: '0.75rem',
+      overflowX: 'auto',
+      background: 'var(--color-surface)',
+      borderTop: '1px solid var(--color-surface-border)',
+      scrollbarWidth: 'thin'
+    }}>
+      {activeEmotions.map(({ name, score }) => {
+        const color = EMOTION_COLORS[name] || '#9E9E9E';
+        const icon = EMOTION_ICONS[name] || 'circle';
+
+        return (
+          <div
+            key={name}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.5rem',
+              padding: '0.5rem 0.75rem',
+              background: 'var(--color-bg)',
+              borderRadius: 'var(--radius-full)',
+              whiteSpace: 'nowrap',
+              border: `1px solid ${color}`,
+              minWidth: 'fit-content'
+            }}
+          >
+            <span className="icon" style={{ color, fontSize: '1rem' }}>
+              {icon}
+            </span>
+            <span style={{ fontSize: '0.75rem', fontWeight: 500 }}>{name}</span>
+            <span style={{ fontSize: '0.7rem', opacity: 0.7, fontWeight: 600 }}>
+              {Math.round(score * 100)}%
+            </span>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+function VoiceChatInterface({ onEmotionUpdate, accessToken, configId }) {
   const voice = useVoice();
-  const { connect, disconnect, sendSessionSettings, messages, isMuted, mute, unmute, micFft, status } = voice;
-  const [isConnected, setIsConnected] = useState(false);
+  const { connect, disconnect, messages, isMuted, mute, unmute, micFft, status } = voice;
   const messagesEndRef = useRef(null);
   const messagesContainerRef = useRef(null);
-  const hasConfiguredRef = useRef(false);
+
+  // Check if connected based on Hume's status
+  const isConnected = status.value === 'connected';
 
   // Auto-scroll messages with delay
   useEffect(() => {
@@ -281,14 +409,16 @@ function VoiceChatInterface({ onEmotionUpdate }) {
 
   const handleConnect = async () => {
     try {
-      await connect({
-        audioConstraints: {
-          echoCancellation: true,
-          noiseSuppression: true,
-          autoGainControl: true
-        }
-      });
-      setIsConnected(true);
+      // Only pass configId if it's defined and valid, otherwise use Hume's default config
+      const connectOptions = {
+        auth: { type: 'accessToken', value: accessToken }
+      };
+
+      // Don't pass configId - let Hume use the default config
+      // This avoids issues with invalid configs
+
+      await connect(connectOptions);
+      console.log('[HumeVoiceChat] Connected successfully using default config');
     } catch (err) {
       console.error('[HumeVoiceChat] Connection error:', err);
     }
@@ -296,27 +426,7 @@ function VoiceChatInterface({ onEmotionUpdate }) {
 
   const handleDisconnect = () => {
     disconnect();
-    setIsConnected(false);
-    hasConfiguredRef.current = false;
   };
-
-  // Configure session settings when connected
-  useEffect(() => {
-    if (!isConnected || hasConfiguredRef.current) return;
-
-    const statusText = typeof status === 'string' ? status : (status && typeof status.value === 'string' ? status.value : '');
-
-    if (statusText && /connected|ready|open/i.test(statusText)) {
-      sendSessionSettings({
-        type: 'session_settings',
-        systemPrompt: 'You are an empathic AI assistant integrated with multimodal emotion detection. You can sense emotions from both voice and facial expressions. Be warm, understanding, and supportive. When you detect emotional conflicts (e.g., happy words but anxious voice), gently acknowledge what you notice.'
-      }).then(() => {
-        hasConfiguredRef.current = true;
-      }).catch((e) => {
-        console.error('[HumeVoiceChat] Failed to send session settings:', e);
-      });
-    }
-  }, [isConnected, status, sendSessionSettings]);
 
   const statusText = typeof status === 'string' ? status : (status && typeof status.value === 'string' ? status.value : '');
 

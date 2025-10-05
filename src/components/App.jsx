@@ -27,6 +27,8 @@ import CalendarAI from './CalendarAI.jsx'
 import CalendarAISidebar from './CalendarAISidebar.jsx'
 import EmpathyLab from './EmpathyLab.jsx'
 import EmpathyLabSidebar from './EmpathyLabSidebar.jsx'
+import GestureLab from './GestureLab.jsx'
+import GestureLabSidebar from './GestureLabSidebar.jsx'
 import GlassDock from './GlassDock.jsx'
 import SystemInfoModal from './SystemInfoModal.jsx'
 import CommandPalette from './CommandPalette.jsx'
@@ -194,6 +196,8 @@ export default function App() {
         return <CalendarAISidebar />;
       case 'empathyLab':
         return <EmpathyLabSidebar />;
+      case 'gestureLab':
+        return <GestureLabSidebar />;
       default:
         return null;
     }
@@ -215,6 +219,8 @@ export default function App() {
         return <CalendarAI />;
       case 'empathyLab':
         return <EmpathyLab />;
+      case 'gestureLab':
+        return <GestureLab />;
       default:
         return null;
     }

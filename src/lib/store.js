@@ -174,6 +174,16 @@ const store = immer((set, get) => ({
     }
   },
 
+  // GestureLab State
+  gestureLab: {
+    mode: 'whiteboard', // 'whiteboard' | '3d'
+    examples: {
+      Whiteboard: true,
+      '3D Navigation': false,
+      'UI Control': false,
+    }
+  },
+
   // Orchestrator Saved Sessions
   orchestratorSavedSessions: [], // Array of { id, title, createdAt, model, history }
 
@@ -524,6 +534,26 @@ const store = immer((set, get) => ({
         // Ensure the main module agents chat is visible when opened from global UI controls
         state.activeApp = 'ideaLab';
       }
+    }),
+
+    // GestureLab actions
+    setGestureLabMode: (mode) => set((state) => {
+      state.gestureLab.mode = mode;
+      // sync examples toggles
+      const ex = state.gestureLab.examples;
+      ex.Whiteboard = mode === 'whiteboard';
+      ex['3D Navigation'] = mode === '3d';
+      ex['UI Control'] = false;
+    }),
+
+    setGestureLabExample: (key, enabled) => set((state) => {
+      // Only one example active at a time
+      Object.keys(state.gestureLab.examples).forEach(k => state.gestureLab.examples[k] = false);
+      state.gestureLab.examples[key] = !!enabled;
+      // map example to mode
+      if (key === 'Whiteboard' && enabled) state.gestureLab.mode = 'whiteboard';
+      if (key === '3D Navigation' && enabled) state.gestureLab.mode = '3d';
+      if (key === 'UI Control' && enabled) state.gestureLab.mode = 'ui';
     }),
 
     setOrchestratorNarration: (message) => set((state) => {

@@ -14,6 +14,7 @@ const apps = [
   { id: 'planner', title: 'PlannerAI' },
   { id: 'calendarAI', title: 'CalendarAI' },
   { id: 'empathyLab', title: 'EmpathyLab' },
+  { id: 'gestureLab', title: 'GestureLab' },
 ];
 
 export default function AppSwitcher() {

@@ -11,7 +11,7 @@ import WebcamStream from './empathy/WebcamStream.jsx';
 import EmotionsList from './empathy/EmotionsList.jsx';
 import EmotionFusionDisplay from './empathy/EmotionFusionDisplay.jsx';
 import AllEmotionsList from './empathy/AllEmotionsList.jsx';
-import HumeVoiceChat from './empathy/HumeVoiceChat.jsx';
+import HumeVoiceChat, { EmotionsFooter } from './empathy/HumeVoiceChat.jsx';
 import StatsRow from './empathy/StatsRow.jsx';
 import GazeOverlay from './empathy/GazeOverlay.jsx';
 import useStore from '../lib/store.js';
@@ -462,17 +462,32 @@ export default function EmpathyLab() {
                     </div>
                 )}
 
-                {/* 3-panel layout: Camera + Emotions + Voice Chat */}
+                {/* 2-panel layout: Camera + Voice Chat */}
                 <div style={{
                     flex: '1 1 auto',
                     display: 'grid',
-                    gridTemplateColumns: '1fr auto 1fr',
+                    gridTemplateColumns: '1fr 1fr',
                     gap: '1rem',
                     minHeight: 0,
                     overflow: 'hidden'
                 }}>
-                    {/* Left: Webcam */}
-                    <Panel title="Webcam Viewer" info={isTracking ? 'Live' : 'Idle'}>
+                    {/* Left: Webcam with Stats Footer */}
+                    <Panel
+                        title="Webcam Viewer"
+                        info={isTracking ? 'Live' : 'Idle'}
+                        footer={
+                            results && (
+                                <StatsRow
+                                    variant="glass"
+                                    results={results}
+                                    sessionDuration={Date.now() - sessionStartTime}
+                                    dataPointsCount={sessionData.length}
+                                    fps={fps}
+                                    tensors={tensors}
+                                />
+                            )
+                        }
+                    >
                         <div style={{ position: 'relative', width: '100%', height: '100%' }}>
                             <WebcamStream
                                 consent={consent}
@@ -494,41 +509,19 @@ export default function EmpathyLab() {
                         </div>
                     </Panel>
 
-                    {/* Middle: Emotions */}
-                    <Panel title="Emotion Analysis" info={results ? 'Active' : 'Idle'} style={{ minWidth: '280px' }}>
-                        <AllEmotionsList
-                            humeEmotions={
-                                // Convert array to object for AllEmotionsList
-                                humeEmotions?.reduce((obj, { name, score }) => {
-                                    obj[name] = score;
-                                    return obj;
-                                }, {}) || {}
-                            }
-                        />
-                    </Panel>
-
-                    {/* Right: Hume Voice Chat */}
-                    <Panel title="Empathic Voice Chat" info="Hume EVI">
+                    {/* Right: Hume Voice Chat with Emotions Footer */}
+                    <Panel
+                        title="Empathic Voice Chat"
+                        info="Hume EVI"
+                        footer={<EmotionsFooter emotions={humeEmotions} />}
+                    >
                         <HumeVoiceChat
                             onEmotionUpdate={handleHumeEmotionUpdate}
                             selectedConfigId={selectedHumeConfigId}
+                            humeEmotions={humeEmotions}
                         />
                     </Panel>
                 </div>
-
-                {/* Stats Row */}
-                {results && (
-                    <div style={{ flexShrink: 0 }}>
-                        <StatsRow
-                            variant="glass"
-                            results={results}
-                            sessionDuration={Date.now() - sessionStartTime}
-                            dataPointsCount={sessionData.length}
-                            fps={fps}
-                            tensors={tensors}
-                        />
-                    </div>
-                )}
             </div>
         </div>
     );
