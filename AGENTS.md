@@ -84,3 +84,11 @@ git push
 Notes
 - CORS allows `FRONTEND_URL`, `BACKEND_URL`, `DOMAIN`, and `https://${VERCEL_URL}` automatically.
 - For Vercel, build client with `vercel-build` and route API to `server.js` (see `vercel.json`). Ensure `AUTH_SECRET` and provider keys are set in Vercel project settings.
+
+## App Analysis Framework
+
+When analyzing an app, consider the following angles:
+
+1.  **Orchestrator Context Awareness:** How the app interacts with the orchestrator and how the orchestrator is aware of the app's context.
+2.  **Components and Storybook Stories:** The React components that make up the app and their corresponding Storybook stories.
+3.  **Database and Interconnectivity:** How the app interacts with the database and other services.

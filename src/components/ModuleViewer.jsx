@@ -4,7 +4,7 @@
 */
 import useStore from '../lib/store';
 import { personalities } from '../lib/assistant/personalities';
-import { toggleModuleChat, updateModuleResourceUrl } from '../lib/actions';
+
 import ModuleKnowledgeSection from './ModuleKnowledgeSection';
 import ActionBar from './ui/ActionBar.jsx';
 import c from 'clsx';
@@ -109,12 +109,7 @@ export default function ModuleViewer() {
 
     const disciplineInfo = disciplineContent[disciplineKey];
 
-    const handleResourceClick = (resourceType, currentUrl) => {
-        const newUrl = prompt(`Enter the URL for ${resourceType}:`, currentUrl);
-        if (newUrl !== null) {
-            updateModuleResourceUrl(activeModuleId, resourceType, newUrl);
-        }
-    };
+    
 
     return (
         <div className="module-viewer">
@@ -138,12 +133,12 @@ export default function ModuleViewer() {
                                     <span className={`status-dot ${isConnected ? 'connected' : 'disconnected'}`} style={{ position: 'absolute', top: -2, right: -6 }} />
                                   </span>
                                 ),
-                                onClick: () => handleResourceClick(resource.type, resource.url)
+                                onClick: () => {}
                             });
                         });
                         items.push({ key: 'docs', title: 'Documentation', icon: 'description', onClick: () => {} });
                         items.push({ key: 'kb', title: 'Knowledge', icon: 'database', onClick: () => actions.toggleKnowledgeSection(), ariaPressed: !!showKnowledgeSection });
-                        items.push({ key: 'chat', title: 'Chat', icon: 'chat', onClick: toggleModuleChat });
+                        items.push({ key: 'chat', title: 'Chat', icon: 'chat', onClick: () => actions.setActiveApp('chat') });
                         return <ActionBar items={items} showDividers={true} ariaLabel="Module actions" />;
                     })()}
                 </div>

@@ -2,6 +2,7 @@
 
 @import './styles/tokens/index.css';
 @import './styles/utilities/utilities.css';
+@import './styles/components/chat.css';
 @import './styles/components/knowledge-section.css';
 @import './styles/components/empathy-lab.css';
 

@@ -88,7 +88,7 @@ const store = immer((set, get) => ({
   activeModuleId: null,
 
   // Assistant state (for individual module floating chat)
-  isAssistantOpen: false,
+  
   isAssistantLoading: false,
   assistantHistories: {}, // Keep lightweight for now, migrate gradually
   showModuleChat: false, // Control visibility of third column module agents chat
@@ -197,6 +197,7 @@ const store = immer((set, get) => ({
   loadedResourceIds: new Set(), // Track what resources are currently loaded in UI
   moduleKnowledgeCache: {}, // Lightweight cache for module knowledge indexes
   showKnowledgeSection: false, // Toggle for knowledge section visibility
+  showGallery: false, // Toggle for gallery visibility
   
   // Actions
   actions: {
@@ -808,6 +809,8 @@ const store = immer((set, get) => ({
     setShowKnowledgeSection: (show) => set((state) => {
       state.showKnowledgeSection = show;
     }),
+
+    toggleGallery: () => set((state) => { state.showGallery = !state.showGallery; }),
 
     // Module lifecycle - preload and cleanup resources
     setActiveModuleId: (moduleId) => set((state) => {

@@ -1,0 +1,30 @@
+.chat-app-container {
+  display: flex;
+  height: 100%;
+}
+
+.chat-sidebar {
+  width: 240px;
+  border-right: 1px solid var(--border-color);
+}
+
+.chat-main-content {
+  flex-grow: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.chat-header {
+  padding: 1rem;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.assistants-bar {
+  padding: 0.5rem;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.gallery-container {
+  width: 300px;
+  border-left: 1px solid var(--border-color);
+}

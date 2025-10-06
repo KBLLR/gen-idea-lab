@@ -20,7 +20,7 @@ import ArchivaEntryForm from './ArchivaEntryForm.jsx'
 import WorkflowsList from './WorkflowsList.jsx'
 import WorkflowEditor from './WorkflowEditor.jsx'
 import ModuleViewer from './ModuleViewer.jsx'
-import Assistant from './Assistant.jsx'
+
 import PlannerSidebar from './PlannerSidebar.jsx'
 import PlannerCanvas from './PlannerCanvas.jsx'
 import CalendarAI from './CalendarAI.jsx'
@@ -36,44 +36,18 @@ import { personalities } from '../lib/assistant/personalities'
 import { modulesByDiscipline } from '../lib/modules'
 import '../styles/components/command-palette.css'
 
-const ModuleSelector = () => {
-  const activeModuleId = useStore.use.activeModuleId()
-
-  return (
-    <>
-      {Object.entries(modulesByDiscipline).map(([discipline, modules]) => (
-        <div className="semester-group" key={discipline}>
-          <h2>{discipline}</h2>
-          <div className="module-list">
-            {modules.map(module => {
-              const personality = personalities[module['Module Code']];
-              return (
-                <button
-                  key={module['Module Code']}
-                  onClick={() => selectModule(module['Module Code'])}
-                  className={c({ active: module['Module Code'] === activeModuleId })}
-                >
-                  <div className="module-info">
-                    <span className="icon">{personality?.icon || 'school'}</span>
-                    <p>{personality?.name || module['Module Title']}</p>
-                  </div>
-                </button>
-              )
-            })}
-          </div>
-        </div>
-      ))}
-    </>
-  )
-}
+import Chat from './Chat.jsx';
+import ChatSidebar from './ChatSidebar.jsx';
+import ModuleKnowledgeSection from './ModuleKnowledgeSection.jsx';
+import ModuleSelector from './ModuleSelector.jsx';
 
 export default function App() {
   const isWelcomeScreenOpen = useStore.use.isWelcomeScreenOpen()
   const activeApp = useStore.use.activeApp()
   const theme = useStore.use.theme()
   const activeModuleId = useStore.use.activeModuleId();
-  const isAssistantOpen = useStore.use.isAssistantOpen();
-  const showModuleChat = useStore.use.showModuleChat();
+  
+  const showKnowledgeSection = useStore.use.showKnowledgeSection();
   const activeEntryId = useStore.use.activeEntryId();
   const isAuthenticated = useStore.use.isAuthenticated();
   const isCheckingAuth = useStore.use.isCheckingAuth();
@@ -182,9 +156,10 @@ export default function App() {
 
   const renderLeftColumnContent = () => {
     switch (activeApp) {
+case 'chat':
+        return <ChatSidebar />;
       case 'ideaLab':
-        return <ModuleSelector />;
-      case 'imageBooth':
+        return <ModuleSelector />;      case 'imageBooth':
         return <ModeSelector />;
       case 'archiva':
         return <ArchivaSidebar />;
@@ -205,8 +180,10 @@ export default function App() {
 
   const renderRightColumnContent = () => {
     switch (activeApp) {
+      case 'chat':
+        return <Chat />;
       case 'ideaLab':
-        return showModuleChat ? <ModuleAgentsChat /> : null;
+        return showKnowledgeSection ? <ModuleKnowledgeSection moduleId={activeModuleId} /> : null;
       case 'imageBooth':
         return <BoothViewer />;
       case 'archiva':
@@ -246,14 +223,14 @@ export default function App() {
   }
 
   const hasModuleSelected = activeApp === 'ideaLab' && activeModuleId;
-  const isThreeColumnLayout = hasModuleSelected && showModuleChat;
+  const isThreeColumnLayout = (activeApp === 'ideaLab' && hasModuleSelected && showKnowledgeSection) || activeApp === 'chat';
 
   return (
     <main data-theme={theme} className={c({
       'three-column': isThreeColumnLayout
     })}>
       {isWelcomeScreenOpen && <WelcomeScreen onStart={handleStart} />}
-      {isAssistantOpen && <Assistant />}
+      
       {isSettingsOpen && <SettingsModal />}
       {isSystemInfoOpen && <SystemInfoModal isOpen={isSystemInfoOpen} onClose={() => setIsSystemInfoOpen(false)} />}
       <CommandPalette isOpen={isCommandPaletteOpen} onClose={() => setIsCommandPaletteOpen(false)} />
@@ -285,7 +262,7 @@ export default function App() {
         </div>
       )}
 
-      {hasModuleSelected && showModuleChat && (
+      {isThreeColumnLayout && (
         <div
           className="column-resizer"
           onMouseDown={handleResizerMouseDown}
@@ -295,7 +272,7 @@ export default function App() {
         />
       )}
 
-      {(activeApp !== 'ideaLab' || showModuleChat) && (
+      {(activeApp !== 'ideaLab' || showKnowledgeSection) && (
         <div
           className="right-column"
           style={isThreeColumnLayout ? { width: `${rightColumnWidth}px` } : {}}

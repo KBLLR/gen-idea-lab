@@ -36,7 +36,7 @@ export const toggleTheme = () => {
 
 // --- App Switching Actions ---
 // Order must match AppSwitcher for prev/next to align with displayed title
-const apps = ['ideaLab', 'imageBooth', 'archiva', 'workflows', 'planner', 'calendarAI', 'empathyLab', 'gestureLab'];
+const apps = ['ideaLab', 'chat', 'imageBooth', 'archiva', 'workflows', 'planner', 'calendarAI', 'empathyLab', 'gestureLab'];
 
 export const switchApp = (direction) => {
   set(state => {
@@ -360,11 +360,7 @@ export const clearOrchestratorSessions = () => {
 
 // --- Assistant Actions (Floating Chat) ---
 
-export const toggleAssistant = () => {
-    set(state => {
-        state.isAssistantOpen = !state.isAssistantOpen;
-    });
-};
+
 
 export const toggleModuleChat = () => {
     set(state => {

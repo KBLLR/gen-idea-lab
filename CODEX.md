@@ -22,3 +22,11 @@ git add -A && git commit -m "chore(changelog): update for <feature/area>" && git
 ```
 
 If the change is substantial, add a brief rationale to `docs/IMPLEMENTATION_NOTES.md`.
+
+## App Analysis Framework
+
+When analyzing an app, consider the following angles:
+
+1.  **Orchestrator Context Awareness:** How the app interacts with the orchestrator and how the orchestrator is aware of the app's context.
+2.  **Components and Storybook Stories:** The React components that make up the app and their corresponding Storybook stories.
+3.  **Database and Interconnectivity:** How the app interacts with the database and other services.
