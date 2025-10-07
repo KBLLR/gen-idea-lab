@@ -4,8 +4,9 @@
  */
 
 import { useState, useEffect, useCallback } from 'react';
-import useStore from '../lib/store';
+import useStore from '@store';
 
+// App-level hook: useAvailableModels
 export function useAvailableModels() {
   const [models, setModels] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -18,7 +19,7 @@ export function useAvailableModels() {
 
     try {
       const response = await fetch('/api/models', {
-        credentials: 'include'
+        credentials: 'include',
       });
 
       if (!response.ok) {
@@ -38,7 +39,7 @@ export function useAvailableModels() {
       // Fallback to basic Gemini models if API fails
       setModels([
         { id: 'gemini-2.5-flash', name: 'Gemini 2.5 Flash', provider: 'Gemini', category: 'text', available: true },
-        { id: 'gemini-2.0-flash-exp', name: 'Gemini 2.0 Flash Experimental', provider: 'Gemini', category: 'text', available: true }
+        { id: 'gemini-2.0-flash-exp', name: 'Gemini 2.0 Flash Experimental', provider: 'Gemini', category: 'text', available: true },
       ]);
     } finally {
       setLoading(false);
@@ -51,9 +52,12 @@ export function useAvailableModels() {
   }, [fetchModels, connectedServices]);
 
   // Filter models by category
-  const getModelsByCategory = useCallback((category) => {
-    return models.filter(model => model.category === category);
-  }, [models]);
+  const getModelsByCategory = useCallback(
+    (category) => {
+      return models.filter((model) => model.category === category);
+    },
+    [models]
+  );
 
   // Get text models specifically (for workflow auto-titling)
   const textModels = getModelsByCategory('text');
@@ -64,6 +68,6 @@ export function useAvailableModels() {
     loading,
     error,
     refetch: fetchModels,
-    getModelsByCategory
+    getModelsByCategory,
   };
 }

@@ -1,0 +1,27 @@
+.ui-ActionBar {
+  display: inline-flex;
+  gap: var(--space-2, .5rem);
+  padding: var(--space-1, .25rem);
+  border-radius: var(--radius-2, .5rem);
+  background: var(--color-surface-2, rgba(255,255,255,.04));
+  border: var(--border-width, .0625rem) solid var(--color-border, rgba(255,255,255,.12));
+}
+.ui-ActionBar--sm { gap: var(--space-1, .25rem); }
+.ui-ActionBar--lg { gap: var(--space-3, .75rem); }
+
+.ui-ActionBar__btn {
+  display: inline-flex; align-items: center; gap: .5em;
+  padding: var(--space-1, .25rem) var(--space-2, .5rem);
+  border-radius: var(--radius-2, .5rem);
+  background: var(--color-surface-3, rgba(255,255,255,.06));
+  border: var(--border-width, .0625rem) solid var(--color-border, rgba(255,255,255,.12));
+  color: var(--color-fg, #e8eef7);
+}
+.ui-ActionBar__btn:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 var(--focus-ring-width, .125rem) var(--focus-ring-color, #7cc7ff);
+}
+.ui-ActionBar__btn:disabled { opacity: .45; }
+
+/* Icon-only variant hides labels but keeps accessible aria-labels */
+.ui-ActionBar--icon .ui-ActionBar__label { display: none; }

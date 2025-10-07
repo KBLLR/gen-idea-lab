@@ -21,7 +21,7 @@ GenBooth Idea Lab is a comprehensive educational platform designed for CODE Univ
 - State: Zustand with persistence
 - Services: GitHub, Notion, Figma, Google APIs integration
 - Observability: Prometheus metrics, Winston logging
-- Deployment: Vercel, Docker, Cloud Run
+- Deployment: Vercel
 
 ## Contents
 - [Vision](#vision)

@@ -1,0 +1,12 @@
+[
+  {"id":"seed-1","title":"Wire router: keep '/' as current App","action":"Implement","category":"Refactorplanv3","subcategory":"Migrate","bucket":"Refactorplanv3","status":"todo"},
+  {"id":"seed-2","title":"Create /kanban micro-app skeleton","action":"Create","category":"Refactorplanv3","subcategory":"Extract","bucket":"Per App Tasks","status":"todo"},
+  {"id":"seed-3","title":"Add Category Sidebar (buckets)","action":"Add","category":"Refactorplanv3","subcategory":"Extract","bucket":"Per App Tasks","status":"doing"},
+  {"id":"seed-4","title":"Lanes: ToDo / Doing / Done","action":"Implement","category":"Refactorplanv3","subcategory":"Implement","bucket":"Per App Tasks","status":"doing"},
+  {"id":"seed-5","title":"Storybook: add Kanban primitives","action":"Document","category":"Storybook","subcategory":"Stories","bucket":"Storybook","status":"todo"},
+  {"id":"seed-6","title":"Orchestrator: task create/update hooks","action":"Implement","category":"Orchestrator","subcategory":"Phase 2: Tooling","bucket":"Orchestrator","status":"todo"},
+  {"id":"seed-7","title":"Persist tasks via Zustand slice","action":"Implement","category":"Refactorplanv3","subcategory":"Extract","bucket":"Refactorplanv3","status":"todo"},
+  {"id":"seed-8","title":"Drag & drop with dnd-kit","action":"Implement","category":"Refactorplanv3","subcategory":"Implement","bucket":"Per App Tasks","status":"todo"},
+  {"id":"seed-9","title":"Docs index: truth-first landing","action":"Document","category":"Refactorplanv3","subcategory":"Document","bucket":"Refactorplanv3","status":"done"},
+  {"id":"seed-10","title":"Add route tests for /kanban","action":"Test","category":"Refactorplanv3","subcategory":"Test","bucket":"Refactorplanv3","status":"todo"}
+]

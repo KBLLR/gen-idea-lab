@@ -1,5 +1,30 @@
 # Changelog
 
+2025-10-07: Dev auth bypass, pane layout, store refactor, ActionBar cleanup, COOP headers
+- Dev-only auth bypass: added .env.development.local with VITE_AUTH_BYPASS=1 and AUTH_BYPASS=1. Client seeds a dev user and skips the login gate when VITE_AUTH_BYPASS=1. Server requireAuth/optionalAuth short-circuit when AUTH_BYPASS=1 and inject a dev user.
+- Pane providers and conditional layout: wrapped app with LeftPaneProvider and RightPaneProvider. Render left/right columns only when pane content exists. Added useLeftPaneNode/useRightPaneNode hooks to detect pane presence safely.
+- App-owned sidebars: moved sidebars to their corresponding apps via useLeftPane. CalendarAI (CalendarAISidebar), GestureLab (GestureLabSidebar), EmpathyLab (EmpathyLabSidebar), Archiva (ArchivaSidebar), Planner (PlannerSidebar). Chat and Workflows use the right pane.
+- Store refactor: lifted createAuthSlice, createServiceConnectionSlice, and createAppSwitchingSlice to top-level so per-key selectors (useStore.use.user, useStore.use.activeApp, etc.) are generated. Introduced actions proxy to preserve state.actions.* usage. Added setDockPosition/setDockDimensions and toggleKnowledgeSection/setShowKnowledgeSection.
+- ActionBar normalization: standardized DS ActionBar API to items = [{ id, label, icon, onClick }]; fixed aria-label casing; removed unsupported showDividers prop; added stable keys for list items in ModuleViewer and related lists to resolve React key warnings.
+- COOP/COEP dev headers: ensured Vite dev server and Storybook add headers Cross-Origin-Opener-Policy: same-origin-allow-popups and Cross-Origin-Embedder-Policy: unsafe-none to avoid noisy postMessage warnings and keep OAuth popups working.
+2025-10-06: DS + Orchestrator + Server inversion
+- Orchestrator → Tasks ingestion: added normalizeTask, upsertTasksFromAgent, extractTasksFromMarkdown; added ingestPlanAsTasks(plan) and exported storeApi; Kanban can now ingest agent plans and docs.
+- Design System primitives: implemented ActionBar, SidebarItemCard, StatCard with polymorphic ref-forward, tokens-only CSS, and stories; added icon-only variant to ActionBar; migrated key callsites to @ui.
+- Storybook visual tests: added Playwright snapshots for Button, Panel, ActionBar, SidebarItemCard, StatCard.
+- CalendarAI: countdown now rendered via DS ActionBar using children for stability.
+- Server flip: centralized boot at server/index.js (calls startServer from server.js).
+- Server imports: pointed server.js to src/shared/lib/{logger,secureTokens,metrics,auth,liveApiProxy,db}.
+- Chat routes extracted to server/routes/chat.js and mounted under /api.
+- Additional server modularization: extracted models (GET /api/models, GET /api/ollama/models), embeddings (POST /api/embeddings/ollama), tools (web search + ollama web_search/web_fetch/search + POST /api/search), module-chats (save/list), and planner (POST /api/planner/generate-from-context) into server/routes/* and mounted under /api.
+
+2025-10-06: Micro-app slugs unified to lowercase (idealab, imagebooth, calendarai, empathylab, gesturelab, planner, archiva, workflows, chat). Router and server SPA fallbacks updated; added VITE_DEFAULT_APP env toggle for optional / → /idealab redirect this sprint while retaining legacy shell at /. Added route helpers via @routes (getAppPath/getAppIdFromPath) with a single APP_ID→slug map.
+
+2025-10-06: Centralized Zustand store behind @store with persist + selector functions; left src/lib/store.js as a shim for one release cycle. Introduced Vite aliases: @ui (design system), @shared, @routes, @store, @apps. Began DS extraction: added src/design-system with tokens, utilities, and first batch shims (Button, ActionBar, SidebarItemCard, StatCard, Panel, ImageViewer, SidebarTooltip). Old UI paths remain for now; ESLint rule added to forbid new imports from src/components/ui.
+
+2025-10-06: Server modularization: extracted auth, university, services, and image routes into separate files in `server/routes` directory. Created `server/config/env.js` for URL and environment helpers.
+
+2025-10-06: Server modularization: extracted auth, university, and image routes into separate files in `server/routes` directory. Created `server/config/env.js` for URL and environment helpers.
+
 2025-10-05: Added GestureLab app for hand tracking UI experiments: pinch-to-draw whiteboard using MediaPipe Hands, real-time hand landmark visualization with cyan skeleton overlay, smoothed drawing with configurable stroke width, glass-style controls matching design system, sidebar with gesture guide and tips; supports up to 2 hands tracking with 21 landmarks per hand; dynamically loads MediaPipe CDN scripts, includes small video preview in corner, clear canvas function, error handling for camera permissions.
 2025-10-05: GestureLab polish: corrected MediaPipe drawing utils usage (drawConnectors/drawLandmarks) and aligned SidebarItemCard props for gestures/examples.
 2025-10-05: GestureLab header + layout: adopted BoothHeader with Start/Stop/Clear actions in the header actions slot; canvas now fills remaining space; added draggable glass preview window for hand-tracking video.
@@ -114,3 +139,7 @@
 2025-10-03: UI: added ThumbCard (thumbnail + title) component reusing image booth card style; Settings tile grid now uses ThumbCard for visual consistency.
 2025-10-03: Modal polish: applied semantic typography tokens (title/subtitle/body line-heights) to Settings inner content; softened button micro‑interactions (removed scale, subtle translateY/shadow with 120ms ease).
 2025-10-03: Settings UI Customization: added Accent Color selector with 10 day/night palettes (split-circle swatches). Added store `accentTheme` with persistent override for accent variables; applied via injected CSS for dark/light.
+2025-10-06: Bootstrap micro-app scaffolds and AppProviders placeholder; added src/apps/* wrappers that set activeApp and render existing App (no routing wired yet) to enable gradual migration.
+2025-10-06: Wire router with lazy micro-app routes; update AppSwitcher and CommandPalette to navigate via URL; add SPA fallbacks in server for new routes.
+2025-10-06: Navigation sync: updated VoiceCommand, GlassDock, ModuleViewer, CalendarAISidebar, and PlannerCanvas to navigate via routes alongside setting store state.
+2025-10-06: Server modularization: extracted auth, university, services, and image routes into separate files in `server/routes` directory. Created `server/config/env.js` for URL and environment helpers.

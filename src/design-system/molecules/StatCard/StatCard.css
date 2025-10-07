@@ -1,0 +1,14 @@
+.ui-StatCard {
+  display: flex; gap: var(--space-3, .75rem);
+  padding: var(--space-3, .75rem);
+  border-radius: var(--radius-3, .75rem);
+  background: var(--color-surface-2, rgba(255,255,255,.04));
+  border: var(--border-width, .0625rem) solid var(--color-border, rgba(255,255,255,.12));
+}
+.ui-StatCard__icon { font-size: 1.25rem; }
+.ui-StatCard__value { font-weight: 800; font-size: 1.5rem; line-height: 1.1; }
+.ui-StatCard__label { color: var(--color-muted, #a7b0c0); }
+.ui-StatCard--info    { border-left: .25rem solid var(--color-info,   #7cc7ff); }
+.ui-StatCard--success { border-left: .25rem solid var(--color-success,#7bd88f); }
+.ui-StatCard--warn    { border-left: .25rem solid var(--color-warn,   #ffd166); }
+.ui-StatCard--danger  { border-left: .25rem solid var(--color-danger, #ff6b6b); }

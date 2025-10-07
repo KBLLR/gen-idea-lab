@@ -4,7 +4,7 @@
 */
 
 // Import the complete module data from JSON
-import moduleData from '../data/modules-code-university.json';
+import moduleData from '../pages/data/modules-code-university.json';
 
 // Add resources field to each module for compatibility
 const rawModules = moduleData.map(module => ({

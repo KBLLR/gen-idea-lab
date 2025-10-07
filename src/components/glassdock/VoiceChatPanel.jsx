@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 import React from 'react';
-import '../../styles/components/glass-dock.css';
+import '../glassdock/glass-dock.css';
 
 export default function VoiceChatPanel({
   connected,

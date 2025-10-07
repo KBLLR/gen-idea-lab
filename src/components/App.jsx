@@ -4,69 +4,64 @@
 */
 import c from 'clsx'
 import { useEffect, useState } from 'react'
-import { selectModule, checkAuthStatus } from '../lib/actions'
-import useStore from '../lib/store'
+import { Outlet } from 'react-router-dom'
+import { LeftPaneProvider, LeftPane, RightPaneProvider, RightPane, useLeftPaneNode, useRightPaneNode } from '@shared/lib/layoutSlots'
+import { selectModule } from "@shared/lib/actions/ideaLabActions.js";
+import { checkAuthStatus } from "@shared/lib/actions/authActions.js";
+import useStore from '@store'
 import WelcomeScreen from './WelcomeScreen.jsx'
-import LoginForm from './LoginForm.jsx'
-import SettingsModal from './SettingsModal.jsx'
-import AppSwitcher from './AppSwitcher.jsx'
-import ModeSelector from './ModeSelector.jsx'
-import BoothViewer from './BoothViewer.jsx'
-import UserBar from './UserBar.jsx'
-import ModuleAgentsChat from './ModuleAgentsChat.jsx'
-import ArchivaDashboard from './ArchivaDashboard.jsx'
-import ArchivaSidebar from './ArchivaSidebar.jsx'
-import ArchivaEntryForm from './ArchivaEntryForm.jsx'
-import WorkflowsList from './WorkflowsList.jsx'
-import WorkflowEditor from './WorkflowEditor.jsx'
-import ModuleViewer from './ModuleViewer.jsx'
+import { LoginForm } from '@ui';
+import SettingsModal from './modals/SettingsModal.jsx'
+import SystemInfoModal from './modals/SystemInfoModal.jsx'
+import CommandPalette from './modals/CommandPalette.jsx'
+import GlassDock from './glassdock/GlassDock.jsx'
+import UserBar from './ui/organisms/UserBar.jsx'
+import ModuleViewer from '@apps/ideaLab/components/ModuleViewer.jsx'
+import AppSwitcher from './headers/AppSwitcher.jsx'
+import ChatApp from '../apps/chat/index.jsx';
 
-import PlannerSidebar from './PlannerSidebar.jsx'
-import PlannerCanvas from './PlannerCanvas.jsx'
-import CalendarAI from './CalendarAI.jsx'
-import CalendarAISidebar from './CalendarAISidebar.jsx'
-import EmpathyLab from './EmpathyLab.jsx'
-import EmpathyLabSidebar from './EmpathyLabSidebar.jsx'
-import GestureLab from './GestureLab.jsx'
-import GestureLabSidebar from './GestureLabSidebar.jsx'
-import GlassDock from './GlassDock.jsx'
-import SystemInfoModal from './SystemInfoModal.jsx'
-import CommandPalette from './CommandPalette.jsx'
-import { personalities } from '../lib/assistant/personalities'
-import { modulesByDiscipline } from '../lib/modules'
-import '../styles/components/command-palette.css'
-
-import Chat from './Chat.jsx';
-import ChatSidebar from './ChatSidebar.jsx';
-import ModuleKnowledgeSection from './ModuleKnowledgeSection.jsx';
-import ModuleSelector from './ModuleSelector.jsx';
+const BYPASS = import.meta.env.VITE_AUTH_BYPASS === '1';
+import IdeaLabApp from '../apps/ideaLab/index.jsx';
+import ImageBoothApp from '../apps/imageBooth/index.jsx';
+import ArchivaApp from '../apps/archiva/index.jsx';
+import WorkflowsApp from '../apps/workflows/index.jsx';
+import PlannerApp from '../apps/planner/index.jsx';
+import CalendarAIApp from '../apps/calendarAI/index.jsx';
+import EmpathyLabApp from '../apps/empathyLab/index.jsx';
+import GestureLabApp from '../apps/gestureLab/index.jsx';
 
 export default function App() {
-  const isWelcomeScreenOpen = useStore.use.isWelcomeScreenOpen()
-  const activeApp = useStore.use.activeApp()
-  const theme = useStore.use.theme()
-  const activeModuleId = useStore.use.activeModuleId();
-  
-  const showKnowledgeSection = useStore.use.showKnowledgeSection();
-  const activeEntryId = useStore.use.activeEntryId();
-  const isAuthenticated = useStore.use.isAuthenticated();
-  const isCheckingAuth = useStore.use.isCheckingAuth();
-  const isSettingsOpen = useStore.use.isSettingsOpen();
-  const isSystemInfoOpen = useStore.use.isSystemInfoOpen();
-  const setIsSystemInfoOpen = useStore.use.actions().setIsSystemInfoOpen;
-  const rightColumnWidth = useStore.use.rightColumnWidth();
-  const setRightColumnWidth = useStore.use.actions().setRightColumnWidth;
-  const leftColumnWidth = useStore.use.leftColumnWidth();
-  const setLeftColumnWidth = useStore.use.actions().setLeftColumnWidth;
-  const setIsLiveVoiceChatOpen = useStore.use.actions().setIsLiveVoiceChatOpen;
-  const isLiveVoiceChatOpen = useStore.use.isLiveVoiceChatOpen();
+const isWelcomeScreenOpen = useStore(s => s.isWelcomeScreenOpen)
+const activeApp = useStore(s => s.activeApp)
+const theme = useStore(s => s.theme)
+const activeModuleId = useStore(s => s.activeModuleId)
+
+
+const showKnowledgeSection = useStore(s => s.showKnowledgeSection)
+const activeEntryId = useStore(s => s.activeEntryId)
+const isAuthenticated = useStore(s => s.isAuthenticated)
+const isCheckingAuth = useStore(s => s.isCheckingAuth)
+const isSettingsOpen = useStore(s => s.isSettingsOpen)
+const isSystemInfoOpen = useStore(s => s.isSystemInfoOpen)
+const setIsSystemInfoOpen = useStore(s => s.actions?.setIsSystemInfoOpen)
+const rightColumnWidth = useStore(s => s.rightColumnWidth)
+const setRightColumnWidth = useStore(s => s.actions?.setRightColumnWidth)
+const leftColumnWidth = useStore(s => s.leftColumnWidth)
+const setLeftColumnWidth = useStore(s => s.actions?.setLeftColumnWidth)
+const setIsLiveVoiceChatOpen = useStore(s => s.actions?.setIsLiveVoiceChatOpen)
+const isLiveVoiceChatOpen = useStore(s => s.isLiveVoiceChatOpen)
+const setUser = useStore(s => s.actions?.setUser)
 
   // Command Palette state
   const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
 
   useEffect(() => {
+    if (BYPASS && setUser) {
+      setUser({ id: 'dev', email: 'dev@code.berlin', name: 'Dev User', roles: ['dev'], provider: 'bypass' });
+      return;
+    }
     checkAuthStatus();
-  }, []);
+  }, [setUser]);
 
   // Keyboard shortcuts
   useEffect(() => {
@@ -156,23 +151,24 @@ export default function App() {
 
   const renderLeftColumnContent = () => {
     switch (activeApp) {
-case 'chat':
-        return <ChatSidebar />;
+      case 'chat':
+        return <ChatApp />;
       case 'ideaLab':
-        return <ModuleSelector />;      case 'imageBooth':
-        return <ModeSelector />;
+        return <IdeaLabApp />;
+      case 'imageBooth':
+        return <ImageBoothApp />;
       case 'archiva':
-        return <ArchivaSidebar />;
+        return <ArchivaApp />;
       case 'workflows':
-        return <WorkflowsList />;
+        return <WorkflowsApp />;
       case 'planner':
-        return <PlannerSidebar />;
+        return <PlannerApp />;
       case 'calendarAI':
-        return <CalendarAISidebar />;
+        return <CalendarAIApp />;
       case 'empathyLab':
-        return <EmpathyLabSidebar />;
+        return <EmpathyLabApp />;
       case 'gestureLab':
-        return <GestureLabSidebar />;
+        return <GestureLabApp />;
       default:
         return null;
     }
@@ -181,23 +177,23 @@ case 'chat':
   const renderRightColumnContent = () => {
     switch (activeApp) {
       case 'chat':
-        return <Chat />;
+        return <ChatApp />;
       case 'ideaLab':
-        return showKnowledgeSection ? <ModuleKnowledgeSection moduleId={activeModuleId} /> : null;
+        return <IdeaLabApp />;
       case 'imageBooth':
-        return <BoothViewer />;
+        return <ImageBoothApp />;
       case 'archiva':
-        return activeEntryId ? <ArchivaEntryForm /> : <ArchivaDashboard />;
+        return <ArchivaApp />;
       case 'workflows':
-        return <WorkflowEditor />;
+        return <WorkflowsApp />;
       case 'planner':
-        return <PlannerCanvas />;
+        return <PlannerApp />;
       case 'calendarAI':
-        return <CalendarAI />;
+        return <CalendarAIApp />;
       case 'empathyLab':
-        return <EmpathyLab />;
+        return <EmpathyLabApp />;
       case 'gestureLab':
-        return <GestureLab />;
+        return <GestureLabApp />;
       default:
         return null;
     }
@@ -213,8 +209,8 @@ case 'chat':
     );
   }
 
-  // Show login form if not authenticated
-  if (!isAuthenticated) {
+  // Show login form if not authenticated (but not in bypass mode)
+  if (!BYPASS && !isAuthenticated) {
     return (
       <div data-theme={theme}>
         <LoginForm />
@@ -223,63 +219,82 @@ case 'chat':
   }
 
   const hasModuleSelected = activeApp === 'ideaLab' && activeModuleId;
-  const isThreeColumnLayout = (activeApp === 'ideaLab' && hasModuleSelected && showKnowledgeSection) || activeApp === 'chat';
 
-  return (
-    <main data-theme={theme} className={c({
-      'three-column': isThreeColumnLayout
-    })}>
-      {isWelcomeScreenOpen && <WelcomeScreen onStart={handleStart} />}
-      
-      {isSettingsOpen && <SettingsModal />}
-      {isSystemInfoOpen && <SystemInfoModal isOpen={isSystemInfoOpen} onClose={() => setIsSystemInfoOpen(false)} />}
-      <CommandPalette isOpen={isCommandPaletteOpen} onClose={() => setIsCommandPaletteOpen(false)} />
-      <GlassDock />
+  const LayoutBody = () => {
+    const leftPaneNode = useLeftPaneNode();
+    const rightPaneNode = useRightPaneNode();
+    const isThreeColumnLayout = Boolean(rightPaneNode);
+    return (
+      <main data-theme={theme} className={c({
+        'three-column': isThreeColumnLayout
+      })}>
+        {isWelcomeScreenOpen && <WelcomeScreen onStart={handleStart} />}
+        
+        {isSettingsOpen && <SettingsModal />}
+        {isSystemInfoOpen && <SystemInfoModal isOpen={isSystemInfoOpen} onClose={() => setIsSystemInfoOpen(false)} />}
+        <CommandPalette isOpen={isCommandPaletteOpen} onClose={() => setIsCommandPaletteOpen(false)} />
+        <GlassDock />
 
-      <div 
-        className="left-column"
-        style={{ width: `${leftColumnWidth}px` }}
-      >
-        <AppSwitcher />
-        <div className="left-column-content">
-          {renderLeftColumnContent()}
-        </div>
-        <UserBar />
+      {leftPaneNode ? (
+        <>
+          <div 
+            className="left-column"
+            style={{ width: `${leftColumnWidth}px` }}
+          >
+            <AppSwitcher />
+            <div className="left-column-content">
+              <LeftPane />
+            </div>
+            <UserBar />
+          </div>
+
+          {/* Left column resizer */}
+          <div 
+            className="left-column-resizer"
+            onMouseDown={handleLeftResizerMouseDown}
+            role="separator"
+            aria-orientation="vertical"
+            title="Drag to resize left panel"
+          />
+        </>
+      ) : (
+        <>
+          <AppSwitcher />
+          <UserBar />
+        </>
+      )}
+
+      <div className="middle-column">
+        <Outlet />
       </div>
 
-      {/* Left column resizer */}
-      <div 
-        className="left-column-resizer"
-        onMouseDown={handleLeftResizerMouseDown}
-        role="separator"
-        aria-orientation="vertical"
-        title="Drag to resize left panel"
-      />
+      {rightPaneNode ? (
+        <>
+          <div
+            className="column-resizer"
+            onMouseDown={handleResizerMouseDown}
+            role="separator"
+            aria-orientation="vertical"
+            title="Drag to resize"
+          />
 
-      {hasModuleSelected && (
-        <div className="middle-column">
-          <ModuleViewer />
-        </div>
-      )}
+          <div
+            className="right-column"
+            style={{ width: `${rightColumnWidth}px` }}
+          >
+            <RightPane />
+          </div>
+        </>
+      ) : null}
+      </main>
+    );
+  };
 
-      {isThreeColumnLayout && (
-        <div
-          className="column-resizer"
-          onMouseDown={handleResizerMouseDown}
-          role="separator"
-          aria-orientation="vertical"
-          title="Drag to resize"
-        />
-      )}
-
-      {(activeApp !== 'ideaLab' || showKnowledgeSection) && (
-        <div
-          className="right-column"
-          style={isThreeColumnLayout ? { width: `${rightColumnWidth}px` } : {}}
-        >
-          {renderRightColumnContent()}
-        </div>
-      )}
-    </main>
+  return (
+    <LeftPaneProvider>
+      <RightPaneProvider>
+        <LayoutBody />
+      </RightPaneProvider>
+    </LeftPaneProvider>
   )
 }

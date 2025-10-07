@@ -50,12 +50,18 @@ jest.unstable_mockModule('../src/lib/logger.js', () => ({
   }
 }));
 
-const serverModule = await import('../server.js');
-const { app, geminiBootstrap } = serverModule;
+import createImageRouter from '../server/routes/image.js';
+import express from 'express';
+import cookieParser from 'cookie-parser';
 
-geminiBootstrap.initializeGeminiAPI = jest.fn().mockResolvedValue();
+const app = express();
+app.use(cookieParser());
+app.use(express.json());
+const connections = {};
 const geminiClient = { models: { generateContent: jest.fn() } };
-geminiBootstrap.setClient(geminiClient);
+const geminiBootstrap = { getClient: () => geminiClient, initializeGeminiAPI: jest.fn().mockResolvedValue(), setClient: jest.fn() };
+const imageRouter = createImageRouter({ getUserConnections: () => connections, geminiBootstrap });
+app.use('/api/image', imageRouter);
 
 const originalFetch = global.fetch;
 
@@ -119,11 +125,7 @@ describe('POST /api/image/generate', () => {
     const user = nextUser();
     verifyJWTMock.mockImplementation(() => user);
 
-    await request(app)
-      .post('/api/services/openai/connect')
-      .set('Cookie', ['auth_token=test'])
-      .send({ apiKey: 'sk-test' })
-      .expect(200);
+    connections.openai = { apiKey: 'sk-test' };
 
     global.fetch.mockResolvedValueOnce({
       ok: true,
@@ -152,11 +154,7 @@ describe('POST /api/image/generate', () => {
     const user = nextUser();
     verifyJWTMock.mockImplementation(() => user);
 
-    await request(app)
-      .post('/api/services/drawthings/connect')
-      .set('Cookie', ['auth_token=test'])
-      .send({ url: 'http://127.0.0.1:5678', transport: 'http' })
-      .expect(200);
+    connections.drawthings = { url: 'http://127.0.0.1:5678', transport: 'http' };
 
     global.fetch.mockResolvedValueOnce({
       ok: true,
@@ -184,11 +182,8 @@ describe('POST /api/image/generate', () => {
     const user = nextUser();
     verifyJWTMock.mockImplementation(() => user);
 
-    await request(app)
-      .post('/api/services/openai/connect')
-      .set('Cookie', ['auth_token=test'])
-      .send({ apiKey: 'sk-test' })
-      .expect(200);
+    // Set OpenAI connection directly (avoid mounting services router in this isolated test)
+    connections.openai = { apiKey: 'sk-test' };
 
     global.fetch.mockResolvedValueOnce({
       ok: false,

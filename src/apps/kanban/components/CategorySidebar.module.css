@@ -1,0 +1,16 @@
+/* CategorySidebar - CSS Modules with tokens */
+.root {
+  display: grid;
+  gap: var(--space-3, 12px);
+  align-content: start;
+  overflow: auto;
+}
+.headerTitle { display: inline-flex; gap: var(--space-2, 8px); align-items: center; }
+.badge {
+  font-size: 0.85em;
+  padding: 2px 8px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  opacity: 0.9;
+}
+.list { display: grid; gap: var(--space-2, 8px); }

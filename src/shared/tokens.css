@@ -1,0 +1,26 @@
+/*
+  Shared tokens build (single source of truth)
+  Loaded by @ui/tokens/index.css and Storybook.
+*/
+:root,
+.theme-light {
+  /* Example color tokens */
+  --color-bg: #0b0f12;
+  --color-fg: #e6e9ef;
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --radius-sm: 6px;
+  --radius-md: 10px;
+}
+
+.theme-dark {
+  --color-bg: #0b0f12;
+  --color-fg: #e6e9ef;
+}
+
+html, body {
+  background: var(--color-bg);
+  color: var(--color-fg);
+}

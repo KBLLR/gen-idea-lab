@@ -1,0 +1,43 @@
+{
+  "root": true,
+  "env": {
+    "browser": true,
+    "es2021": true
+  },
+  "extends": [
+    "eslint:recommended",
+    "plugin:react/recommended"
+  ],
+  "parserOptions": {
+    "ecmaFeatures": {
+      "jsx": true
+    },
+    "ecmaVersion": 2021,
+    "sourceType": "module"
+  },
+  "plugins": ["react"],
+  "rules": {
+    "no-restricted-imports": [
+      "error",
+      {
+        "paths": [
+          { "name": "src/components/ui", "message": "Use @ui (design-system) instead of src/components/ui." },
+          { "name": "../components/ui", "message": "Use @ui (design-system) instead of src/components/ui." },
+          { "name": "../../components/ui", "message": "Use @ui (design-system) instead of src/components/ui." }
+        ],
+        "patterns": [
+          {
+            "group": ["src/components/ui/*", "../components/ui/*", "../../components/ui/*"],
+            "message": "Use @ui (design-system) instead of src/components/ui/*.",
+            "caseSensitive": false
+          },
+          {
+            "group": ["**/../lib/*", "**/../hooks/*", "src/lib/*", "src/hooks/*"],
+            "message": "Do not import from legacy lib/hooks. Use @shared, @hooks, or other aliases.",
+            "caseSensitive": false
+          }
+        ]
+      }
+    ]
+  }
+}

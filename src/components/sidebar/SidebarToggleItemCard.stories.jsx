@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import SidebarToggleItemCard from './SidebarToggleItemCard.jsx';
+import SidebarToggleItemCard from '@components/ui/molecules/SidebarToggleItemCard.jsx';
 
 export default {
   title: 'Sidebar/ItemCardToggle',

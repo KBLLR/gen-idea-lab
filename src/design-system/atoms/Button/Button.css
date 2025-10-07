@@ -1,0 +1,56 @@
+/*
+  Design System Button styles
+  BEM-lite: .ui-Button, modifiers, and elements
+*/
+.ui-Button {
+  --_bg: transparent;
+  --_fg: var(--color-fg, #e6e9ef);
+  --_bd: rgba(255,255,255,0.15);
+  --_pad-y: var(--space-2, 0.5rem);
+  --_pad-x: var(--space-3, 0.75rem);
+  --_radius: var(--radius-sm, 0.375rem);
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2, 0.5rem);
+  padding: var(--_pad-y) var(--_pad-x);
+  border-radius: var(--_radius);
+  background: var(--_bg);
+  color: var(--_fg);
+  border: var(--border-width, 0.0625rem) solid var(--_bd);
+  cursor: pointer;
+  line-height: 1.2;
+}
+.ui-Button:hover { filter: brightness(1.08); }
+.ui-Button[aria-disabled="true"] { opacity: 0.6; cursor: not-allowed; pointer-events: none; }
+
+/* Focus ring */
+.ui-Button:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 var(--focus-ring-width, 0.125rem) var(--focus-ring-color, rgba(37,99,235,0.6));
+}
+@media (prefers-reduced-motion: reduce) {
+  .ui-Button { transition: none; }
+}
+
+/* Variants */
+.ui-Button--primary {
+  --_bg: var(--accent-bg, #2563eb);
+  --_fg: #fff;
+  --_bd: var(--accent-bg, #2563eb);
+}
+.ui-Button--secondary {
+  --_bg: rgba(255,255,255,0.05);
+}
+.ui-Button--ghost {
+  --_bg: transparent;
+  --_bd: transparent;
+}
+
+/* Sizes */
+.ui-Button--sm { --_pad-y: var(--space-1, 0.25rem); --_pad-x: var(--space-2, 0.5rem); font-size: 0.875rem; }
+.ui-Button--md { font-size: 1rem; }
+.ui-Button--lg { --_pad-y: var(--space-3, 0.75rem); --_pad-x: var(--space-4, 1rem); font-size: 1.0625rem; }
+
+/* Elements */
+.ui-Button__icon { display: inline-flex; align-items: center; }
+.ui-Button__label { display: inline-block; }

@@ -9,6 +9,25 @@ export default defineConfig(({ command, mode }) => {
   return {
     plugins: [react()],
 
+    esbuild: {
+      loader: 'jsx',
+      include: /src\/.*\.(js|jsx)$/,
+      exclude: /server\/|tests\/|node_modules/,
+    },
+
+    resolve: {
+      alias: {
+        '@ui': '/src/design-system',
+        '@shared': '/src/shared',
+        '@routes': '/src/shared/lib/routes.js',
+        '@store': '/src/shared/lib/store.js',
+        '@apps': '/src/apps',
+        '@components': '/src/components',
+        '@hooks': '/src/hooks',
+        '@shared/hooks': '/src/shared/hooks'
+      }
+    },
+
     // Define global constants available in client code
     define: {
       __DEV__: isDev,
@@ -86,6 +105,7 @@ export default defineConfig(({ command, mode }) => {
 
     // Optimizations
     optimizeDeps: {
+      entries: ['index.html', 'src/main.jsx'],
       include: [
         'react',
         'react-dom',

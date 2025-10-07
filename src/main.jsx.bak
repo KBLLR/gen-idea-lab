@@ -1,0 +1,48 @@
+import React, { Suspense, lazy } from 'react'
+import { createRoot } from 'react-dom/client'
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
+import AppProviders from './AppProviders.jsx'
+import './index.css'
+
+// Lazy micro-app wrappers (set activeApp on mount, render existing App)
+const ChatApp = lazy(() => import('./apps/chat/index.jsx'))
+const IdeaLabApp = lazy(() => import('./apps/ideaLab/index.jsx'))
+const ImageBoothApp = lazy(() => import('./apps/imageBooth/index.jsx'))
+const ArchivaApp = lazy(() => import('./apps/archiva/index.jsx'))
+const PlannerApp = lazy(() => import('./apps/planner/index.jsx'))
+const WorkflowsApp = lazy(() => import('./apps/workflows/index.jsx'))
+const CalendarAIApp = lazy(() => import('./apps/calendarAI/index.jsx'))
+const EmpathyLabApp = lazy(() => import('./apps/empathyLab/index.jsx'))
+const GestureLabApp = lazy(() => import('./apps/gestureLab/index.jsx'))
+
+// Keep current behavior at root by defaulting to IdeaLab
+createRoot(document.getElementById('root')).render(
+  <BrowserRouter>
+    <AppProviders>
+      <Suspense fallback={<div>Loading…</div>}>
+        <Routes>
+          {/* Non-breaking default: route to IdeaLab wrapper */}
+          <Route path="/" element={<IdeaLabApp />} />
+
+          {/* Explicit micro-app mounts */}
+          <Route path="/chat/*" element={<ChatApp />} />
+          <Route path="/idealab/*" element={<IdeaLabApp />} />
+          <Route path="/idea-lab/*" element={<IdeaLabApp />} />
+          <Route path="/imagebooth/*" element={<ImageBoothApp />} />
+          <Route path="/archiva/*" element={<ArchivaApp />} />
+          <Route path="/planner/*" element={<PlannerApp />} />
+          <Route path="/workflows/*" element={<WorkflowsApp />} />
+          {/* Support both forms for consistency */}
+          <Route path="/calendarai/*" element={<CalendarAIApp />} />
+          <Route path="/calendar-ai/*" element={<CalendarAIApp />} />
+          <Route path="/empathylab/*" element={<EmpathyLabApp />} />
+          <Route path="/gesturelab/*" element={<GestureLabApp />} />
+
+          {/* Legacy aliases → redirect to new paths if needed */}
+          <Route path="/apps/:slug/*" element={<Navigate to="/" replace />} />
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+      </Suspense>
+    </AppProviders>
+  </BrowserRouter>
+)
