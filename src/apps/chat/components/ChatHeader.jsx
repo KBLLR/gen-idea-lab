@@ -1,11 +1,11 @@
 import React from 'react';
 import BoothHeader from '@components/ui/organisms/BoothHeader.jsx';
-import { Button } from '@ui';
+import { ActionBar } from '@ui';
 import { useNavigate } from 'react-router-dom';
 import { getAppPath } from '@routes';
 import useStore from '@store';
 
-const ChatHeader = () => {
+const ChatHeader = ({ showGallery, onToggleGallery }) => {
   const navigate = useNavigate();
   const setActiveApp = useStore.use.actions().setActiveApp;
 
@@ -29,6 +29,11 @@ const ChatHeader = () => {
     navigate(getAppPath('mindmap'), { state: { markdown: md } });
   };
 
+  const handleNewChat = () => {
+    // TODO: Implement new chat logic
+    console.log('New chat clicked');
+  };
+
   return (
     <BoothHeader
       icon="chat"
@@ -36,11 +41,17 @@ const ChatHeader = () => {
       typeText="Multi-agent chat"
       status="ready"
       description="Chat with module assistants, orchestrator, and other agents."
+      align="top"
       actions={
-        <div style={{ display: 'flex', gap: 8 }}>
-          <Button variant="secondary" onClick={goMindmap} aria-label="Generate mind map">Mind Map</Button>
-          <Button>New Chat</Button>
-        </div>
+        <ActionBar
+          separators
+          items={[
+            { id: 'new', icon: 'add', label: 'New Chat', onClick: handleNewChat },
+            { id: 'mindmap', icon: 'account_tree', label: 'Generate Mind Map', onClick: goMindmap },
+            { id: 'gallery', icon: 'collections', label: showGallery ? 'Hide Gallery' : 'Show Gallery', onClick: onToggleGallery },
+          ]}
+          aria-label="Chat actions"
+        />
       }
     />
   );

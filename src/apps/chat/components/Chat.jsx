@@ -1,18 +1,12 @@
 import React from 'react';
 import ChatHeader from './ChatHeader';
-import AssistantsBar from './AssistantsBar';
 import ModuleAgentsChat from './ModuleAgentsChat';
-import Gallery from './Gallery';
-import useStore from '@store';
-import c from 'clsx';
 
-const Chat = () => {
-  const showGallery = useStore.use.showGallery();
-
+const Chat = ({ showGallery, onToggleGallery }) => {
   return (
-    <div className={c('chat-app-container', { 'three-column': showGallery })}>
+    <div className="chat-app-container">
       <div className="chat-main-content">
-        <ChatHeader />
+        <ChatHeader showGallery={showGallery} onToggleGallery={onToggleGallery} />
         <ModuleAgentsChat />
       </div>
     </div>
