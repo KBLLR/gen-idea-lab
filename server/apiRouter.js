@@ -12,7 +12,7 @@ import createHumeRouter from './routes/hume.js';
 import createServicesConfigAndNotionRouter from './routes/servicesConfig.js';
 import createModulesRouter from './routes/modules.js';
 import createWorkflowDocsRouter from './routes/workflowDocs.js';
-import createServicesRouter from './routes/services.js';
+import createOAuthRouter from './oauth/index.js';
 import createProxyRouter from './routes/proxy.js';
 
 // API router composer. Builds and returns an Express Router with all feature routers mounted.
@@ -29,8 +29,8 @@ export default function createApiRouter({ getUserConnections, geminiBootstrap, g
   // Auth
   router.use('/auth', auth);
 
-  // Services (OAuth/API-key endpoints)
-  router.use('/services', createServicesRouter({ getUserConnections }));
+  // Services (OAuth/API-key endpoints) - NEW MODULAR SYSTEM
+  router.use('/services', createOAuthRouter({ getUserConnections }));
 
   // Services config + Notion webhooks
   router.use('/', createServicesConfigAndNotionRouter());
