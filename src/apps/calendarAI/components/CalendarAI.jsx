@@ -7,6 +7,8 @@ import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react'
 import useStore from '@store';
 import BoothHeader from '@components/ui/organisms/BoothHeader.jsx';
 import { ActionBar } from '@ui';
+import CalendarRightPane from './CalendarRightPane.jsx';
+import { useRightPane } from '@shared/lib/layoutSlots';
 import '../styles/calendar-ai.css';
 
 const CalendarAI = () => {
@@ -22,6 +24,8 @@ const CalendarAI = () => {
   const [dayFilter, setDayFilter] = useState(null); // 'YYYY-MM-DD'
   const [calendarPopover, setCalendarPopover] = useState({ open: false, x: 0, y: 0, date: null });
   const [newEventDefaultWhen, setNewEventDefaultWhen] = useState('');
+  const [showDataPane, setShowDataPane] = useState(false);
+  const { setRightPane, clearRightPane } = useRightPane();
 
   const fileInputRef = useRef(null);
   const icsInputRef = useRef(null);
@@ -304,6 +308,12 @@ const CalendarAI = () => {
     setShowSettings(false);
   }, []);
 
+  // Toggle right pane when showDataPane changes
+  useEffect(() => {
+    if (showDataPane) setRightPane(<CalendarRightPane />);
+    else clearRightPane();
+  }, [showDataPane, setRightPane, clearRightPane]);
+
   // Keyboard shortcuts
   useEffect(() => {
     const handleKeyDown = (e) => {
@@ -362,51 +372,18 @@ const CalendarAI = () => {
         }
         align="top"
         actions={(
-          <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', gap: '12px' }}>
-            <button
-              className="secondary"
-              onClick={() => icsInputRef.current?.click()}
-              title="Import from Calendar (.ics)"
-            >
-              <span className="icon">upload</span>
-              Import .ics
-            </button>
-            <button
-              className="booth-generate-btn primary"
-              onClick={() => { setEditingEvent(null); setShowEventModal(true); }}
-              title="New Event (N)"
-            >
-              <span className="icon">add</span>
-              New Event
-            </button>
-            {isCalendarConnected ? (
-              <button
-                className="secondary"
-                onClick={fetchGoogleCalendarEvents}
-                title="Sync Google Calendar"
-              >
-                <span className="icon">sync</span>
-                Sync Calendar
-              </button>
-            ) : (
-              <button
-                className="secondary"
-                onClick={() => setShowHelp(true)}
-                title="Shortcuts (?)"
-              >
-                <span className="icon">help</span>
-                Shortcuts
-              </button>
-            )}
-            <button
-              className="secondary"
-              onClick={() => setShowSettings(true)}
-              title="Open Settings (⌘,)"
-            >
-              <span className="icon">settings</span>
-              Settings
-            </button>
-          </div>
+          <ActionBar
+            separators
+            items={[
+              { id: 'new', icon: 'add', label: 'New Event', onClick: () => { setEditingEvent(null); setShowEventModal(true); } },
+              { id: 'import', icon: 'upload', label: 'Import .ics', onClick: () => icsInputRef.current?.click() },
+              isCalendarConnected
+                ? { id: 'sync', icon: 'sync', label: 'Sync Calendar', onClick: fetchGoogleCalendarEvents }
+                : { id: 'connect', icon: 'link', label: 'Connect Google', onClick: () => setShowSettings(true) },
+              { id: 'toggle-pane', icon: 'view_sidebar', label: showDataPane ? 'Hide Data Pane' : 'Show Data Pane', onClick: () => setShowDataPane(v => !v) },
+            ]}
+            aria-label="Calendar actions"
+          />
         )}
       >
         {selectedEvent ? (
@@ -678,8 +655,8 @@ const EventModal = ({ event, defaultWhen, onSave, onDelete, onClose, fileInputRe
   }, [name, when, where, imageFile]);
 
   return (
-    <div className="modal show" onClick={(e) => e.target.className.includes('modal') && onClose()}>
-      <div className="card">
+    <div className="ui-ModalWizard__overlay" onClick={(e) => e.currentTarget === e.target && onClose()}>
+      <div className="ui-ModalWizard" role="dialog" aria-modal="true">
         <h2>{event ? 'Edit Event' : 'Create Event'}</h2>
 
         <div className="row">
@@ -746,8 +723,8 @@ const EventModal = ({ event, defaultWhen, onSave, onDelete, onClose, fileInputRe
 
 // Settings Modal Component
 const SettingsModal = ({ imageFit, onImageFitChange, onExportJSON, onImportJSON, onReset, onClose }) => (
-  <div className="modal show" onClick={(e) => e.target.className.includes('modal') && onClose()}>
-    <div className="card">
+  <div className="ui-ModalWizard__overlay" onClick={(e) => e.currentTarget === e.target && onClose()}>
+    <div className="ui-ModalWizard" role="dialog" aria-modal="true">
       <h2>Settings</h2>
 
       <div className="row">
@@ -789,8 +766,8 @@ const SettingsModal = ({ imageFit, onImageFitChange, onExportJSON, onImportJSON,
 
 // Help Modal Component
 const HelpModal = ({ onClose }) => (
-  <div id="help" className="show" onClick={(e) => e.target.id === 'help' && onClose()}>
-    <div className="panel">
+  <div className="ui-ModalWizard__overlay" onClick={(e) => e.currentTarget === e.target && onClose()}>
+    <div className="ui-ModalWizard" role="dialog" aria-modal="true">
       <h3>Keyboard Shortcuts</h3>
       <div className="grid">
         <div>

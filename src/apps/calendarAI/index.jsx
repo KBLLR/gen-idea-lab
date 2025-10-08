@@ -13,7 +13,7 @@ export default function CalendarAIApp() {
   useEffect(() => {
     setActiveApp('calendarAI');
     setLeftPane(<CalendarAISidebar />);
-    setRightPane(<CalendarRightPane />);
+    // Do NOT set right pane by default. Users can toggle it from header actions.
     return () => { clearLeftPane(); clearRightPane(); };
   }, [setActiveApp]);
 
