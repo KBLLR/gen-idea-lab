@@ -23,9 +23,9 @@ export const SidebarItemCard = forwardRef(function SidebarItemCard(
     return (
       <a {...common} href={href}>
         {icon ? (
-          <span className="ui-SidebarItemCard__icon" aria-hidden>
-            {icon}
-          </span>
+          typeof icon === 'string' && /^[a-z_]+$/i.test(icon)
+            ? <span className="ui-SidebarItemCard__icon icon" aria-hidden>{icon}</span>
+            : <span className="ui-SidebarItemCard__icon" aria-hidden>{icon}</span>
         ) : null}
         <span className="ui-SidebarItemCard__label">{label}</span>
         {badge ? <span className="ui-SidebarItemCard__badge">{badge}</span> : null}
@@ -36,9 +36,9 @@ export const SidebarItemCard = forwardRef(function SidebarItemCard(
   return (
     <Comp {...common} type={Comp === 'button' ? 'button' : undefined}>
       {icon ? (
-        <span className="ui-SidebarItemCard__icon" aria-hidden>
-          {icon}
-        </span>
+        typeof icon === 'string' && /^[a-z_]+$/i.test(icon)
+          ? <span className="ui-SidebarItemCard__icon icon" aria-hidden>{icon}</span>
+          : <span className="ui-SidebarItemCard__icon" aria-hidden>{icon}</span>
       ) : null}
       <span className="ui-SidebarItemCard__label">{label}</span>
       {badge ? <span className="ui-SidebarItemCard__badge">{badge}</span> : null}

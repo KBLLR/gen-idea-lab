@@ -22,7 +22,11 @@ export default function BoothHeader({
     <div className="booth-header" style={{ alignItems }}>
       <div className="booth-title">
         <h1>
-          {icon ? <span className="icon" aria-hidden="true">{icon}</span> : null}
+          {icon ? (
+            typeof icon === 'string' && /^[a-z_]+$/i.test(icon)
+              ? <span className="icon" aria-hidden="true">{icon}</span>
+              : <span aria-hidden="true">{icon}</span>
+          ) : null}
           {title}
         </h1>
         {(typeText || status) && (

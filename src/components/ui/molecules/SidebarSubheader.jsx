@@ -5,7 +5,11 @@ export default function SidebarSubheader({ icon, title, subtitle, rightSlot, act
   return (
     <div className="sidebar-subheader" role="heading" aria-level={3}>
       <div className="left">
-        {icon && <span className="icon" aria-hidden="true">{icon}</span>}
+        {icon && (
+          typeof icon === 'string' && /^[a-z_]+$/i.test(icon)
+            ? <span className="icon" aria-hidden="true">{icon}</span>
+            : <span aria-hidden="true">{icon}</span>
+        )}
         <div className="text">
           <div className="title">{title}</div>
           {subtitle && <div className="subtitle">{subtitle}</div>}

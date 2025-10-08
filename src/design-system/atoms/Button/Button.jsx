@@ -21,7 +21,11 @@ const Button = forwardRef(function Button(
       {...(aria ? { 'aria-label': aria } : {})}
       {...domRest}
     >
-      {icon ? <span className="ui-Button__icon" aria-hidden>{icon}</span> : null}
+      {icon ? (
+        typeof icon === 'string' && /^[a-z_]+$/i.test(icon)
+          ? <span className="ui-Button__icon icon" aria-hidden>{icon}</span>
+          : <span className="ui-Button__icon" aria-hidden>{icon}</span>
+      ) : null}
       <span className="ui-Button__label">{children}</span>
     </Comp>
   )

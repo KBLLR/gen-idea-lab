@@ -1,12 +1,13 @@
 # Changelog
 
-2025-10-08: Sidebar template adoption (ImageBooth, Workflows), ActionBar icon-only with separators, Settings z-index fix, workflow auto-title model
+2025-10-08: Sidebar template adoption (ImageBooth, Workflows), ActionBar icon-only with separators, Settings z-index fix, workflow auto-title model, icon rendering fixes
 - Apps: ImageBooth (VizGenBooth) moved ModeSelector to left pane via useLeftPane; center shows BoothViewer; ensured cleanup on unmount.
 - Apps: Workflows moved WorkflowsList to left pane; center shows WorkflowEditor; removed right pane usage; ensured cleanup on unmount.
 - Design System: ActionBar now defaults to icon-only and supports separators between icons; preserved accessibility via aria-label/title; updated SidebarSubheader and GlassDockToolbar to use separators.
 - Settings: fixed modal vs app-switch overlay layering by setting .settings-overlay z-index to 1100 and .appswitch-overlay to 900.
 - Store: added setWorkflowAutoTitleModel action and exposed it via actions proxy; resolved SettingsModal "setWorkflowAutoTitleModel is not a function" error.
 - Validation: confirmed SettingsModal mounts once in App with Suspense and opens via actions.openSettings.
+- Icons: fixed cases where Material icon names rendered as text — added conditional 'icon' font class to Button, SidebarItemCard, StatCard, ActionBar, BoothHeader, and SidebarSubheader; strengthened global .icon font settings (variation axes) while avoiding overriding emoji.
 
 2025-10-08: DS ModalWizard, slot template, Chat slot refactor, alias hardening, onboarding, voice/assistant shims
 - Design System: added ModalWizard organism with focus trap, ESC/overlay close, overlay click to close, pagination dots; exported from @ui; added story at design-system/organisms/ModalWizard/ModalWizard.stories.jsx.

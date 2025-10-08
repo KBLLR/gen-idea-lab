@@ -167,9 +167,14 @@ button .icon {
 }
 
 .icon {
-    font-family: Material Symbols Outlined;
-    font-weight: 300;
+    font-family: 'Material Symbols Outlined', 'Material Icons', sans-serif;
+    font-weight: 400;
     line-height: 1;
+    font-variation-settings:
+      'FILL' 0,
+      'wght' 400,
+      'GRAD' 0,
+      'opsz' 24;
 }
 
 main {

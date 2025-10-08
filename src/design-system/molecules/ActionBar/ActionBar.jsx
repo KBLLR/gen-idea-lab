@@ -52,7 +52,11 @@ export const ActionBar = forwardRef(function ActionBar(
             onAction?.(it.id ?? it.key ?? i, e);
           }}
         >
-{it.icon ? <span className="ui-ActionBar__icon icon" aria-hidden>{it.icon}</span> : null}
+          {it.icon ? (
+            typeof it.icon === 'string' && /^[a-z_]+$/i.test(it.icon)
+              ? <span className="ui-ActionBar__icon icon" aria-hidden>{it.icon}</span>
+              : <span className="ui-ActionBar__icon" aria-hidden>{it.icon}</span>
+          ) : null}
           {variant !== 'icon' && it.label ? (
             <span className="ui-ActionBar__label">{it.label}</span>
           ) : null}

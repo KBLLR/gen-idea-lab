@@ -8,7 +8,11 @@ export const StatCard = forwardRef(function StatCard(
 ) {
   return (
     <Comp ref={ref} className={clsx('ui-StatCard', `ui-StatCard--${tone}`, className)} {...rest}>
-      {icon ? <div className="ui-StatCard__icon" aria-hidden>{icon}</div> : null}
+      {icon ? (
+        typeof icon === 'string' && /^[a-z_]+$/i.test(icon)
+          ? <div className="ui-StatCard__icon icon" aria-hidden>{icon}</div>
+          : <div className="ui-StatCard__icon" aria-hidden>{icon}</div>
+      ) : null}
       <div className="ui-StatCard__main">
         <div className="ui-StatCard__value" aria-live="polite">{value}</div>
         <div className="ui-StatCard__label">{label}</div>
