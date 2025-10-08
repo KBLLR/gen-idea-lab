@@ -56,6 +56,7 @@ export default function GestureLab() {
     const [error, setError] = useState(null);
     const [currentGesture, setCurrentGesture] = useState('none');
     const [canvasSize, setCanvasSize] = useState({ width: 1920, height: 1080 });
+    const dprRef = useRef(typeof window !== 'undefined' ? Math.max(1, Math.min(3, window.devicePixelRatio || 1)) : 1);
     const mode = useStore.use.gestureLab().mode;
     const setGestureLabMode = useStore.use.actions().setGestureLabMode;
     const [selectedGesture, setSelectedGesture] = useState('pinch'); // 'pinch' | 'fist' | 'twoHands' | 'openPalm'
@@ -99,9 +100,34 @@ export default function GestureLab() {
         const getContainer = () => {
             return strokeCanvasRef.current?.parentElement || stellarContainerRef.current || document.body;
         };
+        const applyCanvasDPR = () => {
+            const sCanvas = strokeCanvasRef.current;
+            const lCanvas = landmarkCanvasRef.current;
+            const dpr = typeof window !== 'undefined' ? Math.max(1, Math.min(3, window.devicePixelRatio || 1)) : 1;
+            dprRef.current = dpr;
+            const { width: wCss, height: hCss } = getContainer();
+            if (!wCss || !hCss) return;
+            if (sCanvas) {
+                sCanvas.width = Math.floor(wCss * dpr);
+                sCanvas.height = Math.floor(hCss * dpr);
+                sCanvas.style.width = '100%';
+                sCanvas.style.height = '100%';
+                const sctx = sCanvas.getContext('2d');
+                if (sctx) { sctx.setTransform(dpr, 0, 0, dpr, 0, 0); }
+            }
+            if (lCanvas) {
+                lCanvas.width = Math.floor(wCss * dpr);
+                lCanvas.height = Math.floor(hCss * dpr);
+                lCanvas.style.width = '100%';
+                lCanvas.style.height = '100%';
+                const lctx = lCanvas.getContext('2d');
+                if (lctx) { lctx.setTransform(dpr, 0, 0, dpr, 0, 0); }
+            }
+        };
         const updateSize = () => {
             const container = getContainer();
             setCanvasSize({ width: container.clientWidth, height: container.clientHeight });
+            applyCanvasDPR();
         };
         updateSize();
         window.addEventListener('resize', updateSize);
@@ -178,8 +204,8 @@ export default function GestureLab() {
 
                             // Whiteboard mode gestures
                             if (mode === 'whiteboard') {
-                                const width = lCanvas.width;
-                                const height = lCanvas.height;
+                                const width = canvasSize.width;
+                                const height = canvasSize.height;
                                 const thumbTip = landmarks[THUMB_TIP_INDEX];
                                 const indexTip = landmarks[INDEX_FINGER_TIP_INDEX];
                                 if (thumbTip && indexTip) {
@@ -289,8 +315,8 @@ export default function GestureLab() {
                         
                         // UI Control mode gestures
                         if (mode === 'ui') {
-                            const width = lCanvas.width;
-                            const height = lCanvas.height;
+                            const width = canvasSize.width;
+                            const height = canvasSize.height;
                             const thumbTip = result.landmarks[0]?.[THUMB_TIP_INDEX];
                             const indexTip = result.landmarks[0]?.[INDEX_FINGER_TIP_INDEX];
                             if (thumbTip && indexTip) {
@@ -439,9 +465,10 @@ export default function GestureLab() {
     }, []);
 
     const handleClear = () => {
-        const ctx = strokeCanvasRef.current?.getContext('2d');
+                        const ctx = strokeCanvasRef.current?.getContext('2d');
         if (ctx) {
-            ctx.clearRect(0, 0, canvasSize.width, canvasSize.height);
+            const dpr = dprRef.current || 1;
+            ctx.clearRect(0, 0, (canvasSize.width * dpr), (canvasSize.height * dpr));
         }
         prevX = 0; prevY = 0;
     };
@@ -681,8 +708,6 @@ export default function GestureLab() {
                     {/* Stroke canvas (drawing) */}
                     <canvas
                         ref={strokeCanvasRef}
-                        width={canvasSize.width}
-                        height={canvasSize.height}
                         style={{
                             position: 'absolute',
                             inset: 0,
@@ -694,8 +719,6 @@ export default function GestureLab() {
                     {/* Landmark canvas (hand overlay) */}
                     <canvas
                         ref={landmarkCanvasRef}
-                        width={canvasSize.width}
-                        height={canvasSize.height}
                         style={{
                             position: 'absolute',
                             inset: 0,
@@ -794,8 +817,6 @@ export default function GestureLab() {
                   {/* Landmarks overlay for UI */}
                   <canvas
                     ref={landmarkCanvasRef}
-                    width={canvasSize.width}
-                    height={canvasSize.height}
                     style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', pointerEvents: 'none', zIndex: 10, transform: 'rotateY(180deg)' }}
                   />
                   {/* Hidden video element: required for MediaPipe */}
@@ -810,8 +831,6 @@ export default function GestureLab() {
                   {/* Landmark overlay above 3D */}
                   <canvas
                     ref={landmarkCanvasRef}
-                    width={canvasSize.width}
-                    height={canvasSize.height}
                     style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', pointerEvents: 'none', zIndex: 10 }}
                   />
                   {/* Rank overlay (top-left) */}
