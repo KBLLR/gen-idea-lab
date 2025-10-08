@@ -1,0 +1,14 @@
+.ui-ModalWizard__overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); display: grid; place-items: center; z-index: 1000; }
+.ui-ModalWizard { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-6, 24px); background: var(--color-surface-2, #111); color: var(--color-fg, #fff); border: 1px solid var(--color-border, rgba(255,255,255,.12)); border-radius: var(--radius-3, 12px); padding: var(--space-6, 24px); width: min(920px, 92vw); max-height: 86vh; }
+.ui-ModalWizard__left { display: flex; flex-direction: column; gap: var(--space-4, 16px); }
+.ui-ModalWizard__right { display: grid; place-items: center; background: var(--color-surface-1, #0a0a0a); border-radius: var(--radius-2, 8px); min-height: 320px; }
+.ui-ModalWizard__right img { max-width: 100%; height: auto; border-radius: var(--radius-2, 8px); }
+.ui-ModalWizard__title { margin: 0; font-size: 22px; }
+.ui-ModalWizard__desc { margin: 0; color: var(--color-muted, #bbb); }
+.ui-ModalWizard__actions { display: flex; align-items: center; gap: var(--space-3, 12px); }
+.ui-ModalWizard__btn { background: var(--color-surface-3, #1a1a1a); color: var(--color-fg, #fff); border: 1px solid var(--color-border, rgba(255,255,255,.12)); border-radius: 8px; padding: 6px 10px; cursor: pointer; }
+.ui-ModalWizard__btn:disabled { opacity: .5; cursor: not-allowed; }
+.ui-ModalWizard__close { margin-left: auto; }
+.ui-ModalWizard__dots { display: inline-flex; gap: 6px; }
+.ui-ModalWizard__dot { width: 8px; height: 8px; border-radius: 999px; background: rgba(255,255,255,.15); }
+.ui-ModalWizard__dot.is-active { background: var(--color-accent, #1e88e5); }

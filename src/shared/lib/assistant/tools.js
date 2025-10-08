@@ -1,2 +1,3 @@
-// Shim: expose executeAssistantTool under shared assistant path
-export { executeAssistantTool } from '@apps/ideaLab/lib/assistantTools.js';
+// Compatibility shim for dynamic import from voiceFunctionManager
+// Re-export assistant tools implementation from IdeaLab
+export { executeAssistantTool } from '@apps/ideaLab/lib/assistant/tools.js';

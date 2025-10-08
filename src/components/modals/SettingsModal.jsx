@@ -894,9 +894,10 @@ function WorkflowAutoTitleModelSelector() {
     );
 }
 
-export default function SettingsModal() {
+export default function SettingsModal({ isOpen: controlledIsOpen, onClose }) {
     // Always call hooks at the top level
-    const isSettingsOpen = useStore.use.isSettingsOpen();
+    const storeIsOpen = useStore.use.isSettingsOpen?.() ?? false;
+    const isSettingsOpen = (typeof controlledIsOpen === 'boolean') ? controlledIsOpen : storeIsOpen;
     const user = useStore.use.user();
     const setIsSettingsOpen = useStore((state) => state.actions.setIsSettingsOpen);
     const fetchConnectedServices = useStore((state) => state.actions.fetchConnectedServices);
@@ -913,7 +914,10 @@ export default function SettingsModal() {
 
     if (!isSettingsOpen) return null;
 
-    const closeSettings = () => setIsSettingsOpen(false);
+    const closeSettings = () => {
+        if (typeof onClose === 'function') return onClose();
+        return setIsSettingsOpen(false);
+    };
 
     return (
         <div className="settings-overlay" onClick={closeSettings}>

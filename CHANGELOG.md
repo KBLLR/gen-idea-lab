@@ -1,5 +1,25 @@
 # Changelog
 
+2025-10-08: Sidebar template adoption (ImageBooth, Workflows), ActionBar icon-only with separators, Settings z-index fix, workflow auto-title model
+- Apps: ImageBooth (VizGenBooth) moved ModeSelector to left pane via useLeftPane; center shows BoothViewer; ensured cleanup on unmount.
+- Apps: Workflows moved WorkflowsList to left pane; center shows WorkflowEditor; removed right pane usage; ensured cleanup on unmount.
+- Design System: ActionBar now defaults to icon-only and supports separators between icons; preserved accessibility via aria-label/title; updated SidebarSubheader and GlassDockToolbar to use separators.
+- Settings: fixed modal vs app-switch overlay layering by setting .settings-overlay z-index to 1100 and .appswitch-overlay to 900.
+- Store: added setWorkflowAutoTitleModel action and exposed it via actions proxy; resolved SettingsModal "setWorkflowAutoTitleModel is not a function" error.
+- Validation: confirmed SettingsModal mounts once in App with Suspense and opens via actions.openSettings.
+
+2025-10-08: DS ModalWizard, slot template, Chat slot refactor, alias hardening, onboarding, voice/assistant shims
+- Design System: added ModalWizard organism with focus trap, ESC/overlay close, overlay click to close, pagination dots; exported from @ui; added story at design-system/organisms/ModalWizard/ModalWizard.stories.jsx.
+- DS ActionBar hygiene: strip non-DOM props (e.g., showDividers) before spreading; accept ariaLabel but render aria-label; stable item keys (id || key || index fallback).
+- Alias hardening: Vite resolve.alias moved to absolute FS paths using fileURLToPath+URL; Storybook aliases mirrored; @ui and @shared resolve reliably in dev and Storybook.
+- Shims: added @shared/lib/modules.js (re-exports @apps/ideaLab/lib/modules.js) to fix Planner imports; added @shared/lib/assistant/tools.js to satisfy dynamic import in voiceFunctionManager; ensured HumeTest uses top-level @ui exports (no deep @ui/* paths).
+- App slots: Chat converted to slot composition — left pane = AssistantsBar via useLeftPane; right pane = TabbedRightPane (Gallery | Notes); center = ChatHeader + ModuleAgentsChat. Removed inline sidebars.
+- Micro-app template: scaffolded src/apps/_template with index.jsx, components/_TemplateSidebar.jsx, components/_Template.jsx, styles/_template.css and story for quick previews.
+- Onboarding: replaced old WelcomeScreen with @ui ModalWizard; added settings.dismissedOnboarding in store (persisted); wired into App.jsx; respects ESC and overlay close.
+- App Switcher overlay: updated copy to “Loading {App}…” and show last two log lines; ready for fade-in/fade-out polish.
+- Planner: fixed @shared/lib/modules.js resolution (shim) to unblock @shared imports in PlannerCanvas.
+- General hygiene: guarded dev logs behind __DEV__; fixed key warnings in EmpathyLab StatsRow and CalendarAI mini-calendar days; standardized ARIA casing; filtered prop leakage in SidebarToggleItemCard and ActionBar.
+
 2025-10-07: Dev auth bypass, pane layout, store refactor, ActionBar cleanup, COOP headers
 - Dev-only auth bypass: added .env.development.local with VITE_AUTH_BYPASS=1 and AUTH_BYPASS=1. Client seeds a dev user and skips the login gate when VITE_AUTH_BYPASS=1. Server requireAuth/optionalAuth short-circuit when AUTH_BYPASS=1 and inject a dev user.
 - Pane providers and conditional layout: wrapped app with LeftPaneProvider and RightPaneProvider. Render left/right columns only when pane content exists. Added useLeftPaneNode/useRightPaneNode hooks to detect pane presence safely.

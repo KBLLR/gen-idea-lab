@@ -31,6 +31,11 @@
             "message": "Use @ui (design-system) instead of src/components/ui/*.",
             "caseSensitive": false
           },
+{
+            "group": ["@ui/**"],
+            "message": "Import DS components from the @ui barrel only (no deep paths).",
+            "caseSensitive": false
+          },
           {
             "group": ["**/../lib/*", "**/../hooks/*", "src/lib/*", "src/hooks/*"],
             "message": "Do not import from legacy lib/hooks. Use @shared, @hooks, or other aliases.",

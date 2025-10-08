@@ -37,7 +37,9 @@ export { selectMode, setInputImage, generateImage } from './actions/imageBoothAc
 export { setActiveEntryId, clearActiveEntryId, createArchivaEntry, createNewArchivaEntry, updateArchivaEntry, updateArchivaEntryStatus } from './actions/archivaActions';
 export { checkAuthStatus, loginWithGoogle, logout } from './actions/authActions';
 
-export { toggleSettings } from './actions/settingsActions';
+export { openSettings, closeSettings, toggleSettings } from './actions/settingsActions';
+import { openSettings, closeSettings, toggleSettings } from './actions/settingsActions.js';
+export const actions = { openSettings, closeSettings, toggleSettings };
 
 export { connectService, disconnectService, loadConnectedServices } from './actions/serviceConnectionActions';
 

@@ -19,7 +19,7 @@ export const CountdownAsActionBar = () => (
   <div style={{ padding: 24 }}>
     <div className="countdown">
       <ActionBar
-        ariaLabel="Event countdown"
+        aria-label="Event countdown"
         items={[
           { key: 'd', title: 'Days', content: <Chip label="Days" value={3} /> },
           { key: 'h', title: 'Hours', content: <Chip label="Hours" value={'12'} /> },

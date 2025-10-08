@@ -3,22 +3,24 @@
  * SPDX-License-Identifier: Apache-2.0
 */
 import c from 'clsx'
-import { useEffect, useState } from 'react'
+import React, { Suspense, useEffect, useState } from 'react'
 import { Outlet } from 'react-router-dom'
 import { LeftPaneProvider, LeftPane, RightPaneProvider, RightPane, useLeftPaneNode, useRightPaneNode } from '@shared/lib/layoutSlots'
 import { selectModule } from "@shared/lib/actions/ideaLabActions.js";
 import { checkAuthStatus } from "@shared/lib/actions/authActions.js";
 import useStore from '@store'
-import WelcomeScreen from './WelcomeScreen.jsx'
-import { LoginForm } from '@ui';
+import { LoginForm, ModalWizard } from '@ui';
 import SettingsModal from './modals/SettingsModal.jsx'
 import SystemInfoModal from './modals/SystemInfoModal.jsx'
 import CommandPalette from './modals/CommandPalette.jsx'
 import GlassDock from './glassdock/GlassDock.jsx'
 import UserBar from './ui/organisms/UserBar.jsx'
+import AppSwitchOverlay from './ui/organisms/AppSwitchOverlay.jsx'
 import ModuleViewer from '@apps/ideaLab/components/ModuleViewer.jsx'
 import AppSwitcher from './headers/AppSwitcher.jsx'
+import { actions as globalActions } from '@shared/lib/actions.js'
 import ChatApp from '../apps/chat/index.jsx';
+import { debug as logDebug } from '@shared/lib/log.js';
 
 const BYPASS = import.meta.env.VITE_AUTH_BYPASS === '1';
 import IdeaLabApp from '../apps/ideaLab/index.jsx';
@@ -69,9 +71,10 @@ const setUser = useStore(s => s.actions?.setUser)
       // Cmd+K (or Ctrl+K on Windows) for Command Palette
       if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
         e.preventDefault();
-        console.log('[App] Cmd+K pressed - toggling command palette');
+        // Dev-only log for palette toggle
+        logDebug('[App] Cmd+K pressed - toggling command palette');
         setIsCommandPaletteOpen(prev => {
-          console.log('[App] Command palette now:', !prev);
+          logDebug('[App] Command palette now:', !prev);
           return !prev;
         });
       }
@@ -88,6 +91,7 @@ const setUser = useStore(s => s.actions?.setUser)
   }, [isLiveVoiceChatOpen, setIsLiveVoiceChatOpen]);
 
   const handleStart = () => {
+    // kept for backward compat; ModalWizard will call setDismissedOnboarding
     useStore.setState({ isWelcomeScreenOpen: false });
   }
 
@@ -148,6 +152,21 @@ const setUser = useStore(s => s.actions?.setUser)
     window.addEventListener('mousemove', handleMouseMove);
     window.addEventListener('mouseup', handleMouseUp);
   };
+
+  // Finish app switch after first paint of new app
+  const appTransition = useStore.use.appTransition();
+  const finishAppSwitch = useStore.use.actions().finishAppSwitch;
+  useEffect(() => {
+    if (appTransition?.status === 'starting') {
+      const cb = () => finishAppSwitch?.();
+      if (typeof window !== 'undefined' && 'requestIdleCallback' in window) {
+        // @ts-ignore
+        window.requestIdleCallback(cb, { timeout: 200 });
+      } else {
+        setTimeout(cb, 0);
+      }
+    }
+  }, [activeApp, appTransition?.status, finishAppSwitch]);
 
   const renderLeftColumnContent = () => {
     switch (activeApp) {
@@ -228,12 +247,35 @@ const setUser = useStore(s => s.actions?.setUser)
       <main data-theme={theme} className={c({
         'three-column': isThreeColumnLayout
       })}>
-        {isWelcomeScreenOpen && <WelcomeScreen onStart={handleStart} />}
-        
-        {isSettingsOpen && <SettingsModal />}
+        {/* Onboarding Wizard */}
+        {(() => {
+          const dismissed = useStore.use.settings()?.dismissedOnboarding;
+          const setDismissedOnboarding = useStore.use.actions().setDismissedOnboarding;
+          const steps = [
+            { title: 'Welcome to GenBooth', desc: 'Your Generative Research Suite.' },
+            { title: 'Micro‑apps', desc: 'Focused tools for chat, planning, documentation, voice, and more.' },
+            { title: 'Privacy', desc: 'Local-first UI; connect services when you need them.' },
+            { title: "What's new", desc: 'Slot-based layout, @ui design system, and improved app switching.' },
+          ];
+          return (
+            <ModalWizard
+              isOpen={!dismissed}
+              steps={steps}
+              onClose={() => setDismissedOnboarding(true)}
+            />
+          );
+        })()}
+
+        <React.Suspense fallback={null}>
+          <SettingsModal
+            isOpen={!!(useStore((s) => s.ui?.isSettingsOpen) ?? isSettingsOpen)}
+            onClose={globalActions.closeSettings}
+          />
+        </React.Suspense>
         {isSystemInfoOpen && <SystemInfoModal isOpen={isSystemInfoOpen} onClose={() => setIsSystemInfoOpen(false)} />}
         <CommandPalette isOpen={isCommandPaletteOpen} onClose={() => setIsCommandPaletteOpen(false)} />
         <GlassDock />
+        <AppSwitchOverlay />
 
       {leftPaneNode ? (
         <>

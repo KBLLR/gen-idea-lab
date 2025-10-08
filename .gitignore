@@ -25,6 +25,7 @@ dist-ssr
 
 .env
 .env.bak
+.env.local.bak
 
 # gemini-cli settings
 .gemini/

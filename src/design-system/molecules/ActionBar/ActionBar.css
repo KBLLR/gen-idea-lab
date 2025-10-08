@@ -23,5 +23,17 @@
 }
 .ui-ActionBar__btn:disabled { opacity: .45; }
 
+/* Add separators between adjacent buttons when enabled */
+.ui-ActionBar--separators .ui-ActionBar__btn { position: relative; }
+.ui-ActionBar--separators .ui-ActionBar__btn + .ui-ActionBar__btn::before {
+  content: '';
+  position: absolute;
+  left: -6px; /* approx half of default gap */
+  top: 22%;
+  bottom: 22%;
+  width: 1px;
+  background: var(--color-border, rgba(255,255,255,.18));
+}
+
 /* Icon-only variant hides labels but keeps accessible aria-labels */
 .ui-ActionBar--icon .ui-ActionBar__label { display: none; }

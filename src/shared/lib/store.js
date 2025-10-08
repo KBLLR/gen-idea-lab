@@ -8,14 +8,14 @@ import { immer } from 'zustand/middleware/immer'
 import { persist } from 'zustand/middleware'
 import { createSelectorFunctions } from 'auto-zustand-selectors-hook'
 
-import { modules } from './modules'
+import { modules } from '@apps/ideaLab/lib/modules.js'
 import { getResourceManager } from './services/ResourceManager.js'
 import { DEFAULT_IMAGE_MODELS, ALWAYS_AVAILABLE_IMAGE_PROVIDERS } from './imageProviders.js'
 import tasksSlice from './tasksSlice.js'
 
-import { createAuthSlice } from '../../apps/shared/state/authSlice.js'
-import { createServiceConnectionSlice } from '../../apps/shared/state/serviceConnectionSlice.js'
-import { createAppSwitchingSlice } from '../../apps/shared/state/appSwitchingSlice.js'
+import { createAuthSlice } from '@shared/state/authSlice.js'
+import { createServiceConnectionSlice } from '@shared/state/serviceConnectionSlice.js'
+import { createAppSwitchingSlice } from '@shared/state/appSwitchingSlice.js'
 
 const IMAGE_PROVIDER_PRIORITY = ['gemini', 'openai', 'drawthings']
 
@@ -62,6 +62,11 @@ const storeImpl = (set, get) => ({
   isSettingsOpen: false,
   isSystemInfoOpen: false,
   isLiveVoiceChatOpen: false,
+
+  // Consolidated UI flags
+  ui: {
+    isSettingsOpen: false,
+  },
   theme: 'dark',
   accentTheme: 'azure',
 
@@ -110,6 +115,11 @@ const storeImpl = (set, get) => ({
   rightColumnWidth: 520,
   leftColumnWidth: 280,
 
+  // Settings / Onboarding
+  settings: {
+    dismissedOnboarding: false,
+  },
+
   // Image Booth state
   activeModeKey: 'banana',
   inputImage: null,
@@ -135,6 +145,7 @@ const storeImpl = (set, get) => ({
       dataExport: false,
     },
     selectedHumeConfigId: null,
+    humeConfig: null,
     isModelLoaded: false,
     overlays: {
       drawBoxes: true,
@@ -154,6 +165,22 @@ const storeImpl = (set, get) => ({
     },
   },
 
+  // EmpathyLab actions (top-level)
+  setEmpathyLabConsent: (key, value) => set((state) => {
+    if (!state.empathyLab?.consent) state.empathyLab.consent = {};
+    state.empathyLab.consent[key] = !!value;
+  }),
+  setEmpathyLabConsentAll: (obj) => set((state) => {
+    state.empathyLab.consent = { ...(state.empathyLab.consent || {}), ...obj };
+  }),
+  setEmpathyLabOverlay: (key, value) => set((state) => {
+    if (!state.empathyLab?.overlays) state.empathyLab.overlays = {};
+    state.empathyLab.overlays[key] = !!value;
+  }),
+  setEmpathyLabHumeConfig: (config) => set((state) => {
+    state.empathyLab.humeConfig = config;
+  }),
+
   // Assistant Chat Settings
   assistantModel: 'gemini-2.5-flash',
   assistantSystemPrompts: {},
@@ -172,12 +199,23 @@ const storeImpl = (set, get) => ({
   // Orchestrator Saved Sessions
   orchestratorSavedSessions: [],
 
+  // App transition UX
+  appTransition: { status: 'idle', from: null, to: null, logs: [] },
+
   // Resource Management State
   resourceManager: getResourceManager(),
   loadedResourceIds: new Set(),
   moduleKnowledgeCache: {},
   showKnowledgeSection: false,
   showGallery: false,
+
+  // Settings modal controls (top-level for selectors and actions proxy)
+  setIsSettingsOpen: (open) => set((state) => { state.isSettingsOpen = !!open; state.ui = state.ui || {}; state.ui.isSettingsOpen = !!open; }),
+  openSettings: () => set((state) => { state.ui = state.ui || {}; state.ui.isSettingsOpen = true; state.isSettingsOpen = true; }),
+  closeSettings: () => set((state) => { state.ui = state.ui || {}; state.ui.isSettingsOpen = false; state.isSettingsOpen = false; }),
+  toggleSettings: () => set((state) => { state.ui = state.ui || {}; const next = !state.ui.isSettingsOpen; state.ui.isSettingsOpen = next; state.isSettingsOpen = next; }),
+  // Workflow settings
+  setWorkflowAutoTitleModel: (modelId) => set((state) => { state.workflowAutoTitleModel = modelId || ''; }),
 
   // Toggle right knowledge pane
   setShowKnowledgeSection: (show) => set((state) => { state.showKnowledgeSection = !!show }),
@@ -199,8 +237,16 @@ const storeImpl = (set, get) => ({
     connectService: (...args) => get().connectService(...args),
     disconnectService: (...args) => get().disconnectService(...args),
 
+    // Service config/connection fetchers
+    fetchConnectedServices: (...args) => get().fetchConnectedServices(...args),
+    fetchServiceConfig: (...args) => get().fetchServiceConfig(...args),
+
     // App switching
     setActiveApp: (...args) => get().setActiveApp(...args),
+    startAppSwitch: (from, to) => set((s) => { s.appTransition = { status: 'starting', from, to, logs: [] }; }),
+    logStep: (m) => set((s) => { s.appTransition.logs.push({ t: Date.now(), m }); }),
+    finishAppSwitch: () => set((s) => { s.appTransition.status = 'ready'; }),
+    failAppSwitch: (e) => set((s) => { s.appTransition.status = 'error'; s.appTransition.error = String(e); }),
 
     // Local UI actions
     setIsOrchestratorOpen: (open) => set((state) => {
@@ -208,13 +254,29 @@ const storeImpl = (set, get) => ({
       if (open) state.activeApp = 'ideaLab'
     }),
     setIsSystemInfoOpen: (open) => set((state) => { state.isSystemInfoOpen = open }),
+
+    // Settings modal proxies
+    setIsSettingsOpen: (...args) => get().setIsSettingsOpen(...args),
+    openSettings: (...args) => get().openSettings(...args),
+    closeSettings: (...args) => get().closeSettings(...args),
+    toggleSettings: (...args) => get().toggleSettings(...args),
     setRightColumnWidth: (w) => set((state) => { state.rightColumnWidth = w }),
     setLeftColumnWidth: (w) => set((state) => { state.leftColumnWidth = w }),
     setIsLiveVoiceChatOpen: (open) => set((state) => { state.isLiveVoiceChatOpen = open }),
 
+    // Settings
+    setDismissedOnboarding: (val = true) => set((state) => { state.settings = state.settings || {}; state.settings.dismissedOnboarding = !!val; }),
+    setWorkflowAutoTitleModel: (...args) => get().setWorkflowAutoTitleModel(...args),
+
     // Knowledge pane
     toggleKnowledgeSection: (...args) => get().toggleKnowledgeSection(...args),
     setShowKnowledgeSection: (...args) => get().setShowKnowledgeSection(...args),
+
+    // EmpathyLab
+    setEmpathyLabConsent: (...args) => get().setEmpathyLabConsent(...args),
+    setEmpathyLabConsentAll: (...args) => get().setEmpathyLabConsentAll(...args),
+    setEmpathyLabOverlay: (...args) => get().setEmpathyLabOverlay(...args),
+    setEmpathyLabHumeConfig: (...args) => get().setEmpathyLabHumeConfig(...args),
 
     // Glass Dock
     setDockPosition: (...args) => get().setDockPosition(...args),
@@ -248,6 +310,7 @@ const baseStore = create(
         selectedWorkflow: state.selectedWorkflow,
         rightColumnWidth: state.rightColumnWidth,
         leftColumnWidth: state.leftColumnWidth,
+        settings: state.settings,
         plannerGraph: state.plannerGraph,
         customWorkflows: state.customWorkflows,
         showKnowledgeSection: state.showKnowledgeSection,

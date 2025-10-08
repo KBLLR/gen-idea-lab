@@ -199,9 +199,15 @@ export default function EmpathyLabSidebar() {
                 }
             };
 
-            console.log('[EmpathyLab] Creating Hume config:', payload);
+            if (typeof __DEV__ !== 'undefined' && __DEV__) {
+                // eslint-disable-next-line no-console
+                console.debug('[EmpathyLab] Creating Hume config:', payload);
+            }
             const result = await createHumeConfig(payload);
-            console.log('[EmpathyLab] Config created:', result);
+            if (typeof __DEV__ !== 'undefined' && __DEV__) {
+                // eslint-disable-next-line no-console
+                console.debug('[EmpathyLab] Config created:', result);
+            }
 
             const entry = {
                 id: result?.id || Date.now().toString(),

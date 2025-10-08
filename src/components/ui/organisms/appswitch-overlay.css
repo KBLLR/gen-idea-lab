@@ -1,0 +1,7 @@
+.appswitch-overlay { position: fixed; inset: 0; display: grid; place-items: center; background: color-mix(in oklab, black 30%, transparent); z-index: 900; pointer-events: all; opacity: 1; transition: opacity 150ms ease; }
+.appswitch-card { backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); background: rgba(20,20,24,.7); border: 1px solid rgba(255,255,255,.08); border-radius: 16px; padding: 16px 20px; width: min(560px, 92vw); color: #fff; }
+.spinner { width: 28px; height: 28px; border-radius: 50%; border: 3px solid rgba(255,255,255,.25); border-top-color: white; animation: spin 1s linear infinite; margin-bottom: 12px; }
+.copy h3 { margin: 0 0 6px 0; font-size: 16px; }
+.copy pre { margin: 0; font-size: 12px; opacity: .8; white-space: pre-wrap; }
+@keyframes spin { to { transform: rotate(360deg) } }
+@media (prefers-reduced-motion: reduce) { .appswitch-overlay { transition: none; } .spinner { animation: none; } }

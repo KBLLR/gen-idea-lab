@@ -3705,7 +3705,7 @@ main.workflows-layout .right-column {
     inset: 0;
     background-color: var(--bg-overlay);
     backdrop-filter: var(--backdrop-filter);
-    z-index: 1002;
+    z-index: 1100;
     display: flex;
     align-items: center;
     justify-content: center;

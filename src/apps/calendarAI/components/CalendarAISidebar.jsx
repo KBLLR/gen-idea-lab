@@ -196,9 +196,9 @@ const CalendarAISidebar = () => {
           </div>
 
           <div className="days-grid">
-            {calendarDays.map((dayInfo, i) => (
+            {calendarDays.map((dayInfo) => (
               <button
-                key={i}
+                key={dayInfo.date.toISOString()}
                 className={`day ${!dayInfo.isCurrentMonth ? 'other-month' : ''} ${isToday(dayInfo.date) ? 'today' : ''} ${hasEventOnDay(dayInfo.date) ? 'has-event' : ''}`}
                 onClick={(e) => {
                   const rect = e.currentTarget.getBoundingClientRect();

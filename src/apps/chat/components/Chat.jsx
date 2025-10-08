@@ -13,10 +13,8 @@ const Chat = () => {
     <div className={c('chat-app-container', { 'three-column': showGallery })}>
       <div className="chat-main-content">
         <ChatHeader />
-        <AssistantsBar />
         <ModuleAgentsChat />
       </div>
-      {showGallery && <Gallery />}
     </div>
   );
 };

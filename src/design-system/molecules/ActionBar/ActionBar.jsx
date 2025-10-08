@@ -3,11 +3,15 @@ import clsx from 'clsx';
 import './ActionBar.css';
 
 export const ActionBar = forwardRef(function ActionBar(
-  { as: Comp = 'div', items = [], size = 'md', variant = 'default', className, onAction, children, ...rest },
+  { as: Comp = 'div', items = [], size = 'md', variant = 'icon', separators = true, className, onAction, children, ariaLabel, ...rest },
   ref
 ) {
+  // Strip known non-DOM props to avoid leakage
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const { showDividers, ...domRest } = rest;
   const [index, setIndex] = useState(0);
   const btnRefs = useRef([]);
+  const withSeparators = typeof showDividers === 'boolean' ? showDividers : separators;
 
   useEffect(() => { btnRefs.current[index]?.focus?.(); }, [index]);
 
@@ -22,31 +26,36 @@ export const ActionBar = forwardRef(function ActionBar(
     if (e.key === 'End') setIndex(max);
   }
 
+  const label = domRest['aria-label'] || ariaLabel || 'Actions';
+
   return (
     <Comp
       ref={ref}
       role="toolbar"
-      aria-label="Actions"
-      className={clsx('ui-ActionBar', `ui-ActionBar--${size}`, `ui-ActionBar--${variant}`, className)}
+      aria-label={label}
+      className={clsx('ui-ActionBar', `ui-ActionBar--${size}`, `ui-ActionBar--${variant}`, { 'ui-ActionBar--separators': withSeparators }, className)}
       onKeyDown={onKeyDown}
-      {...rest}
+      {...domRest}
     >
       {items.map((it, i) => (
         <button
-          key={it.id}
-          ref={el => (btnRefs.current[i] = el)}
+          key={it.id ?? it.key ?? i}
+          ref={(el) => (btnRefs.current[i] = el)}
           type="button"
           className="ui-ActionBar__btn"
           title={it.tooltip || it.label}
           aria-label={it.label}
+          aria-pressed={typeof it.ariaPressed === 'boolean' ? it.ariaPressed : undefined}
           disabled={it.disabled}
           onClick={(e) => {
             it.onClick?.(e);
-            onAction?.(it.id, e);
+            onAction?.(it.id ?? it.key ?? i, e);
           }}
         >
-          {it.icon ? <span className="ui-ActionBar__icon" aria-hidden>{it.icon}</span> : null}
-          <span className="ui-ActionBar__label">{it.label}</span>
+{it.icon ? <span className="ui-ActionBar__icon icon" aria-hidden>{it.icon}</span> : null}
+          {variant !== 'icon' && it.label ? (
+            <span className="ui-ActionBar__label">{it.label}</span>
+          ) : null}
         </button>
       ))}
       {children /* escape hatch */}

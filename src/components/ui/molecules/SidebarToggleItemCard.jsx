@@ -32,7 +32,7 @@ export default function SidebarToggleItemCard({ icon, label, checked, onChange, 
         label={label}
         rightSlot={rightSlot}
         title={title}
-        {...rest}
+        {...Object.fromEntries(Object.entries(rest).filter(([k]) => k.startsWith('data-') || k.startsWith('aria-') || ['id','className','style','onMouseEnter','onMouseLeave','onMouseMove','onClick','onFocus','onBlur','tabIndex','title'].includes(k)))}
       />
       {!tooltip && description && (
         <div className="toggle-description" style={{ paddingLeft: '34px' }}>{description}</div>

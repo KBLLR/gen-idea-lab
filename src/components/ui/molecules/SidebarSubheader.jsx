@@ -12,7 +12,7 @@ export default function SidebarSubheader({ icon, title, subtitle, rightSlot, act
         </div>
       </div>
       {actions ? (
-<ActionBar items={actions.map(a => ({ id: a.key || a.title, label: a.title, icon: a.icon, tooltip: a.title, onClick: a.onClick }))} aria-label={`${title} actions`} variant="icon" />
+<ActionBar items={actions.map(a => ({ id: a.key || a.title, label: a.title, icon: a.icon, tooltip: a.title, onClick: a.onClick }))} aria-label={`${title} actions`} variant="icon" separators />
       ) : rightSlot}
     </div>
   );

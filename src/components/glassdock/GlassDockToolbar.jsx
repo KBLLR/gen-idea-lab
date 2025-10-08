@@ -50,7 +50,7 @@ export default function GlassDockToolbar({
     { key: 'settings', icon: 'settings', title: 'Settings', onClick: onOpenSettings }
   ];
 
-  return (
-    <ActionBar size="lg" variant="icon" items={items.map(it => ({ id: String(it.key), label: it.title, icon: it.icon, tooltip: it.title, onClick: it.onClick, disabled: it.disabled }))} aria-label="Dock actions" />
+return (
+    <ActionBar size="lg" variant="icon" separators items={items.map(it => ({ id: String(it.key), label: it.title, icon: it.icon, tooltip: it.title, onClick: it.onClick, disabled: it.disabled }))} aria-label="Dock actions" />
   );
 }

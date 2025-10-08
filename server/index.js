@@ -15,9 +15,12 @@ import { getUserConnections } from './lib/userConnections.js';
 import geminiBootstrap from './lib/geminiBootstrap.js';
 import { getDb } from '../src/shared/lib/db.js';
 
-// Load environment variables from .env and .env.local
+// Load environment variables from .env, .env.local, and .env.development.local (in dev)
 dotenv.config();
 dotenv.config({ path: '.env.local' });
+if (process.env.NODE_ENV !== 'production') {
+  dotenv.config({ path: '.env.development.local' });
+}
 
 const app = express();
 

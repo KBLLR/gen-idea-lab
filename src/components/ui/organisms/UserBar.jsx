@@ -3,14 +3,20 @@
  * SPDX-License-Identifier: Apache-2.0
 */
 import useStore from '@store';
-import { toggleTheme, logout } from '@shared/lib/actions';
+import { toggleTheme, logout, openSettings } from '@shared/lib/actions';
 
 export default function UserBar() {
     // Always call hooks at the top level - never conditionally
     const theme = useStore.use.theme();
     const user = useStore.use.user();
     const isAuthenticated = useStore.use.isAuthenticated();
-    const setIsSettingsOpen = useStore((state) => state.actions.setIsSettingsOpen);
+    const setIsSettingsOpen = useStore((state) => state.actions.setIsSettingsOpen); // legacy
+    const handleOpenSettings = () => {
+        try { openSettings(); } catch {
+            // fallback to legacy store action if direct action import fails
+            setIsSettingsOpen(true);
+        }
+    };
 
     const handleLogout = async () => {
         if (confirm('Are you sure you want to log out?')) {
@@ -47,7 +53,7 @@ export default function UserBar() {
                 <div className="user-actions">
                     <button
                         className="action-btn"
-                        onClick={handleSettingsClick}
+                        onClick={handleOpenSettings}
                         title="Settings"
                     >
                         <span className="icon">settings</span>

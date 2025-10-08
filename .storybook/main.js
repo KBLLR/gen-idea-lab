@@ -1,6 +1,8 @@
 // .storybook/main.js
 import { mergeConfig } from 'vite';
-import path from 'node:path';
+import { fileURLToPath, URL } from 'node:url';
+
+const r = (p) => fileURLToPath(new URL(p, import.meta.url));
 
 /** @type { import('@storybook/react-vite').StorybookConfig } */
 export default {
@@ -24,14 +26,13 @@ export default {
     },
     resolve: {
       alias: {
-        '@ui': '/src/design-system',
-        '@shared': '/src/shared',
-        '@routes': '/src/shared/lib/routes.js',
-        '@store': '/src/shared/lib/store.js',
-        '@apps': '/src/apps',
-        '@components': '/src/components',
-        '@hooks': '/src/hooks',
-        '@shared/hooks': '/src/shared/hooks',
+        '@ui': r('../src/design-system'),
+        '@shared': r('../src/shared'),
+        '@routes': r('../src/shared/lib/routes.js'),
+        '@store': r('../src/shared/lib/store.js'),
+        '@apps': r('../src/apps'),
+        '@components': r('../src/components'),
+        '@hooks': r('../src/shared/hooks'),
       },
     },
     esbuild: {

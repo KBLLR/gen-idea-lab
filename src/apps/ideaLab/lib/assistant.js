@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
 */
 import { personalities } from '@shared/lib/assistant/personalities.js';
-import { queryModule } from '../../../shared/lib/rag.js';
+import { queryModule } from '@shared/lib/rag.js';
 import { ASSISTANT_TOOLS, executeAssistantTool } from './assistantTools.js';
 
 /**

@@ -26,9 +26,9 @@ export default function StatsRow({ results, sessionDuration, dataPointsCount, fp
 
   return (
     <div className={`stats-row ${className}`}>
-      {stats.map((stat, index) => (
+      {stats.map((stat) => (
         <StatCard
-          key={index}
+          key={stat.label}
           icon={stat.icon}
           value={stat.value}
           label={stat.label}

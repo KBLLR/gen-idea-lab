@@ -173,8 +173,8 @@ function HumeChat() {
 
   const topEmotions = latestEmotions
     ? Object.entries(latestEmotions)
-        .sort((a, b) => b[1] - a[1])
-        .slice(0, 5)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 5)
     : [];
 
   return (
@@ -395,7 +395,7 @@ function HumeChat() {
         >
           <strong>💡 Tip:</strong> Try saying "I'm feeling anxious about my presentation" or
           "This is so exciting!" to see emotion detection in action.
-          <br/><br/>
+          <br /><br />
           <strong>🔍 Debug:</strong> Check the browser console (F12) for detailed connection logs and status updates.
         </div>
       )}
