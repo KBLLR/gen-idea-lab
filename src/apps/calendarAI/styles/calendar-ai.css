@@ -7,8 +7,17 @@
   position: relative;
   min-height: 100vh;
   width: 100%;
-  background: radial-gradient(1200px 800px at 70% -10%, #1b2030 0, #0f121a 45%, #0b0d13 100%) fixed, #0e0f13;
-  color: var(--color-text-primary);
+  /* Neutral app background; remove blue gradient */
+  background: var(--bg-main, #0e0f13);
+  color: var(--text-primary, #eaeef7);
+  /* Add top padding so header is not flush to the screen edge */
+  padding-top: var(--panel-padding-md, 16px);
+}
+
+/* Improve header horizontal gutters inside Calendar page */
+.calendar-ai .booth-header {
+  padding-left: var(--panel-padding-md, 16px);
+  padding-right: var(--panel-padding-md, 16px);
 }
 
 /* Calendar Grid */
@@ -198,18 +207,21 @@
 .calendar-ai-grid {
   position: relative;
   min-height: 100vh;
-  padding: var(--spacing-md);
+  /* Consistent inner gutters */
+  padding: var(--panel-padding-md, 16px);
   display: grid;
-  gap: calc(var(--spacing-md) * 1.5);
+  gap: var(--space-4, 16px);
   grid-auto-rows: 8px;
   grid-template-columns: repeat(auto-fill, minmax(min(360px, 100%), 1fr));
-  max-width: 100%;
-  width: min(100%, 100vw);
+  /* Constrain and center content */
+  max-width: 1200px;
+  margin: 0 auto;
+  width: 100%;
 }
 
 @media (min-width: 1200px) {
   .calendar-ai-grid {
-    gap: calc(var(--spacing-md) * 2);
+    gap: var(--space-5, 20px);
   }
 }
 
@@ -226,9 +238,9 @@
 .event-card {
   position: relative;
   overflow: hidden;
-  border-radius: var(--radius-xl);
-  border: 1px solid #23293a;
-  background: #0c0f16;
+  border-radius: var(--radius-xl, 16px);
+  border: 1px solid var(--glass-panel-border, #23293a);
+  background: var(--bg-panel, #0c0f16);
   box-shadow: 0 8px 30px rgba(0, 0, 0, 0.25);
   display: block;
   aspect-ratio: var(--ar, 4/3);
