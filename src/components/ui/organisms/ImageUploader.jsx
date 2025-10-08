@@ -25,7 +25,7 @@ export default function ImageUploader() {
     return (
         <div className="image-uploader" onDragOver={handleDragOver} onDrop={handleDrop}>
             <span className="icon">add_photo_alternate</span>
-            <h3>Upload a Portrait</h3>
+            <h3>Upload reference image</h3>
             <p>Drag & drop an image here, or click to select a file.</p>
             <input 
                 type="file" 

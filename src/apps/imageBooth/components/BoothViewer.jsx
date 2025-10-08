@@ -70,10 +70,6 @@ export default function BoothViewer() {
 
     const currentModelValue = imageModel ?? DEFAULT_IMAGE_MODELS[imageProvider] ?? '';
 
-    if (!inputImage) {
-        return <ImageUploader />;
-    }
-
     if (!modeDetails) {
         return (
             <div className="module-viewer-placeholder">
@@ -161,7 +157,7 @@ export default function BoothViewer() {
                           />
                         </FormField>
                     </div>
-                    <Button variant="primary" icon="auto_awesome" onClick={generateImage} disabled={isGenerating} style={{ alignSelf: 'center', minWidth: 200 }}>
+                    <Button variant="primary" icon="auto_awesome" onClick={generateImage} disabled={isGenerating || !inputImage} style={{ alignSelf: 'center', minWidth: 200 }}>
                       {isGenerating ? 'Generating...' : 'Generate'}
                     </Button>
                   </>
@@ -177,8 +173,10 @@ export default function BoothViewer() {
             <div className="booth-main">
                 {isGenerating && <LoadingSpinner />}
                 <div className="current-work">
-                    <Panel variant="input" title="Input Image" info="Source">
-                        <div
+                    {inputImage ? (
+                      <>
+                        <Panel variant="input" title="Input Image" info="Source">
+                          <div
                             className="image-content replaceable"
                             role="button"
                             tabIndex={0}
@@ -187,64 +185,74 @@ export default function BoothViewer() {
                             onKeyDown={handleKeyDown}
                             onDragOver={handleDragOver}
                             onDrop={handleDrop}
-                        >
+                          >
                             <img src={inputImage} alt="Input" />
                             <div className="replace-overlay" aria-hidden="true">
-                                <span className="icon">upload</span>
-                                <span>Replace image</span>
+                              <span className="icon">upload</span>
+                              <span>Replace image</span>
                             </div>
                             <input
-                                ref={fileInputRef}
-                                type="file"
-                                accept="image/jpeg, image/png, image/webp"
-                                onChange={handleFileChange}
-                                hidden
-                                aria-hidden="true"
-                                tabIndex={-1}
+                              ref={fileInputRef}
+                              type="file"
+                              accept="image/jpeg, image/png, image/webp"
+                              onChange={handleFileChange}
+                              hidden
+                              aria-hidden="true"
+                              tabIndex={-1}
                             />
+                          </div>
+                        </Panel>
+
+                        <div className="transformation-arrow">
+                          <span className="icon">arrow_forward</span>
+                          <span className="transform-label">{modeDetails.name}</span>
                         </div>
-                    </Panel>
 
-                    <div className="transformation-arrow">
-                        <span className="icon">arrow_forward</span>
-                        <span className="transform-label">{modeDetails.name}</span>
-                    </div>
-
-                    <Panel
-                        variant="output"
-                        title="Generated Result"
-                        info={outputImage ? 'Complete' : 'Pending'}
-                        footer={outputImage ? (
+                        <Panel
+                          variant="output"
+                          title="Generated Result"
+                          info={outputImage ? 'Complete' : 'Pending'}
+                          footer={outputImage ? (
                             <>
-                                <button className="image-action-btn">
-                                    <span className="icon">download</span>
-                                    Download
-                                </button>
-                                <button className="image-action-btn">
-                                    <span className="icon">share</span>
-                                    Share
-                                </button>
+                              <button className="image-action-btn">
+                                <span className="icon">download</span>
+                                Download
+                              </button>
+                              <button className="image-action-btn">
+                                <span className="icon">share</span>
+                                Share
+                              </button>
                             </>
-                        ) : null}
-                    >
-                        <div className="image-content">
+                          ) : null}
+                        >
+                          <div className="image-content">
                             {outputImage ? (
-                                <img src={outputImage} alt="Generated Output" />
+                              <img src={outputImage} alt="Generated Output" />
                             ) : (
-                                <div className="placeholder">
-                                    <span className="icon">
-                                        {generationError ? 'error' : 'auto_awesome'}
-                                    </span>
-                                    <p>
-                                        {generationError
-                                            ? 'Generation failed'
-                                            : 'Click Generate to create result'
-                                        }
-                                    </p>
-                                </div>
+                              <div className="placeholder">
+                                <span className="icon">
+                                  {generationError ? 'error' : 'auto_awesome'}
+                                </span>
+                                <p>
+                                  {generationError
+                                    ? 'Generation failed'
+                                    : 'Click Generate to create result'
+                                  }
+                                </p>
+                              </div>
                             )}
-                        </div>
-                    </Panel>
+                          </div>
+                        </Panel>
+                      </>
+                    ) : (
+                      <>
+                        <Panel variant="input" title="Reference Image" info="Required">
+                          <div className="image-content">
+                            <ImageUploader />
+                          </div>
+                        </Panel>
+                      </>
+                    )}
                 </div>
 
                 {generationError && (
