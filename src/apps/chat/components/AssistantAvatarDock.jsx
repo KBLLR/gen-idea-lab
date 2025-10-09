@@ -1,6 +1,7 @@
-import React, { useRef, useState } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import { useDraggable } from '@dnd-kit/core';
 import { personalities } from '@shared/lib/assistant/personalities.js';
+import { getAssistantShader, generateShaderKeyframes } from '../lib/assistantShaders.js';
 import styles from './AssistantAvatarDock.module.css';
 
 function AssistantAvatar({ assistant, onSelect }) {
@@ -13,10 +14,13 @@ function AssistantAvatar({ assistant, onSelect }) {
     },
   });
 
-  const style = {
+  const wrapperStyle = {
     transform: transform ? `translate3d(${transform.x}px, ${transform.y}px, 0)` : undefined,
     opacity: isDragging ? 0.5 : 1,
   };
+
+  // Get unique shader for this assistant
+  const shader = getAssistantShader(assistant.id);
 
   // Simulate working status (can be connected to store later)
   const isWorking = false; // TODO: connect to actual agent status
@@ -25,7 +29,7 @@ function AssistantAvatar({ assistant, onSelect }) {
   return (
     <div
       ref={setNodeRef}
-      style={style}
+      style={wrapperStyle}
       className={styles.avatarWrapper}
       onMouseEnter={() => setShowTooltip(true)}
       onMouseLeave={() => setShowTooltip(false)}
@@ -34,7 +38,21 @@ function AssistantAvatar({ assistant, onSelect }) {
       {...listeners}
     >
       <div className={`${styles.avatar} ${isWorking ? styles.working : ''}`}>
+        {/* Animated shader background */}
+        <div
+          className={styles.shaderBackground}
+          style={{
+            background: shader.gradient,
+            animation: shader.animation,
+          }}
+        />
+
+        {/* Module code badge */}
+        <div className={styles.moduleCodeBadge}>{assistant.id}</div>
+
+        {/* Icon */}
         <span className="material-icons-round">{assistant.icon}</span>
+
         {hasNotification && <div className={styles.notification} />}
         {isWorking && <div className={styles.workingRing} />}
       </div>
@@ -56,6 +74,17 @@ export default function AssistantAvatarDock() {
   const [scrollLeft, setScrollLeft] = useState(0);
 
   const assistants = Object.values(personalities);
+
+  // Inject shader keyframe animations on mount
+  useEffect(() => {
+    const styleId = 'assistant-shader-animations';
+    if (!document.getElementById(styleId)) {
+      const styleElement = document.createElement('style');
+      styleElement.id = styleId;
+      styleElement.textContent = generateShaderKeyframes();
+      document.head.appendChild(styleElement);
+    }
+  }, []);
 
   const handleAssistantSelect = (assistant) => {
     // TODO: Invite assistant to chat

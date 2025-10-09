@@ -3,6 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 import { useState, useEffect, useRef } from 'react';
+import { useDroppable } from '@dnd-kit/core';
 import useStore from '@store';
 import { sendAssistantMessage } from '@shared/lib/actions/assistantActions.js';
 import { personalities } from '@shared/lib/assistant/personalities.js';
@@ -40,6 +41,14 @@ export default function ModuleAgentsChat() {
 
     const activePersonality = activeModuleId ? personalities[activeModuleId] : null;
     const hasConversation = history.length > 0;
+
+    // Make chat history droppable for assistant avatars
+    const { setNodeRef, isOver } = useDroppable({
+        id: 'chat-drop-zone',
+        data: {
+            accepts: 'assistant',
+        },
+    });
 
     useEffect(() => {
         if (historyRef.current) {
@@ -252,7 +261,13 @@ export default function ModuleAgentsChat() {
                     )}
                 </div>
             </div>
-            <div className="assistant-history" ref={historyRef}>
+            <div
+                className={`assistant-history ${isOver ? 'drop-zone-active' : ''}`}
+                ref={(node) => {
+                    historyRef.current = node;
+                    setNodeRef(node);
+                }}
+            >
                 {!hasConversation && (
                     <div className="assistant-actions-container" style={{ flexWrap: 'wrap', gap: '10px' }}>
                         <button type="button" className="action-btn" title="Module Overview" onClick={() => sendAssistantMessage("Can you give me a comprehensive overview of this module, its learning objectives, and how it fits into my overall curriculum?")}>

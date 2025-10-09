@@ -1,0 +1,273 @@
+.root {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+/* Fixed Subheader */
+.subheader {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background: var(--color-bg, #1a1a1a);
+  border-bottom: 1px solid var(--color-surface-border, #3a3a3a);
+  padding: var(--space-3, 12px);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2, 8px);
+}
+
+.searchBox {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2, 8px);
+  padding: var(--space-2, 8px);
+  background: var(--color-surface, #2a2a2a);
+  border: 1px solid var(--color-surface-border, #3a3a3a);
+  border-radius: var(--radius-md, 8px);
+  transition: border-color 0.2s ease;
+}
+
+.searchBox:focus-within {
+  border-color: var(--color-accent, #4a9eff);
+}
+
+.searchInput {
+  flex: 1;
+  background: transparent;
+  border: none;
+  outline: none;
+  color: var(--color-text-primary, #fff);
+  font-size: 14px;
+}
+
+.searchInput::placeholder {
+  color: var(--color-text-secondary, #999);
+}
+
+.filters {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-2, 8px);
+}
+
+.filterSelect {
+  padding: var(--space-2, 8px);
+  background: var(--color-surface, #2a2a2a);
+  border: 1px solid var(--color-surface-border, #3a3a3a);
+  border-radius: var(--radius-sm, 4px);
+  color: var(--color-text-primary, #fff);
+  font-size: 12px;
+  cursor: pointer;
+  transition: border-color 0.2s ease;
+}
+
+.filterSelect:focus {
+  outline: none;
+  border-color: var(--color-accent, #4a9eff);
+}
+
+.statsBar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 11px;
+  color: var(--color-text-secondary, #999);
+  padding-top: var(--space-1, 4px);
+}
+
+.toggleButton {
+  padding: var(--space-1, 4px) var(--space-2, 8px);
+  background: transparent;
+  border: 1px solid var(--color-surface-border, #3a3a3a);
+  border-radius: var(--radius-sm, 4px);
+  color: var(--color-text-secondary, #999);
+  font-size: 11px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.toggleButton:hover {
+  border-color: var(--color-accent, #4a9eff);
+  color: var(--color-text-primary, #fff);
+}
+
+/* Scrollable List */
+.chatList {
+  flex: 1;
+  overflow-y: auto;
+  padding: var(--space-3, 12px);
+}
+
+/* Module Group */
+.moduleGroup {
+  margin-bottom: var(--space-4, 16px);
+}
+
+.moduleHeader {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2, 8px);
+  margin-bottom: var(--space-2, 8px);
+  padding: var(--space-2, 8px);
+  background: linear-gradient(90deg, rgba(74, 158, 255, 0.1) 0%, transparent 100%);
+  border-left: 3px solid var(--color-accent, #4a9eff);
+  border-radius: var(--radius-sm, 4px);
+}
+
+.moduleCode {
+  font-size: 11px;
+  font-weight: 700;
+  font-family: 'Courier New', monospace;
+  color: var(--color-accent, #4a9eff);
+  letter-spacing: 0.5px;
+}
+
+.moduleTitle {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-text-primary, #fff);
+  flex: 1;
+}
+
+.chatCount {
+  font-size: 10px;
+  padding: 2px 6px;
+  background: var(--color-surface, #2a2a2a);
+  border: 1px solid var(--color-surface-border, #3a3a3a);
+  border-radius: 12px;
+  color: var(--color-text-secondary, #999);
+}
+
+/* Defi-Style Chat Card */
+.chatCard {
+  position: relative;
+  padding: var(--space-3, 12px);
+  margin-bottom: var(--space-2, 8px);
+  background: linear-gradient(135deg, var(--color-surface, #2a2a2a) 0%, rgba(42, 42, 42, 0.5) 100%);
+  border: 1px solid var(--color-surface-border, #3a3a3a);
+  border-radius: var(--radius-md, 8px);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  overflow: hidden;
+}
+
+.chatCard::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, var(--color-accent, #4a9eff), transparent);
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.chatCard:hover {
+  border-color: var(--color-accent, #4a9eff);
+  transform: translateX(4px);
+  box-shadow: -4px 0 12px rgba(74, 158, 255, 0.15);
+}
+
+.chatCard:hover::before {
+  opacity: 1;
+}
+
+.chatCard.active {
+  background: linear-gradient(135deg, rgba(74, 158, 255, 0.15) 0%, rgba(74, 158, 255, 0.05) 100%);
+  border-color: var(--color-accent, #4a9eff);
+}
+
+.chatCard.active::before {
+  opacity: 1;
+}
+
+.chatHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-2, 8px);
+  margin-bottom: var(--space-2, 8px);
+}
+
+.chatTitle {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-text-primary, #fff);
+  line-height: 1.4;
+  flex: 1;
+}
+
+.chatMeta {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2, 8px);
+  font-size: 11px;
+  color: var(--color-text-secondary, #999);
+  margin-bottom: var(--space-2, 8px);
+}
+
+.assistant {
+  padding: 2px 6px;
+  background: rgba(74, 158, 255, 0.15);
+  border-radius: var(--radius-sm, 4px);
+  color: var(--color-accent, #4a9eff);
+  font-weight: 500;
+}
+
+.model {
+  padding: 2px 6px;
+  background: var(--color-bg, #1a1a1a);
+  border-radius: var(--radius-sm, 4px);
+  font-family: 'Courier New', monospace;
+}
+
+.messageCount {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: var(--space-1, 4px);
+}
+
+.tag {
+  padding: 2px 6px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: var(--radius-sm, 4px);
+  font-size: 10px;
+  color: var(--color-text-secondary, #999);
+}
+
+.timestamp {
+  font-size: 10px;
+  color: var(--color-text-secondary, #999);
+  margin-top: var(--space-1, 4px);
+}
+
+/* Empty State */
+.emptyState {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-6, 32px);
+  text-align: center;
+}
+
+.emptyIcon {
+  font-size: 48px;
+  opacity: 0.3;
+  margin-bottom: var(--space-2, 8px);
+}
+
+.emptyText {
+  font-size: 14px;
+  color: var(--color-text-secondary, #999);
+}

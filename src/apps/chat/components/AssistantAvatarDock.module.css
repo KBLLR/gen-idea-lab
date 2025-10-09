@@ -74,6 +74,7 @@
   transition: all 0.2s ease;
   position: relative;
   color: var(--color-text-primary, #fff);
+  overflow: hidden;
 }
 
 .avatar:hover {
@@ -84,6 +85,41 @@
 
 .avatar span.material-icons-round {
   font-size: 24px;
+  position: relative;
+  z-index: 3;
+}
+
+/* Animated shader background */
+.shaderBackground {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  border-radius: 50%;
+  z-index: 1;
+  opacity: 0.8;
+  background-size: 200% 200%;
+  will-change: transform, opacity, background-position;
+}
+
+/* Module code badge */
+.moduleCodeBadge {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  padding: 2px 4px;
+  background: rgba(0, 0, 0, 0.8);
+  border: 1px solid var(--color-surface-border, #3a3a3a);
+  border-radius: 4px;
+  font-size: 8px;
+  font-weight: 700;
+  font-family: 'Courier New', monospace;
+  color: var(--color-text-primary, #fff);
+  letter-spacing: 0.5px;
+  z-index: 4;
+  white-space: nowrap;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
 }
 
 /* Working state */
