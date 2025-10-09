@@ -4,6 +4,7 @@ const tasksSlice = (set, get) => ({
   tasks: { byId: {}, allIds: [] },
   lanes: { todo: [], doing: [], done: [] },
   limits: { todo: Infinity, doing: 3, done: Infinity },
+  selectedTaskId: null,
 
   createTask: (t) => {
     const id = t?.id ?? nanoid(8)
@@ -53,6 +54,8 @@ const tasksSlice = (set, get) => ({
       if (!s.lanes[task.col].includes(id)) s.lanes[task.col].push(id)
     })
   }),
+
+  setSelectedTask: (id) => set((s) => { s.selectedTaskId = id }),
 })
 
 export default tasksSlice

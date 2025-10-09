@@ -1,7 +1,42 @@
 import React, { useMemo } from 'react';
 import useStore from '@store';
-import { Panel, SidebarItemCard } from '@ui'
-import styles from './CategorySidebar.module.css'
+import { useDraggable } from '@dnd-kit/core';
+import { Panel } from '@ui';
+import styles from './CategorySidebar.module.css';
+
+function DraggableSidebarTask({ task }) {
+  const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
+    id: task.id,
+    data: {
+      type: 'task',
+      task,
+    },
+  });
+
+  const style = {
+    transform: transform ? `translate3d(${transform.x}px, ${transform.y}px, 0)` : undefined,
+    opacity: isDragging ? 0.5 : 1,
+    cursor: 'grab',
+  };
+
+  const setSelectedTask = useStore(s => s.setSelectedTask);
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      className={styles.taskItem}
+      {...attributes}
+      {...listeners}
+      onClick={() => setSelectedTask(task.id)}
+    >
+      <div className={styles.taskTitle}>{task.title}</div>
+      <div className={styles.taskMeta}>
+        {task.action} · {task.col}
+      </div>
+    </div>
+  );
+}
 
 export default function CategorySidebar() {
   const tasksById = useStore(s => s.tasks.byId);
@@ -25,11 +60,11 @@ export default function CategorySidebar() {
         <Panel key={name} title={<span className={styles.headerTitle}>{name} <span className={styles.badge}>{items.length}</span></span>}>
           <div className={styles.list}>
             {items.map(t => (
-              <SidebarItemCard key={t.id} label={t.title} title={t.title} />
+              <DraggableSidebarTask key={t.id} task={t} />
             ))}
           </div>
         </Panel>
       ))}
     </aside>
-  )
+  );
 }

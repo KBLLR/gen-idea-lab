@@ -58,6 +58,14 @@
   display: grid;
   gap: 10px;
   align-content: start;
+  min-height: 200px;
+  transition: background-color 0.2s ease;
+}
+
+.lane__body--over {
+  background-color: rgba(74, 158, 255, 0.1);
+  border: 2px dashed var(--color-accent, #4a9eff);
+  border-radius: 8px;
 }
 .card {
   background: rgba(255, 255, 255, 0.05);
