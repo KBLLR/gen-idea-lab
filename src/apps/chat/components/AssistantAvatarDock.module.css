@@ -163,6 +163,8 @@
   z-index: 1000;
   white-space: nowrap;
   pointer-events: none;
+  min-width: 180px;
+  text-align: center;
 }
 
 .tooltip::before {
@@ -185,4 +187,11 @@
 .tooltipTitle {
   font-size: 12px;
   color: var(--color-text-secondary, #999);
+}
+
+.tooltipHint {
+  font-size: 10px;
+  color: var(--color-accent, #4a9eff);
+  margin-top: 4px;
+  font-style: italic;
 }
