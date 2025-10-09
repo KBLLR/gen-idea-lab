@@ -26,8 +26,15 @@ const MarkmapViewer = ({ content }) => {
   // Initialise the markmap instance once.
   useEffect(() => {
     if (!mapRef.current && svgRef.current) {
-      const markmap = MarkmapView.create(svgRef.current);
-      mapRef.current = markmap;
+      // Ensure SVG has dimensions before initializing D3 zoom
+      const svg = svgRef.current;
+      const rect = svg.getBoundingClientRect();
+      if (rect.width > 0 && rect.height > 0) {
+        svg.setAttribute('width', rect.width);
+        svg.setAttribute('height', rect.height);
+        const markmap = MarkmapView.create(svg);
+        mapRef.current = markmap;
+      }
     }
   }, []);
 
@@ -42,6 +49,13 @@ const MarkmapViewer = ({ content }) => {
   // Refit the mind map on resize.
   useEffect(() => {
     const observer = new ResizeObserver(() => {
+      if (svgRef.current) {
+        const rect = svgRef.current.getBoundingClientRect();
+        if (rect.width > 0 && rect.height > 0) {
+          svgRef.current.setAttribute('width', rect.width);
+          svgRef.current.setAttribute('height', rect.height);
+        }
+      }
       mapRef.current?.fit();
     });
     if (svgRef.current) {
