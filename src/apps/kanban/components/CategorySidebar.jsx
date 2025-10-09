@@ -1,8 +1,24 @@
-import React from 'react';
+import React, { useMemo } from 'react';
+import useStore from '@store';
 import { Panel, SidebarItemCard } from '@ui'
 import styles from './CategorySidebar.module.css'
 
-export default function CategorySidebar({ categories }) {
+export default function CategorySidebar() {
+  const tasksById = useStore(s => s.tasks.byId);
+  const allIds = useStore(s => s.tasks.allIds);
+
+  const tasks = useMemo(() => allIds.map(id => tasksById[id]).filter(Boolean), [allIds, tasksById]);
+
+  const categories = useMemo(() => {
+    const by = new Map();
+    for (const t of tasks) {
+      const bucket = t.bucket || 'General';
+      if (!by.has(bucket)) by.set(bucket, []);
+      by.get(bucket).push(t);
+    }
+    return Array.from(by.entries()).map(([name, items]) => ({ name, items }));
+  }, [tasks]);
+
   return (
     <aside className={styles.root}>
       {categories.map(({ name, items }) => (
