@@ -72,8 +72,14 @@ export default function AssistantAvatarDock() {
   const [isDraggingScroll, setIsDraggingScroll] = useState(false);
   const [startX, setStartX] = useState(0);
   const [scrollLeft, setScrollLeft] = useState(0);
+  const [disciplineFilter, setDisciplineFilter] = useState('all');
 
-  const assistants = Object.values(personalities);
+  const allAssistants = Object.values(personalities);
+
+  // Filter assistants by discipline
+  const assistants = disciplineFilter === 'all'
+    ? allAssistants
+    : allAssistants.filter(a => a.id.startsWith(disciplineFilter));
 
   // Inject shader keyframe animations on mount
   useEffect(() => {
@@ -115,11 +121,29 @@ export default function AssistantAvatarDock() {
     setIsDraggingScroll(false);
   };
 
+  const disciplines = [
+    { id: 'all', label: 'All', icon: 'groups' },
+    { id: 'DS', label: 'DS', icon: 'palette' },
+    { id: 'SE', label: 'SE', icon: 'code' },
+    { id: 'OS', label: 'OS', icon: 'architecture' },
+    { id: 'STS', label: 'STS', icon: 'balance' },
+    { id: 'BA', label: 'BA', icon: 'analytics' },
+  ];
+
   return (
     <div className={styles.dock}>
-      <div className={styles.dockLabel}>
-        <span className="material-icons-round" style={{ fontSize: 16, marginRight: 6 }}>groups</span>
-        <span>AI Assistants</span>
+      <div className={styles.dockFilters}>
+        {disciplines.map((discipline) => (
+          <button
+            key={discipline.id}
+            className={`${styles.filterButton} ${disciplineFilter === discipline.id ? styles.active : ''}`}
+            onClick={() => setDisciplineFilter(discipline.id)}
+            title={discipline.id === 'all' ? 'All Assistants' : `${discipline.id} Assistants`}
+          >
+            <span className="material-icons-round">{discipline.icon}</span>
+            <span>{discipline.label}</span>
+          </button>
+        ))}
       </div>
       <div
         ref={scrollRef}

@@ -7,16 +7,44 @@
   border-bottom: 1px solid var(--color-surface-border, #3a3a3a);
 }
 
-.dockLabel {
+.dockFilters {
+  display: flex;
+  gap: var(--space-1, 4px);
+  flex-shrink: 0;
+}
+
+.filterButton {
   display: flex;
   align-items: center;
-  font-size: 12px;
-  font-weight: 600;
+  gap: 4px;
+  padding: var(--space-1, 4px) var(--space-2, 8px);
+  background: transparent;
+  border: 1px solid var(--color-surface-border, #3a3a3a);
+  border-radius: var(--radius-sm, 4px);
   color: var(--color-text-secondary, #999);
+  font-size: 11px;
+  font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.5px;
+  cursor: pointer;
+  transition: all 0.2s ease;
   white-space: nowrap;
-  flex-shrink: 0;
+}
+
+.filterButton:hover {
+  border-color: var(--color-accent, #4a9eff);
+  color: var(--color-text-primary, #fff);
+  background: rgba(74, 158, 255, 0.1);
+}
+
+.filterButton.active {
+  border-color: var(--color-accent, #4a9eff);
+  color: var(--color-accent, #4a9eff);
+  background: rgba(74, 158, 255, 0.15);
+}
+
+.filterButton span.material-icons-round {
+  font-size: 14px;
 }
 
 .scrollContainer {
