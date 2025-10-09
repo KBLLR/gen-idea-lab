@@ -1,3 +1,6 @@
+// Console filters - must be first to suppress warnings early
+import './lib/consoleFilters.js'
+
 import React, { Suspense, lazy } from 'react'
 import { createRoot } from 'react-dom/client'
 import { createBrowserRouter, createRoutesFromElements, RouterProvider, Route, Navigate } from 'react-router-dom'
@@ -47,4 +50,6 @@ const router = createBrowserRouter(
   )
 )
 
-createRoot(document.getElementById('root')).render(<RouterProvider router={router} />)
+createRoot(document.getElementById('root')).render(
+  <RouterProvider router={router} future={{ v7_startTransition: true }} />
+)
