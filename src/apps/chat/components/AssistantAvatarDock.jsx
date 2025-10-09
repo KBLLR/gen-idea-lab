@@ -7,6 +7,7 @@ import styles from './AssistantAvatarDock.module.css';
 
 function AssistantAvatar({ assistant, onSelect }) {
   const [showTooltip, setShowTooltip] = useState(false);
+  const [mouseDownPos, setMouseDownPos] = useState(null);
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
     id: `assistant-${assistant.id}`,
     data: {
@@ -27,6 +28,26 @@ function AssistantAvatar({ assistant, onSelect }) {
   const isWorking = false; // TODO: connect to actual agent status
   const hasNotification = false; // TODO: connect to actual notification status
 
+  const handleMouseDown = (e) => {
+    setMouseDownPos({ x: e.clientX, y: e.clientY });
+  };
+
+  const handleClick = (e) => {
+    // Only trigger modal if mouse didn't move (wasn't a drag)
+    if (mouseDownPos) {
+      const dx = Math.abs(e.clientX - mouseDownPos.x);
+      const dy = Math.abs(e.clientY - mouseDownPos.y);
+      console.log('[AssistantAvatar] Click detected, movement:', { dx, dy });
+      if (dx < 5 && dy < 5) {
+        console.log('[AssistantAvatar] Triggering onSelect for:', assistant.name);
+        onSelect?.(assistant);
+      } else {
+        console.log('[AssistantAvatar] Movement too large, treating as drag');
+      }
+    }
+    setMouseDownPos(null);
+  };
+
   return (
     <div
       ref={setNodeRef}
@@ -34,7 +55,8 @@ function AssistantAvatar({ assistant, onSelect }) {
       className={styles.avatarWrapper}
       onMouseEnter={() => setShowTooltip(true)}
       onMouseLeave={() => setShowTooltip(false)}
-      onClick={() => onSelect?.(assistant)}
+      onMouseDown={handleMouseDown}
+      onClick={handleClick}
       {...attributes}
       {...listeners}
     >
@@ -87,6 +109,7 @@ export default function AssistantAvatarDock() {
   }, []);
 
   const handleAssistantSelect = (assistant) => {
+    console.log('[AssistantDock] Opening modal for:', assistant.name);
     setSelectedAssistant(assistant);
     setIsModalOpen(true);
   };

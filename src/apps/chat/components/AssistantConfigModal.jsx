@@ -34,8 +34,12 @@ export default function AssistantConfigModal({ assistant, isOpen, onClose, onSav
     }
   };
 
-  if (!isOpen || !assistant) return null;
+  if (!isOpen || !assistant) {
+    if (isOpen) console.log('[AssistantConfigModal] No assistant provided');
+    return null;
+  }
 
+  console.log('[AssistantConfigModal] Rendering modal for:', assistant.name);
   const shader = getAssistantShader(assistant.id);
 
   return (
