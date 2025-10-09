@@ -1,36 +1,7 @@
-.kanban {
-  display: grid;
-  grid-template-columns: 320px 1fr;
-  gap: var(--space-4, 16px);
+.kanban-workspace {
   height: 100%;
+  width: 100%;
   padding: var(--space-4, 16px);
-}
-.kanban-left {
-  display: grid;
-  gap: 12px;
-  align-content: start;
-  overflow: auto;
-}
-.cat {
-  background: var(--panel-bg, rgba(255, 255, 255, 0.04));
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 12px;
-}
-.cat__hdr {
-  padding: 10px 12px;
-  font-weight: 700;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-.cat__list {
-  margin: 0;
-  padding: 8px 12px 12px;
-  list-style: none;
-  display: grid;
-  gap: 6px;
-}
-.kanban-right {
   overflow: auto;
 }
 .lanes {

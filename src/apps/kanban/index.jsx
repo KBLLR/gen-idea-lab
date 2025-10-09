@@ -4,12 +4,12 @@ import seedTasks from './data/seed-tasks.json';
 import './styles/kanban.css';
 import CategorySidebar from './components/CategorySidebar.jsx';
 import KanbanLanes from './components/KanbanLanes.jsx';
+import TaskDetailPanel from './components/TaskDetailPanel.jsx';
 import { useRightPane, useLeftPane } from '@shared/lib/layoutSlots';
-import TabbedRightPane from '@shared/lib/TabbedRightPane.jsx';
-import { Panel } from '@ui';
 
 export default function KanbanContent() {
   const setActiveApp = useStore(s => s.actions.setActiveApp);
+  const selectedTaskId = useStore(s => s.selectedTaskId);
   const { setRightPane, clearRightPane } = useRightPane();
   const { setLeftPane, clearLeftPane } = useLeftPane();
 
@@ -22,6 +22,10 @@ export default function KanbanContent() {
       const mapped = (seedTasks || []).map(t => ({
         id: t.id,
         title: t.title,
+        action: t.action,
+        category: t.category,
+        subcategory: t.subcategory,
+        bucket: t.bucket,
         priority: t.priority || 'med',
         assignee: t.assignee || 'Unassigned',
         col: (t.status || 'todo')
@@ -30,30 +34,25 @@ export default function KanbanContent() {
     }
   }, [allIds?.length, bulkUpsertTasks]);
 
-  // Mount: set app and panes once
+  // Mount: set app and left pane once
   useEffect(() => {
     setActiveApp('kanban');
     setLeftPane(<CategorySidebar />);
-    setRightPane(
-      <TabbedRightPane
-        initial="kanban"
-        tabs={[
-          {
-            id: 'kanban',
-            label: 'Kanban',
-            icon: '🧭',
-            title: 'Status',
-            render: () => <KanbanLanes />
-          },
-        ]}
-      />
-    );
     return () => { clearRightPane(); clearLeftPane(); };
-  }, [setActiveApp, setRightPane, clearRightPane, setLeftPane, clearLeftPane]);
+  }, [setActiveApp, setLeftPane, clearLeftPane, clearRightPane]);
+
+  // Reactive: update right pane when task is selected
+  useEffect(() => {
+    if (selectedTaskId) {
+      setRightPane(<TaskDetailPanel />);
+    } else {
+      clearRightPane();
+    }
+  }, [selectedTaskId, setRightPane, clearRightPane]);
 
   return (
-    <Panel title="Standup / Task Detail">
-      Select or create a task…
-    </Panel>
+    <div className="kanban-workspace">
+      <KanbanLanes />
+    </div>
   );
 }

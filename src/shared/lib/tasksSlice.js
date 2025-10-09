@@ -36,6 +36,16 @@ const tasksSlice = (set, get) => ({
 
   assignTask: (id, assignee) => set((s) => { if (s.tasks.byId[id]) s.tasks.byId[id].assignee = assignee }),
 
+  updateTask: (id, updates) => set((s) => {
+    if (s.tasks.byId[id]) {
+      s.tasks.byId[id] = {
+        ...s.tasks.byId[id],
+        ...updates,
+        updatedAt: Date.now(),
+      };
+    }
+  }),
+
   setWipLimit: (col, n) => set((s) => { s.limits[col] = Number.isFinite(n) ? n : Infinity }),
 
   bulkUpsertTasks: (arr) => set((s) => {
