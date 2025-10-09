@@ -1,0 +1,175 @@
+.dock {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3, 12px);
+  padding: var(--space-2, 8px) var(--space-4, 16px);
+  background: var(--color-surface, #2a2a2a);
+  border-bottom: 1px solid var(--color-surface-border, #3a3a3a);
+}
+
+.dockLabel {
+  display: flex;
+  align-items: center;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-text-secondary, #999);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.scrollContainer {
+  flex: 1;
+  overflow-x: auto;
+  overflow-y: hidden;
+  cursor: grab;
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-surface-border, #3a3a3a) transparent;
+}
+
+.scrollContainer:active {
+  cursor: grabbing;
+}
+
+.scrollContainer::-webkit-scrollbar {
+  height: 4px;
+}
+
+.scrollContainer::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.scrollContainer::-webkit-scrollbar-thumb {
+  background: var(--color-surface-border, #3a3a3a);
+  border-radius: 2px;
+}
+
+.scrollContainer::-webkit-scrollbar-thumb:hover {
+  background: var(--color-text-secondary, #999);
+}
+
+.avatarList {
+  display: flex;
+  gap: var(--space-3, 12px);
+  padding: var(--space-2, 8px) 0;
+  min-width: min-content;
+}
+
+.avatarWrapper {
+  position: relative;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.avatar {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: var(--color-bg, #1a1a1a);
+  border: 2px solid var(--color-surface-border, #3a3a3a);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  position: relative;
+  color: var(--color-text-primary, #fff);
+}
+
+.avatar:hover {
+  border-color: var(--color-accent, #4a9eff);
+  transform: scale(1.1);
+  box-shadow: 0 4px 12px rgba(74, 158, 255, 0.3);
+}
+
+.avatar span.material-icons-round {
+  font-size: 24px;
+}
+
+/* Working state */
+.avatar.working {
+  border-color: var(--color-accent, #4a9eff);
+}
+
+.workingRing {
+  position: absolute;
+  top: -4px;
+  left: -4px;
+  right: -4px;
+  bottom: -4px;
+  border-radius: 50%;
+  border: 2px solid var(--color-accent, #4a9eff);
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.5;
+    transform: scale(1.1);
+  }
+}
+
+/* Notification badge */
+.notification {
+  position: absolute;
+  top: -2px;
+  right: -2px;
+  width: 12px;
+  height: 12px;
+  background: #ff4444;
+  border: 2px solid var(--color-surface, #2a2a2a);
+  border-radius: 50%;
+  animation: notification-pulse 2s infinite;
+}
+
+@keyframes notification-pulse {
+  0%, 100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.2);
+  }
+}
+
+/* Tooltip */
+.tooltip {
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  margin-top: var(--space-2, 8px);
+  padding: var(--space-2, 8px) var(--space-3, 12px);
+  background: var(--color-bg, #1a1a1a);
+  border: 1px solid var(--color-surface-border, #3a3a3a);
+  border-radius: var(--radius-md, 8px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  z-index: 1000;
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+.tooltip::before {
+  content: '';
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  border: 6px solid transparent;
+  border-bottom-color: var(--color-surface-border, #3a3a3a);
+}
+
+.tooltipName {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-text-primary, #fff);
+  margin-bottom: 2px;
+}
+
+.tooltipTitle {
+  font-size: 12px;
+  color: var(--color-text-secondary, #999);
+}
