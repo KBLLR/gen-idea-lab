@@ -81,6 +81,70 @@ const storeImpl = (set, get) => ({
   setDockPosition: (pos) => set((state) => { state.dockPosition = pos }),
   setDockDimensions: (dims) => set((state) => { state.dockDimensions = dims }),
 
+  // Theme actions
+  setAccentTheme: (theme) => set((state) => { state.accentTheme = theme }),
+
+  // Assistant chat actions
+  setAssistantModel: (modelId) => set((state) => { state.assistantModel = modelId }),
+  setAssistantSystemPrompt: (moduleId, prompt) => set((state) => {
+    if (!state.assistantSystemPrompts) state.assistantSystemPrompts = {};
+    state.assistantSystemPrompts[moduleId] = prompt;
+  }),
+  saveAssistantChat: (moduleId, chat) => set((state) => {
+    if (!state.moduleAssistantSavedChats) state.moduleAssistantSavedChats = {};
+    if (!state.moduleAssistantSavedChats[moduleId]) state.moduleAssistantSavedChats[moduleId] = [];
+    state.moduleAssistantSavedChats[moduleId].push(chat);
+  }),
+
+  // Planner/Workflow actions
+  setNodes: (nodes) => set((state) => {
+    if (!state.plannerGraph) state.plannerGraph = {};
+    state.plannerGraph.nodes = nodes;
+  }),
+  addCustomWorkflow: (workflow) => set((state) => {
+    if (!state.customWorkflows) state.customWorkflows = [];
+    state.customWorkflows.push(workflow);
+  }),
+  setSelectedWorkflow: (workflowId) => set((state) => { state.selectedWorkflow = workflowId }),
+
+  // GestureLab actions
+  setGestureLabMode: (mode) => set((state) => {
+    if (!state.gestureLab) state.gestureLab = { mode: 'whiteboard', examples: {} };
+    state.gestureLab.mode = mode;
+  }),
+  setGestureLabExample: (exampleName, enabled) => set((state) => {
+    if (!state.gestureLab?.examples) {
+      state.gestureLab = { ...(state.gestureLab || {}), examples: {} };
+    }
+    state.gestureLab.examples[exampleName] = !!enabled;
+  }),
+
+  // EmpathyLab model loaded
+  setEmpathyLabModelLoaded: (loaded) => set((state) => {
+    if (!state.empathyLab) state.empathyLab = {};
+    state.empathyLab.isModelLoaded = !!loaded;
+  }),
+
+  // Knowledge base writers
+  addDocumentationEntry: (moduleId, entry) => set((state) => {
+    if (!state.moduleKnowledgeCache) state.moduleKnowledgeCache = {};
+    if (!state.moduleKnowledgeCache[moduleId]) state.moduleKnowledgeCache[moduleId] = { documentation: [], workflows: [], chats: [] };
+    if (!state.moduleKnowledgeCache[moduleId].documentation) state.moduleKnowledgeCache[moduleId].documentation = [];
+    state.moduleKnowledgeCache[moduleId].documentation.push(entry);
+  }),
+  addWorkflowEntry: (moduleId, entry) => set((state) => {
+    if (!state.moduleKnowledgeCache) state.moduleKnowledgeCache = {};
+    if (!state.moduleKnowledgeCache[moduleId]) state.moduleKnowledgeCache[moduleId] = { documentation: [], workflows: [], chats: [] };
+    if (!state.moduleKnowledgeCache[moduleId].workflows) state.moduleKnowledgeCache[moduleId].workflows = [];
+    state.moduleKnowledgeCache[moduleId].workflows.push(entry);
+  }),
+  addChatEntry: (moduleId, entry) => set((state) => {
+    if (!state.moduleKnowledgeCache) state.moduleKnowledgeCache = {};
+    if (!state.moduleKnowledgeCache[moduleId]) state.moduleKnowledgeCache[moduleId] = { documentation: [], workflows: [], chats: [] };
+    if (!state.moduleKnowledgeCache[moduleId].chats) state.moduleKnowledgeCache[moduleId].chats = [];
+    state.moduleKnowledgeCache[moduleId].chats.push(entry);
+  }),
+
   // Module state (Idea Lab)
   modules: modules,
   activeModuleId: null,
@@ -281,6 +345,31 @@ const storeImpl = (set, get) => ({
     // Glass Dock
     setDockPosition: (...args) => get().setDockPosition(...args),
     setDockDimensions: (...args) => get().setDockDimensions(...args),
+
+    // Theme
+    setAccentTheme: (...args) => get().setAccentTheme(...args),
+
+    // Assistant chat
+    setAssistantModel: (...args) => get().setAssistantModel(...args),
+    setAssistantSystemPrompt: (...args) => get().setAssistantSystemPrompt(...args),
+    saveAssistantChat: (...args) => get().saveAssistantChat(...args),
+
+    // Planner/Workflow
+    setNodes: (...args) => get().setNodes(...args),
+    addCustomWorkflow: (...args) => get().addCustomWorkflow(...args),
+    setSelectedWorkflow: (...args) => get().setSelectedWorkflow(...args),
+
+    // GestureLab
+    setGestureLabMode: (...args) => get().setGestureLabMode(...args),
+    setGestureLabExample: (...args) => get().setGestureLabExample(...args),
+
+    // EmpathyLab model
+    setEmpathyLabModelLoaded: (...args) => get().setEmpathyLabModelLoaded(...args),
+
+    // Knowledge base
+    addDocumentationEntry: (...args) => get().addDocumentationEntry(...args),
+    addWorkflowEntry: (...args) => get().addWorkflowEntry(...args),
+    addChatEntry: (...args) => get().addChatEntry(...args),
   },
 })
 

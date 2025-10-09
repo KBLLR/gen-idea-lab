@@ -13,18 +13,25 @@ export default function IdeaLabApp() {
   const { setLeftPane, clearLeftPane } = useLeftPane();
   const { setRightPane, clearRightPane } = useRightPane();
 
+  // Mount: set app and left pane once
   useEffect(() => {
     setActiveApp('ideaLab');
     setLeftPane(<ModuleSelector />);
+    return () => { clearLeftPane(); clearRightPane(); };
+  }, [setActiveApp, setLeftPane, clearLeftPane, clearRightPane]);
+
+  // Reactive: update right pane when module or visibility changes
+  useEffect(() => {
     if (activeModuleId && showKnowledgeSection) {
       setRightPane(
         <Panel title="Knowledge">
           <ModuleKnowledgeSection moduleId={activeModuleId} />
         </Panel>
       );
+    } else {
+      clearRightPane();
     }
-    return () => { clearLeftPane(); clearRightPane(); };
-  }, [setActiveApp]);
+  }, [activeModuleId, showKnowledgeSection, setRightPane, clearRightPane]);
 
   return (
     <>
