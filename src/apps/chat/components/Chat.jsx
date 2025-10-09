@@ -4,6 +4,7 @@ import useStore from '@store';
 import { personalities } from '@shared/lib/assistant/personalities.js';
 import { sendAssistantMessage } from '@shared/lib/actions/assistantActions.js';
 import ChatHeader from './ChatHeader';
+import ModuleAssistantHeader from './ModuleAssistantHeader';
 import AssistantAvatarDock from './AssistantAvatarDock';
 import ModuleAgentsChat from './ModuleAgentsChat';
 import './Chat.css';
@@ -37,6 +38,7 @@ const Chat = ({ showGallery, onToggleGallery }) => {
     <DndContext onDragEnd={handleDragEnd}>
       <div className="chat-app-container">
         <ChatHeader showGallery={showGallery} onToggleGallery={onToggleGallery} />
+        <ModuleAssistantHeader />
         <AssistantAvatarDock />
         <div className="chat-main-content">
           <ModuleAgentsChat />
