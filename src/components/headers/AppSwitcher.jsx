@@ -12,10 +12,12 @@ import { startTransition } from 'react';
 const apps = [
   { id: 'ideaLab', title: 'Academic Mods' },
   { id: 'chat', title: 'Chat' },
+  { id: 'mindmap', title: 'Mind Map' },
   { id: 'imageBooth', title: 'VizGen Booth' },
   { id: 'archiva', title: 'ArchivAI' },
   { id: 'workflows', title: 'Workflows' },
   { id: 'planner', title: 'PlannerAI' },
+  { id: 'kanban', title: 'Kanban' },
   { id: 'calendarAI', title: 'CalendarAI' },
   { id: 'empathyLab', title: 'EmpathyLab' },
   { id: 'gestureLab', title: 'GestureLab' },
