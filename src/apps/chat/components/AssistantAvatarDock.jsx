@@ -2,6 +2,7 @@ import React, { useRef, useState, useEffect } from 'react';
 import { useDraggable } from '@dnd-kit/core';
 import { personalities } from '@shared/lib/assistant/personalities.js';
 import { getAssistantShader, generateShaderKeyframes } from '../lib/assistantShaders.js';
+import AssistantConfigModal from './AssistantConfigModal.jsx';
 import styles from './AssistantAvatarDock.module.css';
 
 function AssistantAvatar({ assistant, onSelect }) {
@@ -69,6 +70,8 @@ export default function AssistantAvatarDock() {
   const [isDraggingScroll, setIsDraggingScroll] = useState(false);
   const [startX, setStartX] = useState(0);
   const [scrollLeft, setScrollLeft] = useState(0);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [selectedAssistant, setSelectedAssistant] = useState(null);
 
   const assistants = Object.values(personalities);
 
@@ -84,9 +87,18 @@ export default function AssistantAvatarDock() {
   }, []);
 
   const handleAssistantSelect = (assistant) => {
-    // TODO: Invite assistant to chat
-    console.log('Assistant clicked:', assistant.name);
-    // Could trigger a message like "/invite @assistant.id"
+    setSelectedAssistant(assistant);
+    setIsModalOpen(true);
+  };
+
+  const handleModalClose = () => {
+    setIsModalOpen(false);
+    setSelectedAssistant(null);
+  };
+
+  const handleConfigSave = (config) => {
+    console.log('Saving config for', config.assistantId, config);
+    // TODO: Save to store or backend
   };
 
   // Manual scroll drag
@@ -113,25 +125,34 @@ export default function AssistantAvatarDock() {
   };
 
   return (
-    <div className={styles.dock}>
-      <div
-        ref={scrollRef}
-        className={styles.scrollContainer}
-        onMouseDown={handleMouseDown}
-        onMouseMove={handleMouseMove}
-        onMouseUp={handleMouseUp}
-        onMouseLeave={handleMouseLeave}
-      >
-        <div className={styles.avatarList}>
-          {assistants.map((assistant) => (
-            <AssistantAvatar
-              key={assistant.id}
-              assistant={assistant}
-              onSelect={handleAssistantSelect}
-            />
-          ))}
+    <>
+      <div className={styles.dock}>
+        <div
+          ref={scrollRef}
+          className={styles.scrollContainer}
+          onMouseDown={handleMouseDown}
+          onMouseMove={handleMouseMove}
+          onMouseUp={handleMouseUp}
+          onMouseLeave={handleMouseLeave}
+        >
+          <div className={styles.avatarList}>
+            {assistants.map((assistant) => (
+              <AssistantAvatar
+                key={assistant.id}
+                assistant={assistant}
+                onSelect={handleAssistantSelect}
+              />
+            ))}
+          </div>
         </div>
       </div>
-    </div>
+
+      <AssistantConfigModal
+        assistant={selectedAssistant}
+        isOpen={isModalOpen}
+        onClose={handleModalClose}
+        onSave={handleConfigSave}
+      />
+    </>
   );
 }
