@@ -76,9 +76,10 @@ export default function ModuleAssistantHeader() {
     if (!activeModuleId) {
         return (
             <div className="module-agents-header" style={{ justifyContent: 'center', padding: '16px' }}>
-                <p style={{ color: 'var(--color-text-secondary, #999)', fontSize: '14px' }}>
-                    Select a module to chat with its assistant
-                </p>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', color: 'var(--color-text-secondary, #999)' }}>
+                    <span className="material-icons-round" style={{ fontSize: '24px', opacity: 0.5 }}>person_search</span>
+                    <span style={{ fontSize: '16px', fontWeight: 500 }}>Choose Assistant</span>
+                </div>
             </div>
         );
     }

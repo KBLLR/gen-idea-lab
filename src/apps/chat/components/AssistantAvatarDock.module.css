@@ -1,50 +1,8 @@
 .dock {
   display: flex;
   align-items: center;
-  gap: var(--space-3, 12px);
-  padding: var(--space-2, 8px) var(--space-4, 16px);
-  background: var(--color-surface, #2a2a2a);
+  padding: var(--space-3, 12px) var(--space-4, 16px);
   border-bottom: 1px solid var(--color-surface-border, #3a3a3a);
-}
-
-.dockFilters {
-  display: flex;
-  gap: var(--space-1, 4px);
-  flex-shrink: 0;
-}
-
-.filterButton {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  padding: var(--space-1, 4px) var(--space-2, 8px);
-  background: transparent;
-  border: 1px solid var(--color-surface-border, #3a3a3a);
-  border-radius: var(--radius-sm, 4px);
-  color: var(--color-text-secondary, #999);
-  font-size: 11px;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  white-space: nowrap;
-}
-
-.filterButton:hover {
-  border-color: var(--color-accent, #4a9eff);
-  color: var(--color-text-primary, #fff);
-  background: rgba(74, 158, 255, 0.1);
-}
-
-.filterButton.active {
-  border-color: var(--color-accent, #4a9eff);
-  color: var(--color-accent, #4a9eff);
-  background: rgba(74, 158, 255, 0.15);
-}
-
-.filterButton span.material-icons-round {
-  font-size: 14px;
 }
 
 .scrollContainer {
@@ -91,10 +49,9 @@
 }
 
 .avatar {
-  width: 48px;
-  height: 48px;
+  width: 60px;
+  height: 60px;
   border-radius: 50%;
-  background: var(--color-bg, #1a1a1a);
   border: 2px solid var(--color-surface-border, #3a3a3a);
   display: flex;
   align-items: center;
@@ -103,6 +60,7 @@
   position: relative;
   color: var(--color-text-primary, #fff);
   overflow: hidden;
+  background: transparent;
 }
 
 .avatar:hover {
@@ -112,7 +70,7 @@
 }
 
 .avatar span.material-icons-round {
-  font-size: 24px;
+  font-size: 28px;
   position: relative;
   z-index: 3;
 }
@@ -134,20 +92,17 @@
 /* Module code badge */
 .moduleCodeBadge {
   position: absolute;
-  top: -4px;
-  right: -4px;
-  padding: 2px 4px;
-  background: rgba(0, 0, 0, 0.8);
-  border: 1px solid var(--color-surface-border, #3a3a3a);
-  border-radius: 4px;
-  font-size: 8px;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 10px;
   font-weight: 700;
   font-family: 'Courier New', monospace;
-  color: var(--color-text-primary, #fff);
+  color: #fff;
   letter-spacing: 0.5px;
   z-index: 4;
   white-space: nowrap;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.8);
 }
 
 /* Working state */
