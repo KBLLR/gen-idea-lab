@@ -69,12 +69,6 @@
   box-shadow: 0 4px 12px rgba(74, 158, 255, 0.3);
 }
 
-.avatar span.material-icons-round {
-  font-size: 28px;
-  position: relative;
-  z-index: 3;
-}
-
 /* Animated shader background */
 .shaderBackground {
   position: absolute;

@@ -50,9 +50,6 @@ function AssistantAvatar({ assistant, onSelect }) {
         {/* Module code badge */}
         <div className={styles.moduleCodeBadge}>{assistant.id}</div>
 
-        {/* Icon */}
-        <span className="material-icons-round">{assistant.icon}</span>
-
         {hasNotification && <div className={styles.notification} />}
         {isWorking && <div className={styles.workingRing} />}
       </div>
