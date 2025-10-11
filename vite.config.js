@@ -1,5 +1,6 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
+import { visualizer } from 'rollup-plugin-visualizer'
 import { fileURLToPath, URL } from 'node:url'
 
 const r = (p) => fileURLToPath(new URL(p, import.meta.url))
@@ -18,7 +19,7 @@ export default defineConfig(({ mode }) => {
   } catch {}
 
   return {
-    plugins: [react()],
+    plugins: [react(), ...(isDev ? [] : [visualizer({ filename: 'reports/bundle.html', template: 'treemap', gzipSize: true, brotliSize: true })])],
 
     esbuild: {
       loader: 'jsx',
@@ -63,7 +64,11 @@ export default defineConfig(({ mode }) => {
             react: ['react', 'react-dom'],
             ui: ['zustand', 'clsx', 'react-markdown', 'dompurify'],
             icons: ['react-icons'],
-            flow: ['reactflow']
+            flow: ['reactflow'],
+            three: ['three'],
+            mediapipe: ['@mediapipe/tasks-vision'],
+            human: ['@vladmandic/human'],
+            markmap: ['markmap-common', 'markmap-lib', 'markmap-view']
           }
         }
       },

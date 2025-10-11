@@ -1,6 +1,4 @@
 import React, { useEffect, useRef } from 'react';
-import { Transformer } from 'markmap-lib';
-import { Markmap as MarkmapView } from 'markmap-view';
 import throttle from 'lodash/throttle';
 
 /**
@@ -9,7 +7,9 @@ import throttle from 'lodash/throttle';
  * throttling data updates and fitting the map on resize. The SVG element is
  * kept within the bounds of its container so it inherits flexbox sizing.
  */
-const transformer = new Transformer();
+// Lazily import markmap libs to avoid shipping them in the base chunk
+const transformerRef = { current: null };
+const MarkmapClassRef = { current: null };
 
 const MarkmapViewer = ({ content }) => {
   const svgRef = useRef(null);
@@ -17,67 +17,61 @@ const MarkmapViewer = ({ content }) => {
   const initTimeoutRef = useRef(null);
 
   const throttledUpdate = useRef(
-    throttle((markmap, md) => {
+    throttle((md) => {
+      const markmap = mapRef.current;
+      const transformer = transformerRef.current;
+      if (!markmap || !transformer || !md) return;
       try {
         const { root } = transformer.transform(md);
-        markmap.setData(root).then(() => {
-          markmap.fit();
-        }).catch(error => {
-          console.error('[Markmap] setData failed:', error);
-        });
+        markmap
+          .setData(root)
+          .then(() => markmap.fit())
+          .catch((error) => {
+            console.error('[Markmap] setData failed:', error);
+          });
       } catch (error) {
         console.error('[Markmap] Transform failed:', error);
       }
-    }, 500),
+    }, 500)
   ).current;
 
   // Initialise the markmap instance once.
   useEffect(() => {
     if (!mapRef.current && svgRef.current) {
-      // Clear any pending timeout
-      if (initTimeoutRef.current) {
-        clearTimeout(initTimeoutRef.current);
-      }
-
-      // Wait for next frame to ensure layout is complete
-      initTimeoutRef.current = setTimeout(() => {
+      if (initTimeoutRef.current) clearTimeout(initTimeoutRef.current);
+      initTimeoutRef.current = setTimeout(async () => {
         if (!svgRef.current) return;
         const svg = svgRef.current;
         const rect = svg.getBoundingClientRect();
-
-        if (rect.width > 0 && rect.height > 0) {
-          svg.setAttribute('width', rect.width);
-          svg.setAttribute('height', rect.height);
-
-          try {
-            const markmap = MarkmapView.create(svg);
-            mapRef.current = markmap;
-            console.log('[Markmap] Initialized with dimensions:', rect.width, 'x', rect.height);
-          } catch (error) {
-            console.error('[Markmap] Initialization failed:', error);
-          }
-        } else {
+        if (rect.width <= 0 || rect.height <= 0) {
           console.warn('[Markmap] SVG has zero dimensions:', rect);
+          return;
         }
-      }, 100); // Small delay to ensure layout is stable
+        svg.setAttribute('width', rect.width);
+        svg.setAttribute('height', rect.height);
+        try {
+          // Dynamic import markmap libs
+          const [{ Transformer }, { Markmap }] = await Promise.all([
+            import('markmap-lib'),
+            import('markmap-view'),
+          ]);
+          transformerRef.current = new Transformer();
+          MarkmapClassRef.current = Markmap;
+          const markmap = Markmap.create(svg);
+          mapRef.current = markmap;
+          console.log('[Markmap] Initialized with dimensions:', rect.width, 'x', rect.height);
+        } catch (error) {
+          console.error('[Markmap] Initialization failed:', error);
+        }
+      }, 100);
     }
-
-    return () => {
-      if (initTimeoutRef.current) {
-        clearTimeout(initTimeoutRef.current);
-      }
-    };
+    return () => { if (initTimeoutRef.current) clearTimeout(initTimeoutRef.current); };
   }, []);
 
   // Update the mind map when the content changes.
   useEffect(() => {
-    const markmap = mapRef.current;
-    if (content && markmap) {
-      try {
-        throttledUpdate(markmap, content);
-      } catch (error) {
-        console.error('[Markmap] Update failed:', error);
-      }
+    if (content) {
+      try { throttledUpdate(content); } catch (error) { console.error('[Markmap] Update failed:', error); }
     }
   }, [content, throttledUpdate]);
 
