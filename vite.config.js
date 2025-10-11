@@ -47,6 +47,10 @@ export default defineConfig(({ mode }) => {
     server: {
       port: devPort,
       host: true,
+      headers: {
+        'Cross-Origin-Opener-Policy': 'same-origin-allow-popups',
+        'Cross-Origin-Embedder-Policy': 'unsafe-none',
+      },
       // Don't set COOP/COEP headers in dev - allows HMR postMessage and OAuth popups
       proxy: {
         '/api': { target: `http://localhost:${serverPort}`, changeOrigin: true, secure: false },
