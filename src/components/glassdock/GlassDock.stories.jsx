@@ -7,7 +7,8 @@ const mockUseStore = (initialState) => {
   const store = {
     state: initialState,
     actions: {
-      setIsOrchestratorOpen: () => console.log('setIsOrchestratorOpen'),
+      expandDock: () => console.log('expandDock'),
+      setDockMinimized: () => console.log('setDockMinimized'),
       setIsSettingsOpen: () => console.log('setIsSettingsOpen'),
       setIsSystemInfoOpen: () => console.log('setIsSystemInfoOpen'),
       setIsLiveVoiceChatOpen: () => console.log('setIsLiveVoiceChatOpen'),
@@ -21,6 +22,7 @@ const mockUseStore = (initialState) => {
     isLiveVoiceChatOpen: false,
     orchestratorNarration: 'Orchestrator narration example...',
     dockMode: 'chat',
+    dockMinimized: initialState.dockMinimized !== undefined ? initialState.dockMinimized : false,
     activeNodeId: null,
     currentNodeConfig: null,
     isAuthenticated: true,

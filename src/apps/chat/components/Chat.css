@@ -7,6 +7,56 @@
 
 .chat-main-content {
   flex: 1;
-  overflow: auto;
+  overflow: hidden;
   position: relative;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Mind Map Overlay - positioned absolutely to cover messages only */
+.mindmap-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 82px; /* Height of input form + padding */
+  z-index: 100;
+  background: var(--color-bg);
+  display: flex;
+  flex-direction: column;
+  animation: fadeIn 0.2s ease;
+  overflow: hidden;
+}
+
+/* Ensure MindMapPanel fills the overlay */
+.mindmap-overlay > * {
+  flex: 1;
+  min-height: 0;
+  width: 100%;
+  height: 100%;
+}
+
+/* Markmap dark theme styling */
+.mindmap-overlay .markmap {
+  --markmap-text-color: var(--color-text-primary, #e0e0e0);
+  --markmap-circle-open-bg: var(--color-surface, #2a2a2a);
+  --markmap-code-bg: var(--color-surface, #2a2a2a);
+  --markmap-code-color: var(--color-text-secondary, #b0b0b0);
+  --markmap-a-color: var(--color-accent, #4a9eff);
+  --markmap-a-hover-color: var(--color-accent, #6ab0ff);
+  --markmap-highlight-bg: rgba(255, 235, 59, 0.2);
+  --markmap-highlight-node-bg: rgba(74, 158, 255, 0.1);
+}
+
+.mindmap-overlay svg {
+  background: var(--color-bg, #1a1a1a) !important;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }

@@ -5,7 +5,10 @@ import './styles/kanban.css';
 import CategorySidebar from './components/CategorySidebar.jsx';
 import KanbanLanes from './components/KanbanLanes.jsx';
 import TaskDetailPanel from './components/TaskDetailPanel.jsx';
+import BoothHeader from '@components/ui/organisms/BoothHeader.jsx';
 import { useRightPane, useLeftPane } from '@shared/lib/layoutSlots';
+import AppHomeBlock from '@components/ui/organisms/AppHomeBlock.jsx';
+import { appHomeContent } from '@components/ui/organisms/appHomeContent.js';
 
 export default function KanbanContent() {
   const setActiveApp = useStore(s => s.actions.setActiveApp);
@@ -50,9 +53,34 @@ export default function KanbanContent() {
     }
   }, [selectedTaskId, setRightPane, clearRightPane]);
 
+  const isFirstVisit = useStore(s => s.firstVisit?.kanban);
+  const dismissFirstVisit = useStore(s => s.actions?.dismissFirstVisit);
+
   return (
-    <div className="kanban-workspace">
-      <KanbanLanes />
+    <div className="booth-viewer">
+      <BoothHeader
+        icon="view_kanban"
+        title="Kanban Board"
+        typeText="Task Management"
+        status="active"
+        description="Organize and track tasks across different stages"
+        align="top"
+      />
+      <div className="kanban-workspace">
+        {isFirstVisit ? (
+          <div className="kanban-welcome">
+            {(() => { const c = appHomeContent.kanban; return (
+              <AppHomeBlock icon={c.icon} subtitle={c.subtitle} title={c.title} description={c.description} tips={c.tips}>
+                <button className="btn primary" style={{ marginTop: '12px' }} onClick={() => dismissFirstVisit?.('kanban')}>
+                  Got it
+                </button>
+              </AppHomeBlock>
+            ); })()}
+          </div>
+        ) : (
+          <KanbanLanes />
+        )}
+      </div>
     </div>
   );
 }

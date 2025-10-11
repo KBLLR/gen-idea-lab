@@ -7,6 +7,7 @@ import styles from './ChatSidebar.module.css';
 const ChatSidebar = () => {
   const savedChats = useStore.use.moduleAssistantSavedChats();
   const activeModuleId = useStore.use.activeModuleId();
+  const actions = useStore.use.actions();
   const [useMockData, setUseMockData] = useState(false);
   const [filterText, setFilterText] = useState('');
   const [filterModule, setFilterModule] = useState('all');
@@ -173,8 +174,8 @@ const ChatSidebar = () => {
                   key={chat.id}
                   className={`${styles.chatCard} ${activeModuleId === chat.moduleId ? styles.active : ''}`}
                   onClick={() => {
-                    console.log('Opening chat:', chat.id);
-                    // TODO: Load chat messages into main view
+                    console.log('Loading chat:', chat.id);
+                    actions.loadChat(chat.id);
                   }}
                 >
                   <div className={styles.chatHeader}>

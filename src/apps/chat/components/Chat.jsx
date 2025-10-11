@@ -7,9 +7,10 @@ import ChatHeader from './ChatHeader';
 import ModuleAssistantHeader from './ModuleAssistantHeader';
 import AssistantAvatarDock from './AssistantAvatarDock';
 import ModuleAgentsChat from './ModuleAgentsChat';
+import MindMapPanel from '@apps/multimindmap/components/MindMapPanel.jsx';
 import './Chat.css';
 
-const Chat = ({ showGallery, onToggleGallery }) => {
+const Chat = ({ showGallery, onToggleGallery, showMindmap, onToggleMindmap }) => {
   const activeModuleId = useStore.use.activeModuleId();
 
   const handleDragEnd = (event) => {
@@ -37,11 +38,22 @@ const Chat = ({ showGallery, onToggleGallery }) => {
   return (
     <DndContext onDragEnd={handleDragEnd}>
       <div className="chat-app-container">
-        <ChatHeader showGallery={showGallery} onToggleGallery={onToggleGallery} />
+        <ChatHeader
+          showGallery={showGallery}
+          onToggleGallery={onToggleGallery}
+          showMindmap={showMindmap}
+          onToggleMindmap={onToggleMindmap}
+        />
         <ModuleAssistantHeader />
         <AssistantAvatarDock />
         <div className="chat-main-content">
-          <ModuleAgentsChat />
+          <ModuleAgentsChat showMindmap={showMindmap} />
+          {/* Mind Map Overlay - covers only messages area */}
+          {showMindmap && (
+            <div className="mindmap-overlay">
+              <MindMapPanel />
+            </div>
+          )}
         </div>
       </div>
     </DndContext>

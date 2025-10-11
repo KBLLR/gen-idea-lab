@@ -93,8 +93,7 @@ export default function GestureLab() {
         }
     }, [mode, isInitialized]);
 
-    let prevX = 0;
-    let prevY = 0;
+    const prevPointRef = useRef({ x: null, y: null });
 
     useEffect(() => {
         const getContainer = () => {
@@ -105,7 +104,9 @@ export default function GestureLab() {
             const lCanvas = landmarkCanvasRef.current;
             const dpr = typeof window !== 'undefined' ? Math.max(1, Math.min(3, window.devicePixelRatio || 1)) : 1;
             dprRef.current = dpr;
-            const { width: wCss, height: hCss } = getContainer();
+            const container = getContainer();
+            const wCss = container?.clientWidth || container?.offsetWidth || 0;
+            const hCss = container?.clientHeight || container?.offsetHeight || 0;
             if (!wCss || !hCss) return;
             if (sCanvas) {
                 sCanvas.width = Math.floor(wCss * dpr);
@@ -126,7 +127,7 @@ export default function GestureLab() {
         };
         const updateSize = () => {
             const container = getContainer();
-            setCanvasSize({ width: container.clientWidth, height: container.clientHeight });
+            setCanvasSize({ width: container?.clientWidth || 0, height: container?.clientHeight || 0 });
             applyCanvasDPR();
         };
         updateSize();
@@ -144,7 +145,7 @@ export default function GestureLab() {
             if (videoRef.current) {
                 videoRef.current.srcObject = stream;
                 // Initialize recognizer after video metadata is ready (attach once)
-                videoRef.current.addEventListener('loadeddata', () => {
+                videoRef.current.addEventListener('loadedmetadata', () => {
                     initializeMediaPipe();
                 }, { once: true });
                 try { await videoRef.current.play?.(); } catch {}
@@ -170,6 +171,7 @@ export default function GestureLab() {
                 numHands: 2
             });
             gestureRecognizerRef.current = recognizer;
+            setIsInitialized(true);
 
             // Start RAF render loop
             let lastTime = -1;
@@ -183,10 +185,25 @@ export default function GestureLab() {
                     rafRef.current = requestAnimationFrame(loop);
                     return;
                 }
+                // Skip until video has valid dimensions
+                if (!video.videoWidth || !video.videoHeight) {
+                    rafRef.current = requestAnimationFrame(loop);
+                    return;
+                }
 
                 if (video.currentTime !== lastTime) {
                     lastTime = video.currentTime;
-                    const result = recognizer.recognizeForVideo(video, performance.now());
+                    let result = null;
+                    try {
+                        result = recognizer.recognizeForVideo(video, performance.now());
+                    } catch (e) {
+                        // Guard against transient ROI/dimension errors; retry next frame.
+                        // Optionally surface once.
+                        if (!error) setError('Tracking error: retrying…');
+                        rafRef.current = requestAnimationFrame(loop);
+                        return;
+                    }
+                    if (error) setError(null);
                     // Clear overlay each frame
                     lctx.clearRect(0, 0, lCanvas.width, lCanvas.height);
 
@@ -208,15 +225,17 @@ export default function GestureLab() {
                                 const height = canvasSize.height;
                                 const thumbTip = landmarks[THUMB_TIP_INDEX];
                                 const indexTip = landmarks[INDEX_FINGER_TIP_INDEX];
-                                if (thumbTip && indexTip) {
-                                    const dx = Math.abs(thumbTip.x - indexTip.x) * width;
-                                    const dy = Math.abs(thumbTip.y - indexTip.y) * height;
-                                    const isPinching = dx < 50 && dy < 50;
+                                if (thumbTip && indexTip && width > 0 && height > 0) {
+                                    // Use normalized Euclidean distance for robust pinch detection
+                                    const ndx = (thumbTip.x - indexTip.x);
+                                    const ndy = (thumbTip.y - indexTip.y);
+                                    const nDist = Math.hypot(ndx, ndy); // 0..~1
+                                    const isPinching = nDist < 0.06; // ~6% of frame
 
                                     // Fist = stop drawing (no stroke updates)
                                     if (selectedGesture === 'fist') {
                                         setCurrentGesture('stop');
-                                        prevX = prevY = 0;
+                                        prevPointRef.current = { x: null, y: null };
                                     }
                                     // Open Palm = erase (use pinch path as eraser handle)
                                     else if (selectedGesture === 'openPalm' && isPinching) {
@@ -234,7 +253,7 @@ export default function GestureLab() {
                                     }
                                     else {
                                         setCurrentGesture('none');
-                                        prevX = prevY = 0;
+                                        prevPointRef.current = { x: null, y: null };
                                     }
                                 }
                             }
@@ -396,17 +415,17 @@ export default function GestureLab() {
 
     const drawLine = (ctx, x, y, erase = false) => {
         if (!ctx) {
-            prevX = 0; prevY = 0;
+            prevPointRef.current = { x: null, y: null };
             return;
         }
-        if (!prevX || !prevY) {
-            prevX = x;
-            prevY = y;
+        if (prevPointRef.current.x == null || prevPointRef.current.y == null) {
+            prevPointRef.current = { x, y };
             return;
         }
 
-        const smoothedX = prevX + SMOOTHING_FACTOR * (x - prevX);
-        const smoothedY = prevY + SMOOTHING_FACTOR * (y - prevY);
+        const { x: px, y: py } = prevPointRef.current;
+        const smoothedX = px + SMOOTHING_FACTOR * (x - px);
+        const smoothedY = py + SMOOTHING_FACTOR * (y - py);
 
         const prevComposite = ctx.globalCompositeOperation;
         if (erase) {
@@ -420,13 +439,12 @@ export default function GestureLab() {
         ctx.lineJoin = 'round';
 
         ctx.beginPath();
-        ctx.moveTo(prevX, prevY);
+        ctx.moveTo(px, py);
         ctx.lineTo(smoothedX, smoothedY);
         ctx.stroke();
         ctx.globalCompositeOperation = prevComposite || 'source-over';
 
-        prevX = smoothedX;
-        prevY = smoothedY;
+        prevPointRef.current = { x: smoothedX, y: smoothedY };
     };
 
     const stopTracking = useCallback(() => {
@@ -452,7 +470,7 @@ export default function GestureLab() {
             const h = landmarkCanvasRef.current?.height || 0;
             if (lctx) lctx.clearRect(0, 0, w, h);
             if (sctx) sctx.clearRect(0, 0, w, h);
-            prevX = 0; prevY = 0;
+            prevPointRef.current = { x: null, y: null };
         } finally {
             setIsInitialized(false);
             setCurrentGesture('none');
@@ -470,7 +488,7 @@ export default function GestureLab() {
             const dpr = dprRef.current || 1;
             ctx.clearRect(0, 0, (canvasSize.width * dpr), (canvasSize.height * dpr));
         }
-        prevX = 0; prevY = 0;
+        prevPointRef.current = { x: null, y: null };
     };
 
     const handleSave = () => {
@@ -619,92 +637,85 @@ export default function GestureLab() {
                 title="Drawing Canvas"
                 className="panel--fill"
                 style={{ flex: 1, minHeight: 0 }}
-                footer={
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
-                        {/* Left: brush palette */}
-                        <span style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>Colors</span>
-                        {['#FFFFFF','#000000','#00FFFF','#1e88e5','#66bb6a','#ffd54f','#ff5252','#9c27b0'].map(c => (
-                            <button
-                              key={c}
-                              onClick={() => setBrushColor(c)}
-                              title={c}
-                              style={{
-                                width: 20,
-                                height: 20,
-                                borderRadius: '50%',
-                                background: c,
-                                border: brushColor === c ? '2px solid var(--text-accent)' : '1px solid var(--border-secondary)'
-                              }}
-                            />
-                        ))}
-                        <div style={{ width: 16 }} />
-                        <span style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>Brush</span>
-                        {[2,4,6,10,16,24].map(s => (
-                            <button
-                              key={s}
-                              onClick={() => setBrushSize(s)}
-                              title={`Size ${s}`}
-                              style={{
-                                width: 28,
-                                height: 28,
-                                borderRadius: '50%',
-                                display: 'grid',
-                                placeItems: 'center',
-                                border: brushSize === s ? '2px solid var(--text-accent)' : '1px solid var(--border-secondary)'
-                              }}
-                            >
-                              <span style={{
-                                display: 'block',
-                                width: Math.max(4, Math.min(20, s)),
-                                height: Math.max(4, Math.min(20, s)),
-                                borderRadius: '50%',
-                                background: 'var(--text-primary)'
-                              }} />
-                            </button>
-                        ))}
-
-                        <div style={{ width: 16 }} />
-                        <span style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>Eraser</span>
-                        {[8,12,20].map(s => (
-                            <button
-                              key={`eraser-${s}`}
-                              onClick={() => { setEraserSize(s); setSelectedGesture('fist'); }}
-                              title={`Eraser ${s}`}
-                              style={{
-                                width: 28,
-                                height: 28,
-                                borderRadius: '50%',
-                                display: 'grid',
-                                placeItems: 'center',
-                                border: (selectedGesture === 'fist' && eraserSize === s) ? '2px solid var(--text-accent)' : '1px solid var(--border-secondary)'
-                              }}
-                            >
-                              <span className="icon" style={{ fontSize: 16, color: 'var(--text-primary)' }}>ink_eraser</span>
-                            </button>
-                        ))}
-
-                        {/* Right: user-actions style buttons */}
-                        <div style={{ marginLeft: 'auto' }}>
-<ActionBar
-                            aria-label="Canvas actions"
-                            items={[
-                              { id: 'save', label: 'Save', icon: 'save', onClick: handleSave },
-                              { id: 'upload', label: 'Upload Background', icon: 'upload', onClick: handleUploadClick },
-                              { id: 'gallery', label: 'Gallery', icon: 'photo_library', onClick: handleOpenGallery }
-                            ]}
-                          />
-                        </div>
+                footer={(
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap', width: '100%' }}>
+                    {/* Palette */}
+                    <span style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>Colors</span>
+                    {['#FFFFFF','#000000','#00FFFF','#1e88e5','#66bb6a','#ffd54f','#ff5252','#9c27b0'].map(c => (
+                      <button
+                        key={c}
+                        onClick={() => setBrushColor(c)}
+                        title={c}
+                        style={{
+                          width: 20,
+                          height: 20,
+                          borderRadius: '50%',
+                          background: c,
+                          border: brushColor === c ? '2px solid var(--text-accent)' : '1px solid var(--border-secondary)'
+                        }}
+                      />
+                    ))}
+                    <div style={{ width: 16 }} />
+                    {/* Brush sizes */}
+                    <span style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>Brush</span>
+                    {[2,4,6,10,16,24].map(s => (
+                      <button
+                        key={s}
+                        onClick={() => setBrushSize(s)}
+                        title={`Size ${s}`}
+                        style={{
+                          width: 28,
+                          height: 28,
+                          borderRadius: '50%',
+                          display: 'grid',
+                          placeItems: 'center',
+                          border: brushSize === s ? '2px solid var(--text-accent)' : '1px solid var(--border-secondary)'
+                        }}
+                      >
+                        <span style={{
+                          display: 'block',
+                          width: Math.max(4, Math.min(20, s)),
+                          height: Math.max(4, Math.min(20, s)),
+                          borderRadius: '50%',
+                          background: 'var(--text-primary)'
+                        }} />
+                      </button>
+                    ))}
+                    <div style={{ width: 16 }} />
+                    {/* Eraser sizes */}
+                    <span style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>Eraser</span>
+                    {[8,12,20].map(s => (
+                      <button
+                        key={`eraser-${s}`}
+                        onClick={() => { setEraserSize(s); setSelectedGesture('openPalm'); }}
+                        title={`Eraser ${s}`}
+                        style={{
+                          width: 28,
+                          height: 28,
+                          borderRadius: '50%',
+                          display: 'grid',
+                          placeItems: 'center',
+                          border: (selectedGesture === 'openPalm' && eraserSize === s) ? '2px solid var(--text-accent)' : '1px solid var(--border-secondary)'
+                        }}
+                      >
+                        <span className="icon" style={{ fontSize: 16, color: 'var(--text-primary)' }}>ink_eraser</span>
+                      </button>
+                    ))}
+                    {/* Actions aligned right */}
+                    <div style={{ marginLeft: 'auto' }}>
+                      <ActionBar
+                        aria-label="Canvas actions"
+                        items={[
+                          { id: 'save', label: 'Save', icon: 'save', onClick: handleSave },
+                          { id: 'upload', label: 'Upload Background', icon: 'upload', onClick: handleUploadClick },
+                          { id: 'gallery', label: 'Gallery', icon: 'photo_library', onClick: handleOpenGallery }
+                        ]}
+                      />
                     </div>
-                }
+                  </div>
+                )}
             >
-                <div style={{
-                    position: 'relative',
-                    width: '100%',
-                    height: '100%',
-                    background: theme === 'light' ? '#ffffff' : 'var(--surface-secondary)',
-                    borderRadius: 'var(--radius-md)',
-                    overflow: 'hidden'
-                }}>
+                <div style={{ position: 'relative', width: '100%', height: '100%', background: theme === 'light' ? '#ffffff' : 'var(--surface-secondary)', borderRadius: 'var(--radius-md)', overflow: 'hidden' }}>
                     {/* Stroke canvas (drawing) */}
                     <canvas
                         ref={strokeCanvasRef}
@@ -724,6 +735,8 @@ export default function GestureLab() {
                             inset: 0,
                             width: '100%',
                             height: '100%',
+                            pointerEvents: 'none',
+                            zIndex: 10,
                             transform: 'rotateY(180deg)'
                         }}
                     />
@@ -831,7 +844,7 @@ export default function GestureLab() {
                   {/* Landmark overlay above 3D */}
                   <canvas
                     ref={landmarkCanvasRef}
-                    style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', pointerEvents: 'none', zIndex: 10 }}
+                    style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', pointerEvents: 'none', zIndex: 10, transform: 'rotateY(180deg)' }}
                   />
                   {/* Rank overlay (top-left) */}
                   {holdsRank.length > 0 && (

@@ -125,10 +125,12 @@ const { personalities } = await import('@apps/ideaLab/lib/personalities.js');
     );
 
     // Add response to history with agent info
+    const currentChatId = get().activeChatId;
     set(state => {
       state.assistantHistories[activeModuleId].push({
         role: 'model',
         ...response,
+        chatId: currentChatId,
         agentId: moduleId,
         agentName: personality.name,
         agentIcon: personality.icon,
@@ -145,8 +147,16 @@ const { personalities } = await import('@apps/ideaLab/lib/personalities.js');
 }
 
 export const sendAssistantMessage = async (content) => {
-  const { activeModuleId } = get();
+  const state = get();
+  const { activeModuleId, activeChatId } = state;
   if (!content.trim() || !activeModuleId) return;
+
+  // Generate or reuse chat ID
+  let chatId = activeChatId;
+  if (!chatId) {
+    chatId = `chat_${activeModuleId}_${Date.now()}`;
+    set(s => { s.activeChatId = chatId });
+  }
 
   // Parse @ mentions
   const mentions = parseMentions(content);
@@ -158,7 +168,7 @@ export const sendAssistantMessage = async (content) => {
   }
 
   set(state => {
-    state.assistantHistories[activeModuleId].push({ role: 'user', content });
+    state.assistantHistories[activeModuleId].push({ role: 'user', content, chatId });
     state.isAssistantLoading = true;
   });
 
@@ -193,10 +203,12 @@ export const sendAssistantMessage = async (content) => {
     systemPromptOverride
   });
 
+  const currentChatId = get().activeChatId;
   set(state => {
     state.assistantHistories[activeModuleId].push({
       role: 'model',
       ...response,
+      chatId: currentChatId,
       toolsUsed: response.toolsUsed
     });
     state.isAssistantLoading = false;

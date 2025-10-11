@@ -3,6 +3,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 import { useState, useEffect, useRef } from 'react';
+import AppHomeBlock from '@components/ui/organisms/AppHomeBlock.jsx';
+import { appHomeContent } from '@components/ui/organisms/appHomeContent.js';
 import { useDroppable } from '@dnd-kit/core';
 import useStore from '@store';
 import { sendAssistantMessage } from '@shared/lib/actions/assistantActions.js';
@@ -24,8 +26,14 @@ const AgentCollaborationMessage = ({ message }) => (
 export default function ModuleAgentsChat() {
     const activeModuleId = useStore.use.activeModuleId();
     const assistantHistories = useStore.use.assistantHistories();
-    const history = activeModuleId ? (assistantHistories[activeModuleId] || []) : [];
+    const activeChatId = useStore.use.activeChatId();
     const isLoading = useStore.use.isAssistantLoading();
+
+    // Filter history by active chat ID
+    const allHistory = activeModuleId ? (assistantHistories[activeModuleId] || []) : [];
+    const history = activeChatId
+        ? allHistory.filter(msg => msg.chatId === activeChatId)
+        : allHistory;
     const [input, setInput] = useState('');
     const [showInviteMenu, setShowInviteMenu] = useState(false);
     const [showToolsMenu, setShowToolsMenu] = useState(false);
@@ -99,12 +107,9 @@ export default function ModuleAgentsChat() {
     if (!activeModuleId) {
         return (
             <div className="module-agents-chat-container">
-                <div className="module-agents-empty">
-                    <span className="icon" style={{ fontSize: '48px', opacity: 0.3 }}>chat_bubble</span>
-                    <h3>Module Agents Chat</h3>
-                    <p>Select a module from the left to chat with its assistant</p>
-                    <p className="hint">Module assistants can collaborate and invite each other to help with interdisciplinary topics</p>
-                </div>
+                {(() => { const c = appHomeContent.chat; return (
+                  <AppHomeBlock icon={c.icon} subtitle={c.subtitle} title={c.title} description={c.description} tips={c.tips} />
+                ); })()}
             </div>
         );
     }

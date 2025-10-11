@@ -74,12 +74,14 @@ const storeImpl = (set, get) => ({
   dockPosition: { x: 20, y: typeof window !== 'undefined' ? (window.innerHeight - 100) : 20 },
   dockDimensions: { width: 0, height: 0 },
   dockMode: 'chat', // 'chat' | 'node'
+  dockMinimized: true, // Dock starts minimized (just orb)
   activeNodeId: null,
   currentNodeConfig: null,
 
   // Glass Dock setters (top-level so components can access directly or via actions proxy)
   setDockPosition: (pos) => set((state) => { state.dockPosition = pos }),
   setDockDimensions: (dims) => set((state) => { state.dockDimensions = dims }),
+  setDockMinimized: (minimized) => set((state) => { state.dockMinimized = !!minimized }),
 
   // Theme actions
   setAccentTheme: (theme) => set((state) => { state.accentTheme = theme }),
@@ -94,6 +96,15 @@ const storeImpl = (set, get) => ({
     if (!state.moduleAssistantSavedChats) state.moduleAssistantSavedChats = {};
     if (!state.moduleAssistantSavedChats[moduleId]) state.moduleAssistantSavedChats[moduleId] = [];
     state.moduleAssistantSavedChats[moduleId].push(chat);
+  }),
+  startNewChat: (moduleId) => set((state) => {
+    const chatId = `chat_${moduleId || state.activeModuleId}_${Date.now()}`;
+    state.activeChatId = chatId;
+    console.log('[Chat] Started new chat:', chatId);
+  }),
+  loadChat: (chatId) => set((state) => {
+    state.activeChatId = chatId;
+    console.log('[Chat] Loaded chat:', chatId);
   }),
 
   // Planner/Workflow actions
@@ -152,10 +163,10 @@ const storeImpl = (set, get) => ({
   // Assistant state
   isAssistantLoading: false,
   assistantHistories: {},
+  activeChatId: null, // Current active chat session ID
   showModuleChat: false,
 
-  // Orchestrator Chat State
-  isOrchestratorOpen: false,
+  // Orchestrator Chat State (now handled by GlassDock)
   isOrchestratorLoading: false,
   orchestratorModel: 'gemini-2.0-flash-exp',
   workflowAutoTitleModel: 'gemma3:4b-it-qat',
@@ -168,6 +179,14 @@ const storeImpl = (set, get) => ({
   orchestratorHasConversation: false,
   orchestratorNarration: '',
   orchestratorNarrationHistory: [],
+  setOrchestratorNarration: (message) => set((state) => {
+    const text = String(message ?? '');
+    state.orchestratorNarration = text;
+    const history = Array.isArray(state.orchestratorNarrationHistory) ? state.orchestratorNarrationHistory : [];
+    const entry = { t: Date.now(), text };
+    const next = [...history, entry];
+    state.orchestratorNarrationHistory = next.slice(Math.max(0, next.length - 50));
+  }),
 
   // Workflow State
   workflowHistory: {},
@@ -182,6 +201,18 @@ const storeImpl = (set, get) => ({
   // Settings / Onboarding
   settings: {
     dismissedOnboarding: false,
+  },
+  // First-visit flags per app (controls initial welcome screens)
+  firstVisit: {
+    ideaLab: true,
+    chat: true,
+    workflows: true,
+    planner: true,
+    calendarAI: true,
+    imageBooth: true,
+    empathyLab: true,
+    gestureLab: true,
+    kanban: true,
   },
 
   // Image Booth state
@@ -273,6 +304,13 @@ const storeImpl = (set, get) => ({
   showKnowledgeSection: false,
   showGallery: false,
 
+  // Google service caches (prefetch-friendly)
+  google: {
+    drive: { files: [], nextPageToken: null, lastFetched: null },
+    photos: { albums: [], nextPageToken: null, lastFetched: null },
+    gmail: { messages: [], lastFetched: null },
+  },
+
   // Settings modal controls (top-level for selectors and actions proxy)
   setIsSettingsOpen: (open) => set((state) => { state.isSettingsOpen = !!open; state.ui = state.ui || {}; state.ui.isSettingsOpen = !!open; }),
   openSettings: () => set((state) => { state.ui = state.ui || {}; state.ui.isSettingsOpen = true; state.isSettingsOpen = true; }),
@@ -313,10 +351,6 @@ const storeImpl = (set, get) => ({
     failAppSwitch: (e) => set((s) => { s.appTransition.status = 'error'; s.appTransition.error = String(e); }),
 
     // Local UI actions
-    setIsOrchestratorOpen: (open) => set((state) => {
-      state.isOrchestratorOpen = open
-      if (open) state.activeApp = 'ideaLab'
-    }),
     setIsSystemInfoOpen: (open) => set((state) => { state.isSystemInfoOpen = open }),
 
     // Settings modal proxies
@@ -345,6 +379,8 @@ const storeImpl = (set, get) => ({
     // Glass Dock
     setDockPosition: (...args) => get().setDockPosition(...args),
     setDockDimensions: (...args) => get().setDockDimensions(...args),
+    setDockMinimized: (...args) => get().setDockMinimized(...args),
+    expandDock: () => set((state) => { state.dockMinimized = false; }),
 
     // Theme
     setAccentTheme: (...args) => get().setAccentTheme(...args),
@@ -353,6 +389,9 @@ const storeImpl = (set, get) => ({
     setAssistantModel: (...args) => get().setAssistantModel(...args),
     setAssistantSystemPrompt: (...args) => get().setAssistantSystemPrompt(...args),
     saveAssistantChat: (...args) => get().saveAssistantChat(...args),
+    startNewChat: (...args) => get().startNewChat(...args),
+    loadChat: (...args) => get().loadChat(...args),
+    setOrchestratorNarration: (...args) => get().setOrchestratorNarration(...args),
 
     // Planner/Workflow
     setNodes: (...args) => get().setNodes(...args),
@@ -370,6 +409,64 @@ const storeImpl = (set, get) => ({
     addDocumentationEntry: (...args) => get().addDocumentationEntry(...args),
     addWorkflowEntry: (...args) => get().addWorkflowEntry(...args),
     addChatEntry: (...args) => get().addChatEntry(...args),
+    // First-visit controls
+    setFirstVisit: (appId, val) => set((state) => {
+      state.firstVisit = state.firstVisit || {};
+      state.firstVisit[appId] = !!val;
+    }),
+    dismissFirstVisit: (appId) => set((state) => {
+      state.firstVisit = state.firstVisit || {};
+      state.firstVisit[appId] = false;
+    }),
+
+    // Google services prefetchers
+    fetchGoogleDriveFiles: async () => {
+      try {
+        const resp = await fetch('/api/services/googleDrive/files?folderId=root', { credentials: 'include' });
+        if (!resp.ok) return;
+        const data = await resp.json();
+        set((state) => {
+          state.google = state.google || {};
+          state.google.drive = state.google.drive || {};
+          state.google.drive.files = data.files || [];
+          state.google.drive.nextPageToken = data.nextPageToken || null;
+          state.google.drive.lastFetched = Date.now();
+        });
+      } catch (e) {
+        console.warn('[store] fetchGoogleDriveFiles failed:', e?.message || e);
+      }
+    },
+    fetchGooglePhotosAlbums: async () => {
+      try {
+        const resp = await fetch('/api/services/googlePhotos/albums', { credentials: 'include' });
+        if (!resp.ok) return;
+        const data = await resp.json();
+        set((state) => {
+          state.google = state.google || {};
+          state.google.photos = state.google.photos || {};
+          state.google.photos.albums = data.albums || [];
+          state.google.photos.nextPageToken = data.nextPageToken || null;
+          state.google.photos.lastFetched = Date.now();
+        });
+      } catch (e) {
+        console.warn('[store] fetchGooglePhotosAlbums failed:', e?.message || e);
+      }
+    },
+    fetchGmailMessages: async () => {
+      try {
+        const resp = await fetch('/api/services/gmail/messages?maxResults=10&labelIds=INBOX', { credentials: 'include' });
+        if (!resp.ok) return;
+        const data = await resp.json();
+        set((state) => {
+          state.google = state.google || {};
+          state.google.gmail = state.google.gmail || {};
+          state.google.gmail.messages = data.messages || [];
+          state.google.gmail.lastFetched = Date.now();
+        });
+      } catch (e) {
+        console.warn('[store] fetchGmailMessages failed:', e?.message || e);
+      }
+    },
   },
 })
 
@@ -382,6 +479,7 @@ const baseStore = create(
       name: 'gembooth-ideahub-storage',
       partialize: (state) => ({
         activeModuleId: state.activeModuleId,
+        activeChatId: state.activeChatId,
         theme: state.theme,
         accentTheme: state.accentTheme,
         orchestratorHistory: state.orchestratorHistory,
@@ -400,6 +498,7 @@ const baseStore = create(
         rightColumnWidth: state.rightColumnWidth,
         leftColumnWidth: state.leftColumnWidth,
         settings: state.settings,
+        firstVisit: state.firstVisit,
         plannerGraph: state.plannerGraph,
         customWorkflows: state.customWorkflows,
         showKnowledgeSection: state.showKnowledgeSection,

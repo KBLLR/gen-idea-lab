@@ -9,8 +9,13 @@ import { loginWithGoogle } from '../../lib/actions';
 export default function LoginForm() {
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState(null);
+    const CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID;
 
     useEffect(() => {
+        if (!CLIENT_ID) {
+            setError('Google OAuth not configured. Set VITE_GOOGLE_CLIENT_ID in your client env and GOOGLE_CLIENT_ID/GOOGLE_CLIENT_SECRET on the server.');
+            return;
+        }
         // Load Google Sign-In script
         const script = document.createElement('script');
         script.src = 'https://accounts.google.com/gsi/client';
@@ -20,7 +25,7 @@ export default function LoginForm() {
 
         script.onload = () => {
             window.google.accounts.id.initialize({
-                client_id: import.meta.env.VITE_GOOGLE_CLIENT_ID,
+                client_id: CLIENT_ID,
                 callback: handleCredentialResponse,
                 auto_select: false,
                 cancel_on_tap_outside: false,
@@ -41,7 +46,7 @@ export default function LoginForm() {
         return () => {
             document.body.removeChild(script);
         };
-    }, []);
+    }, [CLIENT_ID]);
 
     const handleCredentialResponse = async (response) => {
         setIsLoading(true);

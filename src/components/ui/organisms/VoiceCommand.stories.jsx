@@ -10,7 +10,7 @@ const mockUseStore = (initialState) => {
     state: initialState,
     actions: {
       setIsSettingsOpen: jest.fn(),
-      setIsOrchestratorOpen: jest.fn(),
+      expandDock: jest.fn(),
       setActiveApp: jest.fn(),
     },
     ...initialState,

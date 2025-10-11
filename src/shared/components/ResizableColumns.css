@@ -1,0 +1,72 @@
+.resizable-columns {
+  display: flex;
+  width: 100%;
+  /* Use flex growth instead of height:100% so it can expand in flex parents */
+  flex: 1 1 auto;
+  min-height: 0;
+  position: relative;
+  overflow: hidden;
+}
+
+.resizable-columns__left,
+.resizable-columns__right {
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.resizable-columns__divider {
+  width: 8px;
+  position: relative;
+  cursor: col-resize;
+  background: transparent;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: background-color 0.15s ease;
+}
+
+.resizable-columns__divider:hover,
+.resizable-columns__divider:focus {
+  background: rgba(255, 255, 255, 0.05);
+  outline: none;
+}
+
+.resizable-columns__divider-handle {
+  width: 2px;
+  height: 48px;
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 1px;
+  transition: all 0.15s ease;
+}
+
+.resizable-columns__divider:hover .resizable-columns__divider-handle,
+.resizable-columns__divider:focus .resizable-columns__divider-handle {
+  background: rgba(255, 255, 255, 0.3);
+  height: 64px;
+  width: 3px;
+}
+
+.resizable-columns--dragging {
+  user-select: none;
+}
+
+.resizable-columns--dragging .resizable-columns__divider {
+  background: rgba(74, 158, 255, 0.1);
+}
+
+.resizable-columns--dragging .resizable-columns__divider-handle {
+  background: rgba(74, 158, 255, 0.6);
+  height: 100%;
+  width: 3px;
+}
+
+/* Keyboard focus indicator */
+.resizable-columns__divider:focus-visible {
+  outline: 2px solid var(--color-accent, #4a9eff);
+  outline-offset: -2px;
+}

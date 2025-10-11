@@ -14,35 +14,70 @@ const transformer = new Transformer();
 const MarkmapViewer = ({ content }) => {
   const svgRef = useRef(null);
   const mapRef = useRef(null);
+  const initTimeoutRef = useRef(null);
+
   const throttledUpdate = useRef(
     throttle((markmap, md) => {
-      const { root } = transformer.transform(md);
-      markmap.setData(root).then(() => {
-        markmap.fit();
-      });
+      try {
+        const { root } = transformer.transform(md);
+        markmap.setData(root).then(() => {
+          markmap.fit();
+        }).catch(error => {
+          console.error('[Markmap] setData failed:', error);
+        });
+      } catch (error) {
+        console.error('[Markmap] Transform failed:', error);
+      }
     }, 500),
   ).current;
 
   // Initialise the markmap instance once.
   useEffect(() => {
     if (!mapRef.current && svgRef.current) {
-      // Ensure SVG has dimensions before initializing D3 zoom
-      const svg = svgRef.current;
-      const rect = svg.getBoundingClientRect();
-      if (rect.width > 0 && rect.height > 0) {
-        svg.setAttribute('width', rect.width);
-        svg.setAttribute('height', rect.height);
-        const markmap = MarkmapView.create(svg);
-        mapRef.current = markmap;
+      // Clear any pending timeout
+      if (initTimeoutRef.current) {
+        clearTimeout(initTimeoutRef.current);
       }
+
+      // Wait for next frame to ensure layout is complete
+      initTimeoutRef.current = setTimeout(() => {
+        if (!svgRef.current) return;
+        const svg = svgRef.current;
+        const rect = svg.getBoundingClientRect();
+
+        if (rect.width > 0 && rect.height > 0) {
+          svg.setAttribute('width', rect.width);
+          svg.setAttribute('height', rect.height);
+
+          try {
+            const markmap = MarkmapView.create(svg);
+            mapRef.current = markmap;
+            console.log('[Markmap] Initialized with dimensions:', rect.width, 'x', rect.height);
+          } catch (error) {
+            console.error('[Markmap] Initialization failed:', error);
+          }
+        } else {
+          console.warn('[Markmap] SVG has zero dimensions:', rect);
+        }
+      }, 100); // Small delay to ensure layout is stable
     }
+
+    return () => {
+      if (initTimeoutRef.current) {
+        clearTimeout(initTimeoutRef.current);
+      }
+    };
   }, []);
 
   // Update the mind map when the content changes.
   useEffect(() => {
     const markmap = mapRef.current;
     if (content && markmap) {
-      throttledUpdate(markmap, content);
+      try {
+        throttledUpdate(markmap, content);
+      } catch (error) {
+        console.error('[Markmap] Update failed:', error);
+      }
     }
   }, [content, throttledUpdate]);
 
@@ -54,23 +89,34 @@ const MarkmapViewer = ({ content }) => {
         if (rect.width > 0 && rect.height > 0) {
           svgRef.current.setAttribute('width', rect.width);
           svgRef.current.setAttribute('height', rect.height);
+
+          // Only fit if markmap is initialized
+          if (mapRef.current) {
+            try {
+              mapRef.current.fit();
+            } catch (error) {
+              console.error('[Markmap] Fit failed:', error);
+            }
+          }
         }
       }
-      mapRef.current?.fit();
     });
-    if (svgRef.current) {
-      observer.observe(svgRef.current);
+
+    const currentSvg = svgRef.current;
+    if (currentSvg) {
+      observer.observe(currentSvg);
     }
+
     return () => {
-      if (svgRef.current) {
-        observer.unobserve(svgRef.current);
+      if (currentSvg) {
+        observer.unobserve(currentSvg);
       }
     };
   }, []);
 
   return (
-    <div className="relative flex h-full w-full items-stretch">
-      <svg ref={svgRef} className="flex-1 bg-white"></svg>
+    <div style={{ position: 'relative', display: 'flex', width: '100%', height: '100%', alignItems: 'stretch' }}>
+      <svg ref={svgRef} style={{ flex: 1, background: 'var(--color-bg, #1a1a1a)', minWidth: 0, minHeight: 0 }}></svg>
     </div>
   );
 };

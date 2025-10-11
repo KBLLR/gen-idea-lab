@@ -1,0 +1,740 @@
+{
+  "title": "GET AS HIGH AS YOU CAN — Complete Prompt Compendium",
+  "subject": "monkey",
+  "object": "clear glass bong",
+  "global_constraints": [
+    "Monkey remains the subject (≥35–40% of frame in comics/covers); face readable; tail visible when appropriate.",
+    "Glass bong must be crystal-clear borosilicate; preserve exact shape and fine details (bowl, downstem, joint, lip bevel, thin seam, true refraction/IOR, meniscus when visible).",
+    "When a style specifies B/W, keep strict monochrome; otherwise follow palette cues.",
+    "Respect any layout notes (grids, panels, frames, mastheads, captions)."
+  ],
+  "prompts": [
+    {
+      "id": 1,
+      "name": "Swiss Grid Poster",
+      "category": "Style Variations Set 1",
+      "prompt": "Bold grotesk title top-aligned on strict baseline grid. Minimal silhouette of a leaping monkey holding a clear glass bong with accurate refraction and rim highlights. Two-tone palette (burnt orange + carbon black), negative space, micro-grain paper texture."
+    },
+    {
+      "id": 2,
+      "name": "Ukiyo-e Woodblock",
+      "category": "Style Variations Set 1",
+      "prompt": "Hand-carved banner title. Windswept macaque mid-jump; crystal-clear bong rendered with woodblock water ripples and subtle mica sparkle; indigo clouds, off-register ink, visible fiber paper."
+    },
+    {
+      "id": 3,
+      "name": "Psychedelic ’70s Screenprint",
+      "category": "Style Variations Set 1",
+      "prompt": "Wavy bubble serif title. Funky dancing monkey holding a pristine glass bong with rainbow refractions; saturated magenta, acid lime, tangerine split-fountain blend; heavy halftone, misprint edges."
+    },
+    {
+      "id": 4,
+      "name": "Soviet Constructivist",
+      "category": "Style Variations Set 1",
+      "prompt": "Condensed geometric slab title in red banners. Angular heroic monkey silhouette ascending geometric stairs, gripping a perfectly proportioned transparent bong. Red/black/cream palette; arrows and radial burst."
+    },
+    {
+      "id": 5,
+      "name": "Y2K Chrome 3D",
+      "category": "Style Variations Set 1",
+      "prompt": "Extruded chrome masthead with soft bloom. Hyper-clean CGI monkey; bong shows accurate IOR, meniscus, seams. Holographic gradient background; subtle lens flare and DOF."
+    },
+    {
+      "id": 6,
+      "name": "Bauhaus Print",
+      "category": "Style Variations Set 1",
+      "prompt": "Lowercase geometric sans title. Monkey made of primary shapes; glass bong as precise circles/cylinders with transparent overlays. Red/yellow/blue + off-white; letterpress indentation."
+    },
+    {
+      "id": 7,
+      "name": "Noir Engraving",
+      "category": "Style Variations Set 1",
+      "prompt": "Tall condensed serif title. Cross-hatched chiaroscuro: night stage, mid-leap monkey; glass bong etched with fine linework, crisp reflections. Monochrome with subtle vignette."
+    },
+    {
+      "id": 8,
+      "name": "Vaporwave Collage",
+      "category": "Style Variations Set 1",
+      "prompt": "Retro techno type, scanlines. Neon-lit monkey silhouette above sunset gradient; photo-real clear bong with cyan/pink rim light reflecting a checkerboard floor. VHS noise, Japanese side captions, palm fronds."
+    },
+    {
+      "id": 9,
+      "name": "Tattoo Flash Sheet",
+      "category": "Style Variations Set 1",
+      "prompt": "Traditional banner ribbon title. Old-school inked monkey; bong with clean linework and accurate geometry. Limited palette (black, red, hunter green); tea-stained paper, stipple shading."
+    },
+    {
+      "id": 10,
+      "name": "Stop-Motion Clay Diorama",
+      "category": "Style Variations Set 1",
+      "prompt": "Chunky hand-cut letters title. Clay-sculpted monkey mid-jump; real miniature borosilicate bong with true proportions and seam line. Soft box set, shallow DOF, felt ground."
+    },
+
+    {
+      "id": 11,
+      "name": "Art Nouveau Poster",
+      "category": "Style Variations Set 2",
+      "prompt": "Ornate lithograph: flowing fur lines; bong refraction + gold rim highlights. Sepia–sage–copper grade; tall decorative sans; floral border medallions; title crowns the leap."
+    },
+    {
+      "id": 12,
+      "name": "Pixel Art Cartridge",
+      "category": "Style Variations Set 2",
+      "prompt": "32×32-style cover. Monkey sprite mid-air with perfect bong outline pixels (bowl/downstem visible). NES palette with dithering; bitmap title; CRT bloom."
+    },
+    {
+      "id": 13,
+      "name": "Graffiti Stencil Wall",
+      "category": "Style Variations Set 2",
+      "prompt": "Stencil silhouette leap on brick; over-spray halo. Bong contour marked with paint-pen speculars; neon orange accents; hand-scrawled caps; sticker cluster."
+    },
+    {
+      "id": 14,
+      "name": "Scientific Blueprint",
+      "category": "Style Variations Set 2",
+      "prompt": "Cyan blueprint plates. Dimension lines on bong (joint angle, tube radius); orthographic views; hatching for fur; title as drafting block."
+    },
+    {
+      "id": 15,
+      "name": "Surrealist Desert",
+      "category": "Style Variations Set 2",
+      "prompt": "Dreamscape oil: elongated shadows, glass caustics on sand. Ultramarine + ochre; tiny mirage title; vast negative space."
+    },
+    {
+      "id": 16,
+      "name": "Memphis Milano",
+      "category": "Style Variations Set 2",
+      "prompt": "Geometric pop design. Monkey abstracted to zigzags; bong stays photo-exact. Cyan/magenta/yellow/black; playful grid cutouts."
+    },
+    {
+      "id": 17,
+      "name": "Cyanotype Print",
+      "category": "Style Variations Set 2",
+      "prompt": "Prussian blue mono sun print. White silhouette noise; bright rim light on bong; deckled paper border."
+    },
+    {
+      "id": 18,
+      "name": "Brutalist Type Poster",
+      "category": "Style Variations Set 2",
+      "prompt": "Maximal heavy grotesk masthead; minimal emblematic figure. Tiny monkey + exact bong anchored bottom-right; micro-grain; accent orange."
+    },
+    {
+      "id": 19,
+      "name": "Pop Art Ben-Day",
+      "category": "Style Variations Set 2",
+      "prompt": "Comic pop silkscreen. Dot fields 20–40 LPI; crisp bong outline with starbursts; CMYK primaries, thick keyline; speech-bubble microcopy; four-panel grid ending on leap."
+    },
+    {
+      "id": 20,
+      "name": "Origami Paper-Craft",
+      "category": "Style Variations Set 2",
+      "prompt": "Studio photo of paper diorama. Folded-paper monkey; real mini borosilicate bong with true joints; pastel backdrop; shallow DOF; paper banner title."
+    },
+
+    {
+      "id": 21,
+      "name": "Art Deco Travel Poster",
+      "category": "Style Variations Set 3",
+      "prompt": "Gilded litho: stepped sunbursts; metallic ink edge on glass. Champagne/obsidian/teal; tall inline Deco caps; ziggurat framing."
+    },
+    {
+      "id": 22,
+      "name": "Sumi-e Ink Wash",
+      "category": "Style Variations Set 3",
+      "prompt": "Japanese brush painting. Dry-brush fur; single white stroke for bong glare; black ink on rice paper; red seal; big empty sky."
+    },
+    {
+      "id": 23,
+      "name": "Cubist Collage",
+      "category": "Style Variations Set 3",
+      "prompt": "Papier-collé angular planes; faceted limbs. Bong stays geometrically exact via transparent vellum layers; muted ochres/slate/green; angled strips title."
+    },
+    {
+      "id": 24,
+      "name": "Retro-Futurist Googie",
+      "category": "Style Variations Set 3",
+      "prompt": "Jet-Age roadside graphic. Boomerang shapes; chrome pinstripe on bong; aqua/coral/avocado; space-age script + block caps."
+    },
+    {
+      "id": 25,
+      "name": "Single-Line Minimalism",
+      "category": "Style Variations Set 3",
+      "prompt": "Continuous contour monkey; separate precise outline for bong + tiny specular dots; warm off-white; thin grotesk micro-caps; vast negative space."
+    },
+    {
+      "id": 26,
+      "name": "Low-Poly Isometric Diorama",
+      "category": "Style Variations Set 3",
+      "prompt": "Stylized CGI. Triangulated monkey; physically correct clear-glass shader on bong; floating isometric platform; blocky iso shadowed title."
+    },
+    {
+      "id": 27,
+      "name": "Glitchcore / Datamosh",
+      "category": "Style Variations Set 3",
+      "prompt": "Corrupted VHS/CRT: scanline tear, RGB split. Bong edges remain perfectly crisp as a protected layer; neon magenta/cyan on black; bitmap techno type."
+    },
+    {
+      "id": 28,
+      "name": "High-Speed Strobe Photograph",
+      "category": "Style Variations Set 3",
+      "prompt": "Edgerton-style freeze: micro droplets, razor-sharp caustics in the bong. Neutral studio gray; condensed sans captioning; 1/10,000s freeze."
+    },
+    {
+      "id": 29,
+      "name": "Tarot / Occult Engraving",
+      "category": "Style Variations Set 3",
+      "prompt": "Copperplate etch with mystical border. Bong etched with cross-hatch reflections; parchment; medieval caps title as card name; Major Arcana layout."
+    },
+    {
+      "id": 30,
+      "name": "Mid-Century Children’s Gouache",
+      "category": "Style Variations Set 3",
+      "prompt": "Mary-Blair-ish storybook. Chunky shapes, soft dry-brush; bong rendered simply but precise with rim sparkle; coral/mustard/sky; playful foliage."
+    },
+
+    {
+      "id": 31,
+      "name": "Ligne Claire Comic Plate",
+      "category": "Style Variations Set 4",
+      "prompt": "Franco-Belgian clear-line. Flat colors, crisp black outline; bong with thin ink lines + highlight ovals. Pastel sky, brick red, navy. 3 panels culminating in jump under big title."
+    },
+    {
+      "id": 32,
+      "name": "Natural History Field Guide",
+      "category": "Style Variations Set 4",
+      "prompt": "19th-century scientific plate. Anatomical callouts; bong shown in exact elevation with gloss hatching; tea-stained parchment; engraved headline."
+    },
+    {
+      "id": 33,
+      "name": "Risograph Two-Color Zine",
+      "category": "Style Variations Set 4",
+      "prompt": "Soy-ink riso print. Registration offset; bong edge in fluorescent spot with white specular; federal blue + fluorescent orange; grainy gradients."
+    },
+    {
+      "id": 34,
+      "name": "Stained-Glass Window (Vitrail)",
+      "category": "Style Variations Set 4",
+      "prompt": "Leaded glass illustration. Monkey in colored panes; bong as clear bevelled glass with authentic refraction seams; jewel tones; gothic banner title."
+    },
+    {
+      "id": 35,
+      "name": "’90s Anime Cel",
+      "category": "Style Variations Set 4",
+      "prompt": "Hand-painted acetate. Sharp cel lines, smear frame; bong ultra-clean with painted highlights + transparent multiply pass; teal sunset; speed lines."
+    },
+    {
+      "id": 36,
+      "name": "Photoreal Wildlife Documentary",
+      "category": "Style Variations Set 4",
+      "prompt": "High-speed nature poster. Fine fur, motion grit; bong with IOR, water meniscus, micro-scratches; golden-hour grade; sober grotesk."
+    },
+    {
+      "id": 37,
+      "name": "Generative Vector Field",
+      "category": "Style Variations Set 4",
+      "prompt": "Algorithmic flow-lines form the silhouette; photoreal bong overlaid, perfectly aligned; graphite lines on warm paper; minimal micro-caps."
+    },
+    {
+      "id": 38,
+      "name": "ASCII/Terminal Poster",
+      "category": "Style Variations Set 4",
+      "prompt": "Monospaced character art background forming the monkey; bong as crisp vector overlay. Phosphor green on black; DOS bitmap headline; terminal frame."
+    },
+    {
+      "id": 39,
+      "name": "Dada Photomontage",
+      "category": "Style Variations Set 4",
+      "prompt": "Collage of newsprint and stamps; bong is a cut-out product photo kept perfectly true with pinned label. Desaturated newsprint with scarlet accents; ransom-note title."
+    },
+    {
+      "id": 40,
+      "name": "Bioluminescent Night Jungle",
+      "category": "Style Variations Set 4",
+      "prompt": "Long-exposure light-painting. Neon edge light on fur; bong catches blue-green biolum glow and casts caustics on leaves; indigo/cyan LUT; glowing sans title."
+    },
+
+    {
+      "id": 41,
+      "name": "Dutch Golden Age Vanitas Still-Life",
+      "category": "Single Prompt",
+      "prompt": "Baroque oil: candlelit chiaroscuro; textured fur brushwork; crystal bong with true IOR, meniscus, lip bevel, micro-scratches; oak tabletop caustics. Gilded plaque-like title."
+    },
+
+    {
+      "id": 42,
+      "name": "Silver Age Superhero Burst (1963)",
+      "category": "Comic Mini-Stories",
+      "prompt": "3 panels, thick keylines, Ben-Day dots. P1 stoop with clear bong; P2 lightning ‘ZAP!’ refracts in the bong; P3 triumphant skyline leap ‘SWOOSH!’ Optimistic captions."
+    },
+    {
+      "id": 43,
+      "name": "Shōnen 4-Koma Vertical",
+      "category": "Comic Mini-Stories",
+      "prompt": "4 vertical gags: inspect exact bong; inhale ‘GOKU-GOKU’; chibi power-up; mid-air fist-pump under banner title. Screen-tones + speed lines."
+    },
+    {
+      "id": 44,
+      "name": "Gekiga Noir Triptych",
+      "category": "Comic Mini-Stories",
+      "prompt": "Three wide B/W panels: alley hand study on glass; reflection shows fire escape; roofline leap through searchlight; grim serif title."
+    },
+    {
+      "id": 45,
+      "name": "Sunday Funnies (3×1 Strip)",
+      "category": "Comic Mini-Stories",
+      "prompt": "Pastel line. Ponder bong; ‘PUFF-PUFF’ cloud forms staircase; climbs smoke stairs and jumps; ribbon headline; corner punchline."
+    },
+    {
+      "id": 46,
+      "name": "EC Horror Pre-Code (mini story)",
+      "category": "Comic Mini-Stories",
+      "prompt": "Graveyard; bong glints on rim; skeletons rise; twist: monkey rockets skyward; narrator pun: “He took the highest road!”"
+    },
+    {
+      "id": 47,
+      "name": "Moebius-esque Euro SF (mini story)",
+      "category": "Comic Mini-Stories",
+      "prompt": "Pastel desert, airy line. Bong shimmers, gravity lightens; sand grains sparkle via refraction; serene ascent; small-caps title."
+    },
+    {
+      "id": 48,
+      "name": "Underground Comix ’70s (mini story)",
+      "category": "Comic Mini-Stories",
+      "prompt": "Cross-hatch grime. Talking wall heckles; inhale; psychedelic bloom; airborne grin; crude hand-lettered title."
+    },
+    {
+      "id": 49,
+      "name": "Archie-Style Teen Humor",
+      "category": "Comic Mini-Stories",
+      "prompt": "Candy colors. Late for class; trip—‘WHOA!’; trampoline bounce to rafters; pep squad cheers; wholesome pun."
+    },
+    {
+      "id": 50,
+      "name": "Vertical Webtoon (6 beats)",
+      "category": "Comic Mini-Stories",
+      "prompt": "Tall scroll: street trudge; macro waterline in bong; inhale; shoes ‘fwip’; mid-air city lights; topper card title."
+    },
+    {
+      "id": 51,
+      "name": "Scratchboard Noir (mini story)",
+      "category": "Comic Mini-Stories",
+      "prompt": "White-on-black scratchboard: hand study with lip bevel; crouch coil; explosive leap silhouette; smoke ribbon forms title."
+    },
+
+    {
+      "id": 52,
+      "name": "Silver Age Burst (1962)",
+      "category": "Comic Covers Set 1",
+      "prompt": "CMYK flats, thick keylines, Ben-Day; corner box head; Comics-Code seal. Monkey rockets over skyline; bong gleams with safe sparkle; action blurbs."
+    },
+    {
+      "id": 53,
+      "name": "Ligne Claire Album (cover)",
+      "category": "Comic Covers Set 1",
+      "prompt": "Clean flat-color courtyard; panel-within-cover showing leap; final pose frozen; pastel/navy/red; album number."
+    },
+    {
+      "id": 54,
+      "name": "Pop Art Silkscreen (cover)",
+      "category": "Comic Covers Set 1",
+      "prompt": "Giant halftone silhouette; precise bong outlined with starbursts; CMYK primaries; on-cover SFX and bold masthead."
+    },
+    {
+      "id": 55,
+      "name": "Gekiga Noir (base cover)",
+      "category": "Comic Covers Set 1",
+      "prompt": "Rooftop at night, spotlight cone; close reflections in bong show a fire escape; high-contrast B/W, rain speckle, cigarette smoke; narrow serif logotype."
+    },
+    {
+      "id": 56,
+      "name": "Shōnen Jump Action (cover)",
+      "category": "Comic Covers Set 1",
+      "prompt": "Low-angle leap, speed lines, aura; bong glints with anime highlight ovals; screen-tones; condensed katakana-inspired Latin; “Issue #1!” badge."
+    },
+    {
+      "id": 57,
+      "name": "EC Horror Pre-Code (cover)",
+      "category": "Comic Covers Set 1",
+      "prompt": "Pulpy inks, lurid palette, ornate coffin frame, aged newsprint. Graveyard leap; icy caustics on stones; dripping masthead."
+    },
+    {
+      "id": 58,
+      "name": "Euro SF / Moebius Pastel (cover)",
+      "category": "Comic Covers Set 1",
+      "prompt": "Quiet desert mesa; gravity lens warps horizon through the bong; serene vertical ascent. Fine airy line, dusty pastels, huge sky negative space; small caps masthead."
+    },
+    {
+      "id": 59,
+      "name": "Underground Comix ’70s (cover)",
+      "category": "Comic Covers Set 1",
+      "prompt": "Warped city block; psychedelic bloom at leap; crosshatch grime; fluorescent spot colors; hand-lettered logo."
+    },
+    {
+      "id": 60,
+      "name": "Indie Riso Zine (Two-Color cover)",
+      "category": "Comic Covers Set 1",
+      "prompt": "Graphic smoke shapes title; bong contour in spot fluorescent; federal blue + fluorescent orange; visible registration."
+    },
+    {
+      "id": 61,
+      "name": "Cyberpunk Neon Variant (cover)",
+      "category": "Comic Covers Set 1",
+      "prompt": "Night market; holographic HUD rings around the bong; scanlines, chromatic aberration; techno mono micro labels; foil-stamp logo option."
+    },
+
+    {
+      "id": 62,
+      "name": "Golden Age Jungle Adventure (1940)",
+      "category": "Comic Covers Set 2",
+      "prompt": "Jungle vista; vine-swinging hero monkey brandishing clear bong. Off-register CMY dots; sunburst; 10¢ price box; slab masthead."
+    },
+    {
+      "id": 63,
+      "name": "1950s Romance Parody",
+      "category": "Comic Covers Set 2",
+      "prompt": "Close-up teary gaze at bong like a lover; hearts background. Duo-tone rose + navy; script logo; melodramatic cover line."
+    },
+    {
+      "id": 64,
+      "name": "Sports Manga High-Jump Special",
+      "category": "Comic Covers Set 2",
+      "prompt": "Stadium low-angle; clearing bar with bong tucked like a baton; speed lines, chalk dust; tall shōnen masthead."
+    },
+    {
+      "id": 65,
+      "name": "Shōjo Sparkle Variant",
+      "category": "Comic Covers Set 2",
+      "prompt": "Pastel clouds, floral wreath; starry eyes; big highlight ovals on bong; glitter rim-light; elegant ribbon title."
+    },
+    {
+      "id": 66,
+      "name": "Painterly Vertigo-Era (1998)",
+      "category": "Comic Covers Set 2",
+      "prompt": "Abstract smear of leap; photoreal bong is the sole crisp object; oils/acrylics; muted olives/rust; narrow serif logotype."
+    },
+    {
+      "id": 67,
+      "name": "Victorian Steampunk Broadsheet",
+      "category": "Comic Covers Set 2",
+      "prompt": "Brass rooftops/smokestacks; vaulting from airship rigging; engraved crosshatching, sepia wash; woodtype masthead."
+    },
+    {
+      "id": 68,
+      "name": "Graffiti Handstyle Variant (cover)",
+      "category": "Comic Covers Set 2",
+      "prompt": "Brick wall full-bleed; throw-up cloud; bong outlined with paint-pen speculars; overspray halo; wildstyle tag masthead."
+    },
+    {
+      "id": 69,
+      "name": "Swiss Modernist Minimal (cover)",
+      "category": "Comic Covers Set 2",
+      "prompt": "Huge negative space; tiny precise figure lower-right. Two-color split (safety orange + carbon black); baseline grid; micro credits."
+    },
+    {
+      "id": 70,
+      "name": "Mondo Screenprint Gig-Poster Crossover",
+      "category": "Comic Covers Set 2",
+      "prompt": "Graphic silhouette; starbursts on bong rim. Three inks max (teal/amber/black); trapping visible; custom block logo; AP/50 stamp."
+    },
+    {
+      "id": 71,
+      "name": "Holographic/Lenticular Cyber Variant",
+      "category": "Comic Covers Set 2",
+      "prompt": "Faux lenticular parallax cues; voxel shards around exact bong; scanlines. Techno mono masthead; foil-stamp corner icon."
+    },
+
+    {
+      "id": 72,
+      "name": "Heavy Metal Airbrush (1979)",
+      "category": "Comic Covers Add-Ons",
+      "prompt": "Low-angle heroic leap over chrome-meteor desert; stars/nebulae refract through bong. Rich airbrush gradients; metallic masthead."
+    },
+    {
+      "id": 73,
+      "name": "Horror Manga Spiral Variant",
+      "category": "Comic Covers Add-Ons",
+      "prompt": "Courtyard spirals; smoke vortices skyward; reflections warp in glass. High-contrast B/W, dense tones; distressed narrow serif title."
+    },
+
+    {
+      "id": 74,
+      "name": "Moebius Pastel — Hero Close-Up",
+      "category": "Moebius Pastel Corrections",
+      "prompt": "Airy line, dusty pastel sky. Monkey fills middle third in 3/4 leap toward camera; bong foregrounded with accurate geometry; elegant small-caps masthead."
+    },
+    {
+      "id": 75,
+      "name": "Moebius Pastel — Centered Full-Body Silhouette",
+      "category": "Moebius Pastel Corrections",
+      "prompt": "Huge sky negative space; perfectly centered full silhouette with interior linework; photoreal bong overlaps torso; pale ochre/teal/lilac."
+    },
+    {
+      "id": 76,
+      "name": "Moebius Pastel — Low-Angle Leap",
+      "category": "Moebius Pastel Corrections",
+      "prompt": "Low camera at mesa edge; monkey dominates foreground; bong raised with crisp rim highlight; small sun disc; minimalist pastel palette."
+    },
+    {
+      "id": 77,
+      "name": "Moebius Pastel — Profile Run-Up",
+      "category": "Moebius Pastel Corrections",
+      "prompt": "Side-profile sprint; tail trailing; bong hugged close. Long horizontal cover with right-side sky; salmon + celeste grade; micro footer credits."
+    },
+    {
+      "id": 78,
+      "name": "Moebius Pastel — Perch & Takeoff",
+      "category": "Moebius Pastel Corrections",
+      "prompt": "Crouched on spindly mesa needle; launch moment. Bong forward, transparent walls refracting sky band; desaturated sand, chalk-blue sky."
+    },
+    {
+      "id": 79,
+      "name": "Moebius Pastel — Vertical Ascent with Lens Warp",
+      "category": "Moebius Pastel Corrections",
+      "prompt": "Calm vertical rise; bong below chest; gentle gravity-lens ripple distorts only the horizon, not anatomy; pastel gradient sky; small-caps title."
+    },
+
+    {
+      "id": 80,
+      "name": "Rooftop Close 3/4",
+      "category": "Gekiga Noir Corrections (B/W)",
+      "prompt": "Rain-lashed night; monkey chest-up fills middle third; pristine bong raised near lens with razor rim highlights and city reflections; cigarette smoke wisps; narrow serif logotype."
+    },
+    {
+      "id": 81,
+      "name": "Overhead Spotlight Lock",
+      "category": "Gekiga Noir Corrections (B/W)",
+      "prompt": "Top-down cone of light; full-body crouch, bong across chest with micro reflection of fire escape; heavy blacks, rain needles, puddle sheen; small-caps title above cone."
+    },
+    {
+      "id": 82,
+      "name": "Edge-of-Roof Coil",
+      "category": "Gekiga Noir Corrections (B/W)",
+      "prompt": "Low camera at parapet; monkey dominates foreground preparing to leap; bong forward with star speculars; blurred skyline and searchlight arc; narrow serif masthead."
+    },
+    {
+      "id": 83,
+      "name": "Doorway Burst",
+      "category": "Gekiga Noir Corrections (B/W)",
+      "prompt": "Rooftop door slams open into rain; chest-up burst; exact bong framed against spotlight ellipse, reflection of staircase; hard chiaroscuro; vertical credits in gutter."
+    },
+    {
+      "id": 84,
+      "name": "Bridge Truss Silhouette",
+      "category": "Gekiga Noir Corrections (B/W)",
+      "prompt": "Industrial truss backdrop; mid-leap silhouette with readable face; photoreal bong with clear rim light and refraction; title narrow across top rule."
+    },
+    {
+      "id": 85,
+      "name": "Fire-Escape Mirror",
+      "category": "Gekiga Noir Corrections (B/W)",
+      "prompt": "Foreground macro on bong (lip bevel ring, meniscus); background sharp on monkey’s face; fire escape appears only as reflection in glass; diagonal rain."
+    },
+    {
+      "id": 86,
+      "name": "Searchlight Cross",
+      "category": "Gekiga Noir Corrections (B/W)",
+      "prompt": "Intersecting spotlights carve an X; chest-up stance; droplets bead on glass; deep blacks, scratch rain; minimal letterspaced title."
+    },
+    {
+      "id": 87,
+      "name": "Parapet Runway (base noir)",
+      "category": "Gekiga Noir Corrections (B/W)",
+      "prompt": "Side profile sprint across roof ledge; full body spans half frame; tail trailing. Bong braced close with refraction of signage; gritty halation; narrow serif masthead; tiny corner slug “Noir Issue.”"
+    },
+    {
+      "id": 88,
+      "name": "Gutterline Standoff",
+      "category": "Gekiga Noir Corrections (B/W)",
+      "prompt": "Framed by twin chimneys; lens slightly long; accurate bong dominates lower-center, reflecting a narrow escape path; rain speckle; small caps logotype."
+    },
+    {
+      "id": 89,
+      "name": "Leap Through the Cone",
+      "category": "Gekiga Noir Corrections (B/W)",
+      "prompt": "Decisive mid-air break through spotlight cone; bong lip bevel flashes white ring; background falls to black; austere serif title."
+    },
+
+    {
+      "id": 90,
+      "name": "Parapet Runway — Compressed City",
+      "category": "Parapet Runway Variants (B/W)",
+      "prompt": "Side profile on long ledge with compressed signage; rain rakes diagonally; neon letterforms (as luminance only) refract in bong curve; smoke ribbon crosses headline."
+    },
+    {
+      "id": 91,
+      "name": "Parapet Runway — Dutch Pursuit",
+      "category": "Parapet Runway Variants (B/W)",
+      "prompt": "10–15° tilt; sprint toward frame right; bong braced tight with razor rim highlight; distant patrol light as soft glow; vertical micro credits."
+    },
+    {
+      "id": 92,
+      "name": "Parapet Runway — Split-Sign",
+      "category": "Parapet Runway Variants (B/W)",
+      "prompt": "Giant billboard letters bisect background; bong refracts mirrored letter fragments; wet tarpaper; bead-like rain."
+    },
+    {
+      "id": 93,
+      "name": "Parapet Runway — Puddle Mirror",
+      "category": "Parapet Runway Variants (B/W)",
+      "prompt": "Low camera; foreground puddle mirrors the leap; bong lip bevel forms bright ring; ripples graze title bar."
+    },
+    {
+      "id": 94,
+      "name": "Parapet Runway — Truss Crossing",
+      "category": "Parapet Runway Variants (B/W)",
+      "prompt": "Repeating industrial lattice behind; clearing a gap; clean speculars on bong; spotlight haze grazes masthead."
+    },
+    {
+      "id": 95,
+      "name": "Parapet Runway — Chimney Gauntlet",
+      "category": "Parapet Runway Variants (B/W)",
+      "prompt": "Narrow corridor between chimneys; backlit steam; bong refraction shows a sliver of fire escape; barcode in noir placard."
+    },
+    {
+      "id": 96,
+      "name": "Parapet Runway — Billboard Glow",
+      "category": "Parapet Runway Variants (B/W)",
+      "prompt": "Vintage hand-painted billboard looms; bong captures serif strokes in perfect curvature; paper tears ghost into black."
+    },
+    {
+      "id": 97,
+      "name": "Parapet Runway — Lightning Freeze",
+      "category": "Parapet Runway Variants (B/W)",
+      "prompt": "Sheet lightning; rain needles; mid-stride tail trail; bong throws hard caustics and bright lip ring; coarse film grain."
+    },
+    {
+      "id": 98,
+      "name": "Parapet Runway — Rail Yard Blur",
+      "category": "Parapet Runway Variants (B/W)",
+      "prompt": "Far below train = blurred light bar; rooftop ledge sharp; bong contains thin horizontal streak, crisp and undistorted."
+    },
+    {
+      "id": 99,
+      "name": "Parapet Runway — Crossed Cones",
+      "category": "Parapet Runway Variants (B/W)",
+      "prompt": "Two searchlights form an X; monkey hits the intersection; droplets on glass; clean refraction of crossed beams."
+    },
+
+    {
+      "id": 100,
+      "name": "Photo-Noir Swiss Grid",
+      "category": "Photo-Noir (Photography + Graphic Overlays, B/W)",
+      "prompt": "Rainy rooftop sprint, low angle, hard backlight. Accurate bong catches signage in refraction. Overprint strict white baseline grid; small-caps masthead top-left; micro-credits in gutter; registration marks/crop ticks."
+    },
+    {
+      "id": 101,
+      "name": "Photo-Noir Title Slash",
+      "category": "Photo-Noir (Photography + Graphic Overlays, B/W)",
+      "prompt": "Side profile mid-stride; blown rim lights; droplets on bong. Bold diagonal title slashes behind subject; narrow serif masthead rides the slash; tiny corner slug “Noir Issue.”"
+    },
+    {
+      "id": 102,
+      "name": "Photo-Noir Contact Sheet",
+      "category": "Photo-Noir (Photography + Graphic Overlays, B/W)",
+      "prompt": "3–4 frames as fake contact sheet border; one hero frame dominates 60%. Bong lip bevel ring bright; headline as clean caption strip below."
+    },
+    {
+      "id": 103,
+      "name": "Photo-Noir Posterized Blocks",
+      "category": "Photo-Noir (Photography + Graphic Overlays, B/W)",
+      "prompt": "Telephoto compression; bong refraction of sign strokes. Overlay two large geometric blocks (white/near-black) windowing the image; masthead knocked out; thin rules map grid."
+    },
+    {
+      "id": 104,
+      "name": "Photo-Noir Blueprint HUD",
+      "category": "Photo-Noir (Photography + Graphic Overlays, B/W)",
+      "prompt": "Three-quarter sprint; shallow DOF. Technical callouts around bong (leader lines: “IOR 1.5”, “lip”, “downstem”). Centered small serif masthead; scale bar + “Fig. 01”."
+    },
+    {
+      "id": 105,
+      "name": "Photo-Noir Newspaper Wrap",
+      "category": "Photo-Noir (Photography + Graphic Overlays, B/W)",
+      "prompt": "Head-on stride; skyline blur. Faux newspaper front page overlay: masthead as headline; ghosted columns; barcode plate; bong reflection shows fire escape."
+    },
+    {
+      "id": 106,
+      "name": "Photo-Noir Polish-Poster Minimal",
+      "category": "Photo-Noir (Photography + Graphic Overlays, B/W)",
+      "prompt": "Stark silhouette with readable face; photoreal bong crisp rim light. One massive white ellipse + thin vertical rule intersect subject; tiny masthead; micro credits along rule."
+    },
+    {
+      "id": 107,
+      "name": "Photo-Noir Puddle Typography",
+      "category": "Photo-Noir (Photography + Graphic Overlays, B/W)",
+      "prompt": "Knee-high camera; puddle mirror foreground. Bong highlight ring echoed as circular typographic ornaments around masthead; fine grain, halation; “Noir Issue” coin seal."
+    },
+    {
+      "id": 108,
+      "name": "Photo-Noir Frame-within-Frame (base)",
+      "category": "Photo-Noir (Photography + Graphic Overlays, B/W)",
+      "prompt": "Monkey bursts through bright spotlight cone. Graphic black inner frame sits offset to create tension; masthead sits in outer margin. Small caption arrows to bong’s bowl and downstem (one-word labels)."
+    },
+    {
+      "id": 109,
+      "name": "Photo-Noir Neon Grid Banner",
+      "category": "Photo-Noir (Photography + Graphic Overlays, B/W)",
+      "prompt": "Profile sprint across signage; bong refracts letter fragments. Thin white grid only in sky area; masthead on translucent banner; vertical gutter credits."
+    },
+
+    {
+      "id": 110,
+      "name": "Offset Matte—Corner Breach",
+      "category": "Photo-Noir Frame-within-Frame Variants (B/W)",
+      "prompt": "Inner black frame shifted low-right; monkey breaks top-left margin; spotlight cone upper-left; arrowed labels on bong; rain needles across matte."
+    },
+    {
+      "id": 111,
+      "name": "Split Window—Vertical Gutter",
+      "category": "Photo-Noir Frame-within-Frame Variants (B/W)",
+      "prompt": "Tall inner frame aligned left third; sprint right; tail visible; labels: bowl, joint. Tiny “Noir Issue” coin bottom-right."
+    },
+    {
+      "id": 112,
+      "name": "Gatefold Illusion",
+      "category": "Photo-Noir Frame-within-Frame Variants (B/W)",
+      "prompt": "Double inner frames separated by a hinge gap; hero pose bridges gap; wet tarpaper; labels: downstem, lip; micro credits on hinge."
+    },
+    {
+      "id": 113,
+      "name": "Contact Border Hero",
+      "category": "Photo-Noir Frame-within-Frame Variants (B/W)",
+      "prompt": "Thick inner border with faux frame numbers and ▲1 marker; chest-up burst in spotlight; bong lip bevel ring bright; arrows: bowl, joint."
+    },
+    {
+      "id": 114,
+      "name": "Arch Matte Spotlight",
+      "category": "Photo-Noir Frame-within-Frame Variants (B/W)",
+      "prompt": "Inner matte is soft arch echoing the spotlight; low camera; puddle reflection grazes arch; labels: downstem, lip; tiny mono."
+    },
+    {
+      "id": 115,
+      "name": "Bracketed Thirds",
+      "category": "Photo-Noir Frame-within-Frame Variants (B/W)",
+      "prompt": "Hairline brackets mark thirds; full-body on lower-right hotspot; smoke ribbon crosses masthead margin; labels: bowl, downstem."
+    },
+    {
+      "id": 116,
+      "name": "Negative Band Title",
+      "category": "Photo-Noir Frame-within-Frame Variants (B/W)",
+      "prompt": "Horizontal inner matte band slices mid-frame; burst upward through it; masthead above in outer margin; labels: joint, lip; paper grain."
+    },
+    {
+      "id": 117,
+      "name": "Crosshair Registry",
+      "category": "Photo-Noir Frame-within-Frame Variants (B/W)",
+      "prompt": "Thin crosshair reticles at inner frame midpoints; telephoto compression; tail trailing; bong reflection of fire escape; labels: bowl, joint."
+    },
+    {
+      "id": 118,
+      "name": "Tear-Sheet Edge",
+      "category": "Photo-Noir Frame-within-Frame Variants (B/W)",
+      "prompt": "Inner matte torn lower edge with fiber texture; stride clears tear; droplets bead on bong; labels: downstem, lip; barcode outside inner frame."
+    },
+    {
+      "id": 119,
+      "name": "Shadow-Box Depth",
+      "category": "Photo-Noir Frame-within-Frame Variants (B/W)",
+      "prompt": "Inner frame carries subtle drop-shadow; three-quarter angle, strong backlight; heavier grain in the shadow; labels: bowl, joint, lip; micro “Noir Issue” slug."
+    }
+  ]
+}

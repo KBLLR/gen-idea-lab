@@ -3,7 +3,7 @@ import { useDroppable } from '@dnd-kit/core';
 import useStore from '@store';
 import TaskCard from './TaskCard.jsx';
 
-export default function Lane({ laneId, title, items }) {
+export default function Lane({ laneId, title, icon, items }) {
   const { setNodeRef, isOver } = useDroppable({
     id: laneId,
     data: {
@@ -21,7 +21,11 @@ export default function Lane({ laneId, title, items }) {
   return (
     <section className="lane" data-lane={laneId}>
       <header className="lane__hdr">
-        {title} <span className="badge">{items.length}</span>
+        <div className="lane__hdr-title">
+          <span className="material-icons-round">{icon}</span>
+          <span>{title}</span>
+        </div>
+        <span className="badge">{items.length}</span>
       </header>
       <div
         ref={setNodeRef}

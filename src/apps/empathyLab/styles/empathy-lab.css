@@ -7,7 +7,7 @@
     display: flex;
     flex-direction: column;
     height: 100%;
-    background: var(--color-bg);
+    background: var(--bg-main); /* align with global app background */
     overflow: hidden;
     position: relative; /* allow absolute overlays inside right column */
 }
@@ -22,14 +22,74 @@
     min-height: 0;
 }
 
+/* Ensure the two-column viewer stretches to the bottom */
+.empathy-lab-main > .resizable-columns {
+    flex: 1 1 auto;
+    min-height: 0;
+}
+
+/* Split the left viewer vertically: top = camera, bottom = metrics */
+.empathy-viewer-split {
+    display: grid;
+    /* Fixed camera height on top; fluid metrics grid below */
+    grid-template-rows: var(--empathy-camera-height, clamp(260px, 38vh, 420px)) 1fr;
+    gap: var(--space-3);
+    height: 100%;
+    min-height: 0;
+}
+.viewer-area {
+    position: relative;
+    min-height: 0;
+    height: 100%;
+}
+.metrics-area { display: block; min-height: 0; }
+
+/* Ensure Hume chat fills panel body */
+.hume-chat-wrap {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+}
+.hume-chat-scroll {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+}
+
+/* Emotions Grid beneath chat */
+.emotions-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: var(--space-3);
+    padding: var(--space-3) 0;
+}
+
+.emotion-card {
+    background: var(--color-surface);
+    border: 1px solid var(--color-surface-border);
+    border-radius: var(--radius-md);
+    padding: var(--space-3);
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+}
+.emotion-card__top { display: flex; align-items: center; gap: var(--space-2); }
+.emotion-card__icon { font-size: 20px; color: var(--color-accent); }
+.emotion-card__meta { display: flex; align-items: baseline; gap: var(--space-2); }
+.emotion-card__name { font-weight: 600; color: var(--color-text-primary); }
+.emotion-card__score { font-size: var(--font-size-sm); color: var(--color-text-secondary); }
+.emotion-card__bar { position: relative; height: 6px; background: rgba(255,255,255,.08); border-radius: 999px; overflow: hidden; }
+.emotion-card__fill { position: absolute; left: 0; top: 0; bottom: 0; width: 0; background: var(--color-accent); border-radius: 999px; transition: width 180ms ease; }
+
 /* Video Container */
 .video-container {
     position: relative;
     width: 100%;
     max-width: 100%;
     aspect-ratio: 16 / 9;
-    background: var(--color-surface);
-    border: 1px solid var(--color-surface-border);
+    background: var(--bg-panel);
+    border: 1px solid var(--border-primary);
     border-radius: var(--radius-lg);
     overflow: hidden;
     display: flex;
@@ -638,19 +698,13 @@
 
 /* WebcamStream Component */
 .webcam-stream {
-    width: 100%;
-    height: 100%;
-    display: flex;
-    flex-direction: column;
-}
-
-.webcam-container {
     position: relative;
     width: 100%;
+    height: 100%;
     flex: 1;
     min-height: 0;
-    background: var(--color-bg);
-    border-radius: var(--radius-lg);
+    background: #000;
+    border-radius: var(--radius-md);
     overflow: hidden;
     display: flex;
     align-items: center;
@@ -660,11 +714,13 @@
 .webcam-canvas,
 .webcam-overlay {
     position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    object-fit: contain;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    max-width: 100%;
+    max-height: 100%;
+    width: auto;
+    height: auto;
 }
 
 .webcam-canvas {
@@ -885,13 +941,14 @@
 
 /* Stats Row */
 .stats-row {
-    display: flex;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
     gap: var(--space-2);
     padding: var(--space-3);
     background: var(--color-surface);
     border: 1px solid var(--color-surface-border);
     border-radius: var(--radius-md);
-    overflow-x: auto;
+    min-height: 0;
 }
 
 .stat-card {

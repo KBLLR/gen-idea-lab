@@ -5,7 +5,7 @@
 import c from 'clsx'
 import React, { Suspense, useEffect, useState } from 'react'
 import { Outlet } from 'react-router-dom'
-import { LeftPaneProvider, LeftPane, RightPaneProvider, RightPane, useLeftPaneNode, useRightPaneNode } from '@shared/lib/layoutSlots'
+import { LeftPaneProvider, LeftPane, RightPaneProvider, RightPane, useLeftPaneNode, useRightPaneNode, DockContentProvider } from '@shared/lib/layoutSlots'
 import { selectModule } from "@shared/lib/actions/ideaLabActions.js";
 import { checkAuthStatus } from "@shared/lib/actions/authActions.js";
 import useStore from '@store'
@@ -22,7 +22,8 @@ import { actions as globalActions } from '@shared/lib/actions.js'
 import ChatApp from '../apps/chat/index.jsx';
 import { debug as logDebug } from '@shared/lib/log.js';
 
-const BYPASS = import.meta.env.VITE_AUTH_BYPASS === '1';
+// Disable client-side auth bypass in all environments
+const BYPASS = false;
 import IdeaLabApp from '../apps/ideaLab/index.jsx';
 import ImageBoothApp from '../apps/imageBooth/index.jsx';
 import ArchivaApp from '../apps/archiva/index.jsx';
@@ -53,17 +54,82 @@ const setLeftColumnWidth = useStore(s => s.actions?.setLeftColumnWidth)
 const setIsLiveVoiceChatOpen = useStore(s => s.actions?.setIsLiveVoiceChatOpen)
 const isLiveVoiceChatOpen = useStore(s => s.isLiveVoiceChatOpen)
 const setUser = useStore(s => s.actions?.setUser)
+const fetchConnectedServices = useStore(s => s.actions?.fetchConnectedServices)
+const fetchServiceConfig = useStore(s => s.actions?.fetchServiceConfig)
 
   // Command Palette state
   const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
 
   useEffect(() => {
-    if (BYPASS && setUser) {
-      setUser({ id: 'dev', email: 'dev@code.berlin', name: 'Dev User', roles: ['dev'], provider: 'bypass' });
-      return;
-    }
     checkAuthStatus();
   }, [setUser]);
+
+  // After authentication, hydrate connected services/config once globally
+  useEffect(() => {
+    if (isAuthenticated) {
+      try {
+        fetchServiceConfig?.();
+        fetchConnectedServices?.();
+      } catch (e) {
+        console.warn('[App] Failed to fetch service status:', e?.message || e)
+      }
+    }
+  }, [isAuthenticated, fetchConnectedServices, fetchServiceConfig]);
+
+  // When services are connected, prefetch Google data caches once
+  const connectedServices = useStore(s => s.connectedServices)
+  const fetchGoogleDriveFiles = useStore(s => s.actions?.fetchGoogleDriveFiles)
+  const fetchGooglePhotosAlbums = useStore(s => s.actions?.fetchGooglePhotosAlbums)
+  const fetchGmailMessages = useStore(s => s.actions?.fetchGmailMessages)
+  const googleCache = useStore(s => s.google)
+
+  useEffect(() => {
+    if (!isAuthenticated) return
+    const cs = connectedServices || {}
+    if (cs.googleDrive?.connected && !googleCache?.drive?.lastFetched) {
+      fetchGoogleDriveFiles?.()
+    }
+    if (cs.googlePhotos?.connected && !googleCache?.photos?.lastFetched) {
+      fetchGooglePhotosAlbums?.()
+    }
+    if (cs.gmail?.connected && !googleCache?.gmail?.lastFetched) {
+      fetchGmailMessages?.()
+    }
+  }, [isAuthenticated, connectedServices?.googleDrive?.connected, connectedServices?.googlePhotos?.connected, connectedServices?.gmail?.connected])
+
+  // Apply accent theme to CSS variables so UI reflects selection
+  const accentTheme = useStore(s => s.accentTheme);
+  useEffect(() => {
+    const root = document.documentElement;
+    const isDark = (theme === 'dark');
+    const palette = {
+      azure:   { day: '#1e88e5', night: '#1e88e5' },
+      emerald: { day: '#059669', night: '#10b981' },
+      amber:   { day: '#d97706', night: '#f59e0b' },
+      violet:  { day: '#7c3aed', night: '#8b5cf6' },
+      rose:    { day: '#dc2626', night: '#ef4444' },
+      teal:    { day: '#0d9488', night: '#14b8a6' },
+      indigo:  { day: '#4f46e5', night: '#6366f1' },
+      magenta: { day: '#c026d3', night: '#d946ef' },
+      cyan:    { day: '#0891b2', night: '#06b6d4' },
+      lime:    { day: '#65a30d', night: '#84cc16' },
+    };
+    const hex = (palette[accentTheme] || palette.azure)[isDark ? 'night' : 'day'];
+    // Set accent CSS variables for styles using var(--color-accent)
+    root.style.setProperty('--color-accent', hex);
+    // Also set RGB for shadows that rely on var(--color-accent-rgb)
+    const toRgb = (h) => {
+      const m = h.replace('#','');
+      const bigint = parseInt(m.length === 3 ? m.split('').map(c => c+c).join('') : m, 16);
+      const r = (bigint >> 16) & 255;
+      const g = (bigint >> 8) & 255;
+      const b = bigint & 255;
+      return `${r}, ${g}, ${b}`;
+    };
+    root.style.setProperty('--color-accent-rgb', toRgb(hex));
+    // Optional BG variables used by some components
+    root.style.setProperty('--accent-bg', hex);
+  }, [accentTheme, theme]);
 
   // Keyboard shortcuts
   useEffect(() => {
@@ -80,8 +146,12 @@ const setUser = useStore(s => s.actions?.setUser)
       }
 
       // Cmd+Shift+V (or Ctrl+Shift+V on Windows) for Voice Chat toggle
-      if ((e.metaKey || e.ctrlKey) && e.shiftKey && e.key === 'v') {
+      if ((e.metaKey || e.ctrlKey) && e.shiftKey && e.key.toLowerCase() === 'v') {
         e.preventDefault();
+        const { dockMinimized, actions } = useStore.getState();
+        if (dockMinimized) {
+          actions.setDockMinimized(false);
+        }
         setIsLiveVoiceChatOpen(!isLiveVoiceChatOpen);
       }
     };
@@ -229,7 +299,7 @@ const setUser = useStore(s => s.actions?.setUser)
   }
 
   // Show login form if not authenticated (but not in bypass mode)
-  if (!BYPASS && !isAuthenticated) {
+  if (!isAuthenticated) {
     return (
       <div data-theme={theme}>
         <LoginForm />
@@ -335,7 +405,9 @@ const setUser = useStore(s => s.actions?.setUser)
   return (
     <LeftPaneProvider>
       <RightPaneProvider>
-        <LayoutBody />
+        <DockContentProvider>
+          <LayoutBody />
+        </DockContentProvider>
       </RightPaneProvider>
     </LeftPaneProvider>
   )

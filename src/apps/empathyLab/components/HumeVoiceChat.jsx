@@ -5,121 +5,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { VoiceProvider, useVoice } from '@humeai/voice-react';
 import { Button } from '@ui';
-
-// Import Hume emotion colors and icons
-const EMOTION_ICONS = {
-    'Admiration': 'star',
-    'Adoration': 'favorite',
-    'Aesthetic Appreciation': 'palette',
-    'Amusement': 'mood',
-    'Anger': 'whatshot',
-    'Annoyance': 'sentiment_dissatisfied',
-    'Anxiety': 'psychology',
-    'Awe': 'auto_awesome',
-    'Awkwardness': 'sentiment_neutral',
-    'Boredom': 'bedtime',
-    'Calmness': 'spa',
-    'Concentration': 'visibility',
-    'Contemplation': 'lightbulb',
-    'Confusion': 'help',
-    'Contempt': 'thumb_down',
-    'Contentment': 'sentiment_satisfied',
-    'Craving': 'restaurant',
-    'Determination': 'bolt',
-    'Disappointment': 'trending_down',
-    'Disapproval': 'block',
-    'Disgust': 'sick',
-    'Distress': 'warning',
-    'Doubt': 'contact_support',
-    'Ecstasy': 'celebration',
-    'Embarrassment': 'face',
-    'Empathic Pain': 'healing',
-    'Enthusiasm': 'emoji_events',
-    'Entrancement': 'remove_red_eye',
-    'Envy': 'visibility_off',
-    'Excitement': 'fireplace',
-    'Fear': 'sentiment_very_dissatisfied',
-    'Gratitude': 'volunteer_activism',
-    'Guilt': 'error',
-    'Horror': 'bug_report',
-    'Interest': 'search',
-    'Joy': 'sentiment_very_satisfied',
-    'Love': 'favorite_border',
-    'Nostalgia': 'history',
-    'Pain': 'local_hospital',
-    'Pride': 'military_tech',
-    'Realization': 'tips_and_updates',
-    'Relief': 'check_circle',
-    'Romance': 'favorite',
-    'Sadness': 'sentiment_sad',
-    'Sarcasm': 'chat_bubble',
-    'Satisfaction': 'done_all',
-    'Sexual Desire': 'favorite',
-    'Shame': 'hide_source',
-    'Surprise': 'new_releases',
-    'Surprise (Negative)': 'priority_high',
-    'Surprise (Positive)': 'stars',
-    'Sympathy': 'psychology',
-    'Tiredness': 'snooze',
-    'Triumph': 'emoji_events'
-};
-
-const EMOTION_COLORS = {
-    'Admiration': '#ffc58f',
-    'Adoration': '#ffc6cc',
-    'Aesthetic Appreciation': '#e2cbff',
-    'Amusement': '#febf52',
-    'Anger': '#b21816',
-    'Annoyance': '#ffffff',
-    'Anxiety': '#6e42cc',
-    'Awe': '#7dabd3',
-    'Awkwardness': '#d7d99d',
-    'Boredom': '#a4a4a4',
-    'Calmness': '#a9cce1',
-    'Concentration': '#336cff',
-    'Contemplation': '#b0aeef',
-    'Confusion': '#c66a26',
-    'Contempt': '#76842d',
-    'Contentment': '#e5c6b4',
-    'Craving': '#54591c',
-    'Determination': '#ff5c00',
-    'Disappointment': '#006c7c',
-    'Disapproval': '#ffffff',
-    'Disgust': '#1a7a41',
-    'Distress': '#c5f264',
-    'Doubt': '#998644',
-    'Ecstasy': '#ff48a4',
-    'Embarrassment': '#63c653',
-    'Empathic Pain': '#ca5555',
-    'Enthusiasm': '#ffffff',
-    'Entrancement': '#7554d6',
-    'Envy': '#1d4921',
-    'Excitement': '#fff974',
-    'Fear': '#d1c9ef',
-    'Gratitude': '#ffffff',
-    'Guilt': '#879aa1',
-    'Horror': '#772e7a',
-    'Interest': '#a9cce1',
-    'Joy': '#ffd600',
-    'Love': '#f44f4c',
-    'Nostalgia': '#b087a1',
-    'Pain': '#8c1d1d',
-    'Pride': '#9a4cb6',
-    'Realization': '#217aa8',
-    'Relief': '#fe927a',
-    'Romance': '#f0cc86',
-    'Sadness': '#305575',
-    'Sarcasm': '#ffffff',
-    'Satisfaction': '#a6ddaf',
-    'Sexual Desire': '#aa0d59',
-    'Shame': '#8a6262',
-    'Surprise': '#70e63a',
-    'Surprise (Negative)': '#70e63a',
-    'Surprise (Positive)': '#7affff',
-    'Sympathy': '#7f88e0',
-    'Tiredness': '#757575',
-    'Triumph': '#ec8132'
-};
+import { EMOTION_COLORS, EMOTION_ICONS } from '../lib/humeColors.js';
 
 export default function HumeVoiceChat({ onEmotionUpdate, selectedConfigId, humeEmotions }) {
   const [accessToken, setAccessToken] = useState(null);
@@ -153,7 +39,7 @@ export default function HumeVoiceChat({ onEmotionUpdate, selectedConfigId, humeE
   };
 
   return (
-    <div className="hume-voice-chat-wrapper" style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+    <div className="hume-voice-chat-wrapper" style={{ width: '100%', height: '100%', flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
       {error && (
         <div className="error-display" style={{
           padding: '1rem',
@@ -180,6 +66,7 @@ export default function HumeVoiceChat({ onEmotionUpdate, selectedConfigId, humeE
         </div>
       )}
 
+      <div className="hume-chat-scroll">
       {!accessToken ? (
         <div style={{ textAlign: 'center', padding: '2rem' }}>
           <p style={{ marginBottom: '1rem', color: 'var(--color-text-secondary)' }}>
@@ -212,6 +99,7 @@ export default function HumeVoiceChat({ onEmotionUpdate, selectedConfigId, humeE
           />
         </VoiceProvider>
       )}
+      </div>
     </div>
   );
 }

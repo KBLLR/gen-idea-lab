@@ -10,6 +10,8 @@ import { ActionBar } from '@ui';
 import CalendarRightPane from './CalendarRightPane.jsx';
 import { useRightPane } from '@shared/lib/layoutSlots';
 import '../styles/calendar-ai.css';
+import AppHomeBlock from '@components/ui/organisms/AppHomeBlock.jsx';
+import { appHomeContent } from '@components/ui/organisms/appHomeContent.js';
 
 const CalendarAI = () => {
   const [events, setEvents] = useState([]);
@@ -35,6 +37,13 @@ const CalendarAI = () => {
     (state) => state.connectedServices?.googleCalendar?.connected,
     []
   ));
+  const connectService = useStore((state) => state.actions.connectService);
+  const isDriveConnected = useStore(useCallback((s) => s.connectedServices?.googleDrive?.connected, []));
+  const isPhotosConnected = useStore(useCallback((s) => s.connectedServices?.googlePhotos?.connected, []));
+  const isGmailConnected = useStore(useCallback((s) => s.connectedServices?.gmail?.connected, []));
+  const fetchGooglePhotosAlbums = useStore((s) => s.actions?.fetchGooglePhotosAlbums);
+  const fetchGoogleDriveFiles = useStore((s) => s.actions?.fetchGoogleDriveFiles);
+  const fetchGmailMessages = useStore((s) => s.actions?.fetchGmailMessages);
 
   // Load events from localStorage on mount
   useEffect(() => {
@@ -379,8 +388,20 @@ const CalendarAI = () => {
               { id: 'import', icon: 'upload', label: 'Import .ics', onClick: () => icsInputRef.current?.click() },
               isCalendarConnected
                 ? { id: 'sync', icon: 'sync', label: 'Sync Calendar', onClick: fetchGoogleCalendarEvents }
-                : { id: 'connect', icon: 'link', label: 'Connect Google', onClick: () => setShowSettings(true) },
+                : { id: 'connect', icon: 'link', label: 'Connect Google Calendar', onClick: async () => {
+                    try {
+                      await connectService('googleCalendar');
+                    } catch (err) {
+                      console.error('Failed to connect Google Calendar:', err);
+                      // Fallback to settings if OAuth fails
+                      setShowSettings(true);
+                    }
+                  } },
               { id: 'toggle-pane', icon: 'view_sidebar', label: showDataPane ? 'Hide Data Pane' : 'Show Data Pane', onClick: () => setShowDataPane(v => !v) },
+              { id: 'settings', icon: 'settings', label: 'Settings', onClick: () => setShowSettings(true) },
+              ...(isPhotosConnected ? [{ id: 'photos-sync', icon: 'photo_library', label: 'Sync Photos', onClick: () => fetchGooglePhotosAlbums?.() }] : []),
+              ...(isDriveConnected ? [{ id: 'drive-sync', icon: 'cloud', label: 'Sync Drive', onClick: () => fetchGoogleDriveFiles?.() }] : []),
+              ...(isGmailConnected ? [{ id: 'gmail-sync', icon: 'mark_email_unread', label: 'Sync Gmail', onClick: () => fetchGmailMessages?.() }] : []),
             ]}
             aria-label="Calendar actions"
           />
@@ -417,17 +438,9 @@ const CalendarAI = () => {
       <main className={`calendar-ai-grid ${gridMode}`}>
         {eventsToRender.length === 0 && (
           <div className="empty-state">
-            <p>
-              Create your first event (it will fill the screen). Add more and the grid will auto-fit each image.
-              <br />
-              Press <kbd>N</kbd> or click <kbd>New Event</kbd>. Press <kbd>?</kbd> for keyboard help.
-              {!isCalendarConnected && (
-                <>
-                  <br /><br />
-                  Connect Google Calendar in Settings to import your events automatically.
-                </>
-              )}
-            </p>
+            {(() => { const c = appHomeContent.calendarAI; const tips = isCalendarConnected ? c.tips : [...c.tips, 'Connect Google Calendar in Settings to import events']; return (
+              <AppHomeBlock icon={c.icon} subtitle={c.subtitle} title={c.title} description={c.description} tips={tips} />
+            ); })()}
           </div>
         )}
 
@@ -447,19 +460,7 @@ const CalendarAI = () => {
         ))}
       </main>
 
-      {/* Settings FAB */}
-      <div className="calendar-ai-fab">
-        <button
-          className="icon-btn"
-          onClick={() => setShowSettings(true)}
-          data-tip="Settings (⌘,)"
-        >
-          <svg viewBox="0 0 24 24">
-            <circle cx="12" cy="12" r="3"/>
-            <path d="M12 3v2M12 19v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M3 12h2M19 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>
-          </svg>
-        </button>
-      </div>
+      {/* Settings FAB removed: settings moved into countdown actions toolbar */}
 
       {/* Event Modal */}
       {showEventModal && (
@@ -549,14 +550,14 @@ const EventCard = ({ event, imageFit, onEdit, onExport, onSelect, isSelected }) 
     return () => clearInterval(interval);
   }, [event.when]);
 
-  const getImageSrc = () => {
-    if (event.src) return event.src;
-    // Generate gradient based on event name
+  const hasImage = Boolean(event.src);
+  const getPlaceholderStyle = () => {
     const hue = Math.abs(hashCode(event.name || 'event')) % 360;
-    const color = `hsl(${hue}, 40%, 22%)`;
-    return `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(
-      `<svg xmlns='http://www.w3.org/2000/svg' width='1200' height='800'><defs><linearGradient id='g' x1='0' x2='1' y1='0' y2='1'><stop offset='0%' stop-color='${color}'/><stop offset='100%' stop-color='#0a0d14'/></linearGradient></defs><rect width='100%' height='100%' fill='url(#g)'/></svg>`
-    )}`;
+    const colorA = `hsl(${hue}, 48%, 22%)`;
+    const colorB = `hsl(${(hue + 22) % 360}, 38%, 12%)`;
+    return {
+      background: `linear-gradient(135deg, ${colorA}, ${colorB})`,
+    };
   };
 
   return (
@@ -565,46 +566,46 @@ const EventCard = ({ event, imageFit, onEdit, onExport, onSelect, isSelected }) 
       onClick={onSelect}
       onDoubleClick={onEdit}
       tabIndex={0}
-      style={{ '--fit': imageFit }}
     >
-      <div className="media">
-        <img src={getImageSrc()} alt={event.name || 'Event'} />
-        <div className="vignette" />
-      </div>
-
-      <div className="meta">
-        <div className="title">{event.name || 'Untitled Event'}</div>
-        {event.where && <div className="where">{event.where}</div>}
-      </div>
-
-      <div className="countdown">
-        <ActionBar aria-label="Event countdown" as="div">
-          <div className="ui-ActionBar__btn" role="button" tabIndex={0} aria-label="Days">
-            <CountdownPart label="Days" value={countdown.days} />
+      <div className={`media${hasImage ? '' : ' placeholder'}`} style={hasImage ? undefined : getPlaceholderStyle()}>
+        {hasImage ? (
+          <img src={event.src} alt={event.name || 'Event'} loading="lazy" />
+        ) : null}
+        <div className="card-actions">
+          <button className="mini" onClick={(e) => { e.stopPropagation(); onEdit(); }} data-tip="Edit">
+            <svg viewBox="0 0 24 24">
+              <path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4Z"/>
+            </svg>
+          </button>
+          <button className="mini" onClick={(e) => { e.stopPropagation(); onExport(); }} data-tip="Save to Calendar">
+            <svg viewBox="0 0 24 24">
+              <path d="M8 2v4M16 2v4M4 10h16M6 6h12a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2z"/>
+            </svg>
+          </button>
+        </div>
+        {/* Overlay content (title + countdown) over image */}
+        <div className="media-overlay">
+          <div className="overlay-meta">
+            <div className="title">{event.name || event.title || 'Untitled Event'}</div>
+            {event.where && <div className="where">{event.where}</div>}
           </div>
-          <div className="ui-ActionBar__btn" role="button" tabIndex={0} aria-label="Hours">
-            <CountdownPart label="Hours" value={String(countdown.hours).padStart(2, '0')} />
+          <div className="countdown countdown-overlay">
+            <ActionBar className="countdown-stats" aria-label="Event countdown" as="div">
+              <div className="ui-ActionBar__btn" role="button" tabIndex={0} aria-label="Days">
+                <CountdownPart label="Days" value={countdown.days} />
+              </div>
+              <div className="ui-ActionBar__btn" role="button" tabIndex={0} aria-label="Hours">
+                <CountdownPart label="Hours" value={String(countdown.hours).padStart(2, '0')} />
+              </div>
+              <div className="ui-ActionBar__btn" role="button" tabIndex={0} aria-label="Minutes">
+                <CountdownPart label="Minutes" value={String(countdown.minutes).padStart(2, '0')} />
+              </div>
+              <div className="ui-ActionBar__btn" role="button" tabIndex={0} aria-label="Seconds">
+                <CountdownPart label="Seconds" value={String(countdown.seconds).padStart(2, '0')} />
+              </div>
+            </ActionBar>
           </div>
-          <div className="ui-ActionBar__btn" role="button" tabIndex={0} aria-label="Minutes">
-            <CountdownPart label="Minutes" value={String(countdown.minutes).padStart(2, '0')} />
-          </div>
-          <div className="ui-ActionBar__btn" role="button" tabIndex={0} aria-label="Seconds">
-            <CountdownPart label="Seconds" value={String(countdown.seconds).padStart(2, '0')} />
-          </div>
-        </ActionBar>
-      </div>
-
-      <div className="card-actions">
-        <button className="mini" onClick={(e) => { e.stopPropagation(); onEdit(); }} data-tip="Edit">
-          <svg viewBox="0 0 24 24">
-            <path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4Z"/>
-          </svg>
-        </button>
-        <button className="mini" onClick={(e) => { e.stopPropagation(); onExport(); }} data-tip="Save to Calendar">
-          <svg viewBox="0 0 24 24">
-            <path d="M8 2v4M16 2v4M4 10h16M6 6h12a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2z"/>
-          </svg>
-        </button>
+        </div>
       </div>
     </article>
   );

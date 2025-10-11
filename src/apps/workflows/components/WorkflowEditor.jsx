@@ -4,6 +4,8 @@
  */
 
 import { useState } from 'react';
+import AppHomeBlock from '@components/ui/organisms/AppHomeBlock.jsx';
+import { appHomeContent } from '@components/ui/organisms/appHomeContent.js';
 import useStore from '@store';
 import { RiPlayLine, RiEditLine, RiFileCopyLine, RiDeleteBinLine, RiAddLine, RiTimeLine, RiCheckLine, RiLightbulbLine, RiArrowRightLine } from 'react-icons/ri';
 
@@ -14,15 +16,13 @@ const WorkflowEditor = () => {
   if (!selectedWorkflow) {
     return (
       <div className="workflow-editor-empty">
-        <div className="empty-state">
-          <RiLightbulbLine size={64} />
-          <h2>Select a Workflow</h2>
-          <p>Choose a workflow from the left panel to view and edit its instructions for AI assistants.</p>
-          <button className="create-workflow-btn primary">
-            <RiAddLine />
-            Create New Workflow
+        {(() => { const c = appHomeContent.workflows; return (
+        <AppHomeBlock icon={c.icon} subtitle={c.subtitle} title={c.title} description={c.description} tips={c.tips}>
+          <button className="create-workflow-btn primary" style={{ marginTop: '10px' }}>
+            <RiAddLine /> Create New Workflow
           </button>
-        </div>
+        </AppHomeBlock>
+        ); })()}
       </div>
     );
   }

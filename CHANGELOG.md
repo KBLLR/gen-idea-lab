@@ -1,5 +1,14 @@
 # Changelog
 
+2025-10-11: GestureLab canvas fill, gestures, mirrored overlay, example toggles
+- Whiteboard layout: Drawing canvas now fills the available space in the middle column; controls moved into the Panel footer (palette, brush sizes, eraser, save/upload/gallery).
+- Gesture drawing: Implemented normalized pinch detection for consistent drawing across sizes; stabilized stroke continuity using a ref; eraser buttons switch to eraser mode (Open Palm) and pinch erases.
+- Tracking resilience: Initialize on loadedmetadata; skip frames until video has real dimensions; guard/catch transient MediaPipe ROI errors and clear once tracking resumes.
+- Overlay parity: Mirrored the hand landmarks overlay (whiteboard and 3D) to match the user’s perspective; ensured overlay is non-interactive above the canvas.
+- Examples restored: Sidebar example toggles now single-select and switch modes (Whiteboard, 3D Navigation, UI Control) with sensible fallback to Whiteboard.
+- Hook order fix: Consolidated Zustand actions selection to a single hook to prevent React Fast Refresh hook-order warnings.
+- Layout wrapper: GestureLab app container updated to full-height flex column to ensure the panel occupies the entire middle column.
+
 2025-10-08: Sidebar template adoption (ImageBooth, Workflows), ActionBar icon-only with separators, Settings z-index fix, workflow auto-title model, icon rendering fixes
 - Apps: ImageBooth (VizGenBooth) moved ModeSelector to left pane via useLeftPane; center shows BoothViewer; ensured cleanup on unmount.
 - Apps: Workflows moved WorkflowsList to left pane; center shows WorkflowEditor; removed right pane usage; ensured cleanup on unmount.

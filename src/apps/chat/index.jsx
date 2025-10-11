@@ -10,6 +10,7 @@ export default function ChatContent() {
   const { setLeftPane, clearLeftPane } = useLeftPane();
   const { setRightPane, clearRightPane } = useRightPane();
   const [showGallery, setShowGallery] = useState(false);
+  const [showMindmap, setShowMindmap] = useState(false);
 
   useEffect(() => {
     setActiveApp('chat');
@@ -27,5 +28,12 @@ export default function ChatContent() {
     }
   }, [showGallery, setRightPane, clearRightPane]);
 
-  return <Chat showGallery={showGallery} onToggleGallery={() => setShowGallery(!showGallery)} />;
+  return (
+    <Chat
+      showGallery={showGallery}
+      onToggleGallery={() => setShowGallery(!showGallery)}
+      showMindmap={showMindmap}
+      onToggleMindmap={() => setShowMindmap(!showMindmap)}
+    />
+  );
 }

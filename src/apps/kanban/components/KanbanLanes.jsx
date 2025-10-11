@@ -52,9 +52,9 @@ export default function KanbanLanes() {
       onDragCancel={handleDragCancel}
     >
       <div className="lanes">
-        <Lane laneId="todo" title="🧭 To Do" items={lanes.todo} />
-        <Lane laneId="doing" title="⚙️ Doing" items={lanes.doing} />
-        <Lane laneId="done" title="✅ Done" items={lanes.done} />
+        <Lane laneId="todo" title="To Do" icon="playlist_add_check" items={lanes.todo} />
+        <Lane laneId="doing" title="Doing" icon="pending_actions" items={lanes.doing} />
+        <Lane laneId="done" title="Done" icon="check_circle" items={lanes.done} />
       </div>
 
       <DragOverlay>

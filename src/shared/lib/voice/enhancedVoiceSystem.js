@@ -202,7 +202,7 @@ export class EnhancedVoiceSystem {
     return {
       activeModuleId: state.activeModuleId,
       activeApp: state.activeApp,
-      isOrchestrator: !state.activeModuleId || state.isOrchestratorOpen
+      isOrchestrator: !state.activeModuleId || !state.dockMinimized
     };
   }
 

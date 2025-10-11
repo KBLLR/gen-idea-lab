@@ -13,7 +13,10 @@ import AllEmotionsList from './AllEmotionsList.jsx';
 import HumeVoiceChat, { EmotionsFooter } from './HumeVoiceChat.jsx';
 import StatsRow from './StatsRow.jsx';
 import GazeOverlay from './GazeOverlay.jsx';
+import ResizableColumns from '@shared/components/ResizableColumns.jsx';
 import useStore from '@store';
+import EmotionCard from './EmotionCard.jsx';
+import { EMOTION_COLORS, EMOTION_ICONS } from '../lib/humeColors.js';
 
 export default function EmpathyLab() {
     // Get consent, config and overlays from store
@@ -461,66 +464,88 @@ export default function EmpathyLab() {
                     </div>
                 )}
 
-                {/* 2-panel layout: Camera + Voice Chat */}
-                <div style={{
-                    flex: '1 1 auto',
-                    display: 'grid',
-                    gridTemplateColumns: '1fr 1fr',
-                    gap: '1rem',
-                    minHeight: 0,
-                    overflow: 'hidden'
-                }}>
-                    {/* Left: Webcam with Stats Footer */}
-                    <Panel
-                        title="Webcam Viewer"
-                        info={isTracking ? 'Live' : 'Idle'}
-                        footer={
-                            results && (
-                                <StatsRow
-                                    variant="glass"
-                                    results={results}
-                                    sessionDuration={Date.now() - sessionStartTime}
-                                    dataPointsCount={sessionData.length}
-                                    fps={fps}
-                                    tensors={tensors}
+                {/* 2-panel layout: Camera + Voice Chat (Resizable) */}
+                <ResizableColumns
+                    defaultLeftWidth={50}
+                    minLeftWidth={30}
+                    maxLeftWidth={70}
+                    storageKey="empathy-lab-columns"
+                    className="empathy-lab-columns"
+                    left={
+                        <Panel
+                            className="panel--fill"
+                            title="Webcam Viewer"
+                            info={isTracking ? 'Live' : 'Idle'}
+                        >
+                            <div className="empathy-viewer-split">
+                                <div className="viewer-area">
+                                    <WebcamStream
+                                        consent={consent}
+                                        isActive={isTracking}
+                                        onResults={handleWebcamResults}
+                                        onError={(err) => setError(err?.message || String(err))}
+                                        onStatusChange={setIsLoading}
+                                        showOverlays={Object.values(overlays).some(v => v)}
+                                        drawOverlays={drawOverlays}
+                                    />
+                                    {/* Sci-Fi Gaze Overlay */}
+                                    {overlays.showGazeOverlay && isTracking && results?.face?.[0]?.rotation?.gaze && (
+                                        <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none' }}>
+                                            <GazeOverlay
+                                                gazeData={results.face[0].rotation.gaze}
+                                                videoWidth={videoRef.current?.videoWidth || 1280}
+                                                videoHeight={videoRef.current?.videoHeight || 720}
+                                            />
+                                        </div>
+                                    )}
+                                </div>
+                                <div className="metrics-area">
+                                    <StatsRow
+                                        variant="grid"
+                                        results={results}
+                                        sessionDuration={sessionStartTime ? (Date.now() - sessionStartTime) : 0}
+                                        dataPointsCount={sessionData.length}
+                                        fps={fps}
+                                        tensors={tensors}
+                                    />
+                                </div>
+                            </div>
+                        </Panel>
+                    }
+                    right={
+                        <Panel
+                            className="panel--fill"
+                            title="Empathic Voice Chat"
+                            info="Hume EVI"
+                            footer={<EmotionsFooter emotions={humeEmotions} />}
+                        >
+                            <div className="hume-chat-wrap">
+                                <HumeVoiceChat
+                                    onEmotionUpdate={handleHumeEmotionUpdate}
+                                    selectedConfigId={selectedHumeConfigId}
+                                    humeEmotions={humeEmotions}
                                 />
-                            )
-                        }
-                    >
-                        <div style={{ position: 'relative', width: '100%', height: '100%' }}>
-                            <WebcamStream
-                                consent={consent}
-                                isActive={isTracking}
-                                onResults={handleWebcamResults}
-                                onError={(err) => setError(err?.message || String(err))}
-                                onStatusChange={setIsLoading}
-                                showOverlays={Object.values(overlays).some(v => v)}
-                                drawOverlays={drawOverlays}
-                            />
-                            {/* Sci-Fi Gaze Overlay */}
-                            {overlays.showGazeOverlay && isTracking && results?.face?.[0]?.rotation?.gaze && (
-                                <GazeOverlay
-                                    gazeData={results.face[0].rotation.gaze}
-                                    videoWidth={videoRef.current?.videoWidth || 1280}
-                                    videoHeight={videoRef.current?.videoHeight || 720}
-                                />
-                            )}
-                        </div>
-                    </Panel>
-
-                    {/* Right: Hume Voice Chat with Emotions Footer */}
-                    <Panel
-                        title="Empathic Voice Chat"
-                        info="Hume EVI"
-                        footer={<EmotionsFooter emotions={humeEmotions} />}
-                    >
-                        <HumeVoiceChat
-                            onEmotionUpdate={handleHumeEmotionUpdate}
-                            selectedConfigId={selectedHumeConfigId}
-                            humeEmotions={humeEmotions}
-                        />
-                    </Panel>
-                </div>
+                                {/* Emotions Grid (real-time) */}
+                                {!!(humeEmotions && humeEmotions.length) && (
+                                  <div className="emotions-grid">
+                                    {humeEmotions
+                                      .slice(0, 12)
+                                      .sort((a,b) => (b.score||0) - (a.score||0))
+                                      .map((e) => (
+                                        <EmotionCard
+                                          key={`${e.name}`}
+                                          name={e.name}
+                                          score={e.score}
+                                          color={EMOTION_COLORS[e.name]}
+                                          icon={EMOTION_ICONS[e.name]}
+                                        />
+                                      ))}
+                                  </div>
+                                )}
+                            </div>
+                        </Panel>
+                    }
+                />
             </div>
         </div>
     );

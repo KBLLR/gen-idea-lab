@@ -3194,6 +3194,59 @@ main.workflows-layout .right-column {
     height: 100%;
 }
 
+/* Generic App Welcome Pane (right column) */
+.app-welcome-pane {
+  padding: var(--panel-padding-lg, 20px);
+  display: grid;
+  place-items: center;
+  height: 100%;
+}
+.app-welcome-inner {
+  text-align: center;
+  max-width: 520px;
+  color: var(--text-secondary);
+}
+.app-welcome-icon {
+  font-family: 'Material Symbols Outlined', 'Material Icons', sans-serif;
+  font-size: 42px;
+  display: inline-block;
+  color: var(--color-accent, #4a9eff);
+  margin-bottom: 8px;
+}
+.app-welcome-title { margin: 6px 0; font-size: 20px; color: var(--text-primary); letter-spacing: .5px; }
+.app-welcome-subtitle { margin: 0 0 4px; font-size: 13px; color: var(--text-tertiary); text-transform: uppercase; letter-spacing: .6px; }
+.app-welcome-desc { margin: 8px 0 10px; font-size: 14px; line-height: 1.6; }
+.app-welcome-tips { list-style: none; padding: 0; margin: 10px 0 0; font-size: 13px; }
+.app-welcome-tips li { margin: 4px 0; }
+
+/* Generic App Home Block (centered in main content) */
+.app-home-block {
+  flex: 1 1 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 24px;
+}
+.app-home-block__inner { max-width: 620px; color: var(--text-secondary); }
+.app-home-block__icon { font-size: 64px; opacity: .9; color: var(--color-accent, #4a9eff); display: inline-block; margin-bottom: 8px; }
+.app-home-block__subtitle { margin: 0 0 4px; font-size: 12px; letter-spacing: .6px; text-transform: uppercase; color: var(--text-tertiary); }
+.app-home-block__title { margin: 6px 0; font-size: 22px; color: var(--text-primary); letter-spacing: .2px; }
+.app-home-block__desc { margin: 8px 0 12px; font-size: 14px; line-height: 1.6; }
+.app-home-block__tips { list-style: none; padding: 0; margin: 6px 0 0; font-size: 13px; }
+.app-home-block__tips li { margin: 2px 0; }
+
+/* First-visit full overlay for app center content */
+.app-first-visit {
+  position: absolute;
+  inset: 0;
+  background: var(--bg-main, #0e0f13);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 3;
+}
+
 .module-viewer-header {
     display: flex;
     justify-content: space-between;
@@ -3601,6 +3654,7 @@ main.workflows-layout .right-column {
 .auth-loading {
     position: fixed;
     inset: 0;
+    z-index: 3500;
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -3608,6 +3662,7 @@ main.workflows-layout .right-column {
     background: var(--bg-main);
     color: var(--text-primary);
     gap: 20px;
+    animation: mw-fade 180ms ease-out both;
 }
 
 .auth-loading .spinner {
@@ -3618,6 +3673,7 @@ main.workflows-layout .right-column {
 .login-form {
     position: fixed;
     inset: 0;
+    z-index: 3600;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -4616,11 +4672,9 @@ main.workflows-layout .right-column {
 }
 
 /* Panels that should have growing content and footer pinned at bottom */
-.panel--fill .image-content {
-    flex: 1 1 auto;
-    align-items: stretch;
-    justify-content: stretch;
-}
+.panel--fill.ui-Panel { display: flex; flex-direction: column; flex: 1 1 auto; min-height: 0; }
+.panel--fill .ui-Panel__body { flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; }
+.panel--fill .ui-Panel__body > * { flex: 1 1 auto; min-height: 0; }
 
 .image-content .placeholder .icon {
     font-size: 48px;
@@ -5531,4 +5585,18 @@ main.workflows-layout .right-column {
 .booth-generate-btn:disabled {
     opacity: 0.7;
     cursor: not-allowed;
+}
+.canvas-controls {
+  position: absolute;
+  left: 50%;
+  bottom: var(--space-3, 12px);
+  transform: translateX(-50%);
+  background: rgba(0,0,0,0.45);
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 999px;
+  padding: 8px 12px;
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  width: fit-content;
+  max-width: min(100%, 960px);
 }

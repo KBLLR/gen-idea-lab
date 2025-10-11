@@ -5,6 +5,8 @@ import ModuleViewer from './components/ModuleViewer.jsx';
 import ModuleKnowledgeSection from './components/ModuleKnowledgeSection.jsx';
 import { useLeftPane, useRightPane } from '@shared/lib/layoutSlots';
 import { Panel } from '@ui';
+import AppHomeBlock from '@components/ui/organisms/AppHomeBlock.jsx';
+import { appHomeContent } from '@components/ui/organisms/appHomeContent.js';
 
 export default function IdeaLabApp() {
   const setActiveApp = useStore.use.actions().setActiveApp;
@@ -35,7 +37,13 @@ export default function IdeaLabApp() {
 
   return (
     <>
-      {activeModuleId ? <ModuleViewer /> : null}
+      {activeModuleId ? (
+        <ModuleViewer />
+      ) : (
+        (() => { const c = appHomeContent.ideaLab; return (
+          <AppHomeBlock icon={c.icon} subtitle={c.subtitle} title={c.title} description={c.description} tips={c.tips} />
+        ); })()
+      )}
     </>
   );
 }

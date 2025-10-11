@@ -12,11 +12,22 @@ import NodeModePanel from '../panels/NodeModePanel.jsx';
 import { ActionBar } from '@ui';
 import GlassDockToolbar from './GlassDockToolbar.jsx';
 import VoiceChatPanel from './VoiceChatPanel.jsx';
-import DockItemsRow from './DockItemsRow.jsx';
+// Legacy DockItemsRow removed in favor of unified toolbar
 import MinimizedDock from './MinimizedDock.jsx';
 import './glass-dock.css';
 import '../panels/node-mode-panel.css';
 import { getAppPath } from '@routes';
+import { useDockContentNode } from '@shared/lib/layoutSlots';
+
+function OrchestratorSlot() {
+  // Optional provider; if absent, render nothing
+  try {
+    const node = useDockContentNode();
+    return node ? <div className="orchestrator-frame">{node}</div> : null;
+  } catch {
+    return null;
+  }
+}
 
 const DOCK_ITEM_SIZE = 56;
 const DOCK_PADDING = 12;
@@ -27,8 +38,18 @@ export default function GlassDock() {
   const [position, setPosition] = useState({ x: 20, y: window.innerHeight - 100 });
   const [isDragging, setIsDragging] = useState(false);
   const [isVisible, setIsVisible] = useState(true);
-  const [isMinimized, setIsMinimized] = useState(true);
-  const [dockItems, setDockItems] = useState([]);
+  const dockMinimized = useStore((state) => state.dockMinimized);
+  const setDockMinimized = useStore((state) => state.actions.setDockMinimized);
+  const [isMinimized, setIsMinimized] = useState(dockMinimized);
+
+  // Sync store state with local state
+  useEffect(() => {
+    setIsMinimized(dockMinimized);
+  }, [dockMinimized]);
+  // Legacy dock items replaced by toolbar; keep a constant count for sizing
+  const TOOLBAR_ITEM_COUNT = 6; // live, mic, awareness, subtitles, help, settings
+  // Fallback array to satisfy any legacy width calculations if hot-reload lags
+  const dockItems = Array.from({ length: TOOLBAR_ITEM_COUNT }, (_, i) => ({ id: `toolbar_${i}` }));
   const [isVoiceListening, setIsVoiceListening] = useState(false);
   const [voiceStatus, setVoiceStatus] = useState('');
   const [showVoiceCommands, setShowVoiceCommands] = useState(false);
@@ -57,7 +78,6 @@ export default function GlassDock() {
   const resizeRef = useRef(null);
 
   // Store actions
-  const setIsOrchestratorOpen = useStore((state) => state.actions.setIsOrchestratorOpen);
   const setIsSettingsOpen = useStore((state) => state.actions.setIsSettingsOpen);
   const setIsSystemInfoOpen = useStore((state) => state.actions.setIsSystemInfoOpen);
   const setIsLiveVoiceChatOpen = useStore((state) => state.actions.setIsLiveVoiceChatOpen);
@@ -68,6 +88,7 @@ export default function GlassDock() {
   const activeModuleId = useStore((state) => state.activeModuleId);
   const isLiveVoiceChatOpen = useStore((state) => state.isLiveVoiceChatOpen);
   const orchestratorNarration = useStore((state) => state.orchestratorNarration);
+  const setOrchestratorNarration = useStore((state) => state.actions.setOrchestratorNarration);
 
   // Dock mode state
   const dockMode = useStore((state) => state.dockMode);
@@ -84,7 +105,7 @@ export default function GlassDock() {
     setDockPosition(position);
   }, [position, setDockPosition]);
 
-  // Handle minimized state and positioning
+  // Handle state transitions and positioning
   useEffect(() => {
     // Expand when voice chat opens or entering node mode
     if (isLiveVoiceChatOpen || dockMode === 'node') {
@@ -96,29 +117,32 @@ export default function GlassDock() {
         const centerY = (window.innerHeight - voiceChatHeight) / 2;
         setPosition({ x: centerX, y: centerY });
       }
-    } else if (dockMode === 'chat') {
-      // Minimize when voice chat closes (and not in node mode)
-      setIsMinimized(true);
     }
+    // NOTE: Removed auto-minimize on chat mode - user controls minimize via Escape or explicit click
   }, [isLiveVoiceChatOpen, dockMode, voiceChatWidth, voiceChatHeight]);
 
   // Position dock at bottom-left when minimized
   useEffect(() => {
-    if (isMinimized) {
+    // Guard: avoid overriding center-on-open during voice-chat toggle
+    if (isMinimized && !isLiveVoiceChatOpen) {
       setPosition({ x: 20, y: window.innerHeight - 80 });
     }
-  }, [isMinimized]);
+  }, [isMinimized, isLiveVoiceChatOpen]);
 
-  // Keyboard shortcut: Escape to minimize
+  // Keyboard shortcut: Escape to minimize or close voice chat
   useEffect(() => {
     const handleKeyDown = (e) => {
-      if (e.key === 'Escape' && !isMinimized && dockMode === 'chat') {
+      if (e.key === 'Escape' && dockMode === 'chat') {
         e.preventDefault();
-        console.log('[GlassDock] Escape pressed - minimizing dock');
-        setIsMinimized(true);
-        // Also close voice chat if it's open
         if (isLiveVoiceChatOpen) {
+          // First close voice chat if open
+          console.log('[GlassDock] Escape pressed - closing voice chat');
           setIsLiveVoiceChatOpen(false);
+        } else if (!isMinimized) {
+          // Then minimize dock if expanded
+          console.log('[GlassDock] Escape pressed - minimizing dock');
+          setIsMinimized(true);
+          setDockMinimized(true);
         }
       }
     };
@@ -164,7 +188,8 @@ export default function GlassDock() {
           setIsSettingsOpen(true);
           break;
         case 'open-chat':
-          setIsOrchestratorOpen(true);
+          setIsMinimized(false);
+          setDockMinimized(false);
           break;
         case 'show-help':
           alert(data);
@@ -182,7 +207,7 @@ export default function GlassDock() {
     return () => {
       window.removeEventListener('voice-command', handleVoiceCommand);
     };
-  }, [setActiveApp, setIsOrchestratorOpen, setIsSettingsOpen, setIsSystemInfoOpen]);
+  }, [setActiveApp, setIsSettingsOpen, setIsSystemInfoOpen, setIsMinimized, setDockMinimized]);
 
   // Update current personality when module changes
   useEffect(() => {
@@ -281,6 +306,10 @@ export default function GlassDock() {
 
     const onOutputTranscription = (text, isFinal) => {
       setOutputTranscript(text);
+      // Update orchestrator narration for subtitle display
+      if (text && isFinal) {
+        setOrchestratorNarration(text);
+      }
     };
 
     const onError = (error) => {
@@ -666,83 +695,15 @@ Use this context to provide more relevant and specific answers about what the us
     setOutputTranscript('');
   };
 
-  // Initialize dock items
-  useEffect(() => {
-    const items = [
-      {
-        id: 'voice',
-        icon: isVoiceListening ? 'mic' : 'mic_off',
-        label: 'Voice Commands',
-        action: toggleVoiceListening,
-        secondaryAction: () => setShowVoiceCommands(!showVoiceCommands),
-        type: 'voice',
-        isActive: isVoiceListening,
-        status: voiceStatus,
-        hasSecondary: true
-      },
-      {
-        id: 'live-voice-chat',
-        icon: 'forum',
-        label: 'Live Voice Chat (Gemini)',
-        action: async () => {
-          if (!isLiveVoiceChatOpen) {
-            // Open and connect
-            setIsLiveVoiceChatOpen(true);
-            // Wait a tick for panel to open
-            setTimeout(() => handleConnect(), 100);
-          } else if (connected) {
-            // Disconnect but keep panel open
-            disconnect();
-            if (recorderRef.current) {
-              recorderRef.current.stop();
-              recorderRef.current = null;
-            }
-            setIsRecording(false);
-          } else {
-            // Connect when panel is open but disconnected
-            await handleConnect();
-          }
-        },
-        type: 'action',
-        isActive: isLiveVoiceChatOpen || connected
-      },
-      {
-        id: 'capabilities-info',
-        icon: 'info',
-        label: 'Voice Commands & Capabilities',
-        action: () => setShowCapabilitiesInfo(!showCapabilitiesInfo),
-        type: 'action',
-        isActive: showCapabilitiesInfo
-      },
-      {
-        id: 'subtitles',
-        icon: 'volume_up',
-        label: 'Subtitles',
-        action: toggleSubtitles,
-        type: 'action',
-        isActive: showSubtitles
-      },
-      {
-        id: 'screen-aware',
-        icon: isScreenAware ? 'visibility' : 'visibility_off',
-        label: 'Screen Awareness',
-        action: toggleScreenAwareness,
-        type: 'action',
-        isActive: isScreenAware
-      }
-    ];
-    setDockItems(items);
-  }, [isVoiceListening, voiceStatus, showSubtitles, isScreenAware, isLiveVoiceChatOpen, showCapabilitiesInfo]);
-
   // Calculate dock dimensions
   const getDockDimensions = useCallback(() => {
-    const visibleItems = dockItems.filter(item => item.visible !== false);
-    const width = visibleItems.length * DOCK_ITEM_SIZE + (visibleItems.length - 1) * DOCK_GAP + (DOCK_PADDING * 2);
+    const itemsLen = TOOLBAR_ITEM_COUNT;
+    const width = itemsLen * DOCK_ITEM_SIZE + (itemsLen - 1) * DOCK_GAP + (DOCK_PADDING * 2);
     const baseHeight = DOCK_ITEM_SIZE + (DOCK_PADDING * 2);
     const subtitleHeight = showSubtitles ? 80 : 0; // Add height for subtitle area
     const height = baseHeight + subtitleHeight;
     return { width, height };
-  }, [dockItems, showSubtitles]);
+  }, [showSubtitles]);
 
   // Handle window resize
   useEffect(() => {
@@ -771,9 +732,12 @@ Use this context to provide more relevant and specific answers about what the us
 
   // Drag handlers
   const handleMouseDown = useCallback((e) => {
-    if (e.target.closest('.dock-item')) return; // Don't drag when clicking items
+    // Don't drag when clicking toolbar/buttons or voice chat content
+    if (e.target.closest('.ui-ActionBar')) return;
     if (e.target.closest('.voice-chat-section')) return; // Don't drag when interacting with voice chat
     if (e.target.closest('.voice-chat-resize-handle')) return; // Don't drag when resizing
+    if (e.target.closest('.primary-talk-btn')) return; // Don't drag when pressing primary talk button
+    if (e.target.closest('.capabilities-info-panel')) return; // Don't drag when interacting with capabilities panel
 
     setIsDragging(true);
     const rect = dockRef.current.getBoundingClientRect();
@@ -823,46 +787,14 @@ Use this context to provide more relevant and specific answers about what the us
     setIsVisible(true);
   }, []);
 
-  const handleItemClick = (item, isSecondary = false) => {
-    if (isSecondary && item.secondaryAction) {
-      item.secondaryAction();
-    } else if (item.action) {
-      item.action();
-    }
-  };
-
-  // Icon fallback mapping for better compatibility
-  const getIconFallback = (iconName) => {
-    const fallbacks = {
-      'mic_off': 'mic_none',
-      'build_circle': 'settings',
-      'psychology': 'smart_toy',
-      'inventory_2': 'archive'
-    };
-    return fallbacks[iconName] || iconName;
-  };
-
-  const removeItem = (itemId) => {
-    setDockItems(prev => prev.map(item =>
-      item.id === itemId ? { ...item, visible: false } : item
-    ));
-  };
-
-  const addItem = (itemId) => {
-    setDockItems(prev => prev.map(item =>
-      item.id === itemId ? { ...item, visible: true } : item
-    ));
-  };
-
   const { width, height } = getDockDimensions();
-  const visibleItems = dockItems.filter(item => item.visible !== false);
 
   if (!isVisible) return null;
 
   // Minimized view - single orchestrator icon
   if (isMinimized && dockMode === 'chat' && !isLiveVoiceChatOpen) {
     return (
-      <MinimizedDock position={position} onOpen={() => setIsMinimized(false)} />
+      <MinimizedDock position={position} onOpen={() => { setIsMinimized(false); setDockMinimized(false); }} />
     );
   }
 
@@ -926,11 +858,13 @@ Use this context to provide more relevant and specific answers about what the us
               moveEvent.stopPropagation();
               const deltaX = moveEvent.clientX - startX;
               const deltaY = moveEvent.clientY - startY;
-              const newWidth = Math.max(300, Math.min(startWidth + deltaX, 600));
-              const newHeight = Math.max(350, Math.min(startHeight + deltaY, 600));
-              setVoiceChatWidth(newWidth);
-              setVoiceChatHeight(newHeight);
-            };
+          const maxWidth = Math.min(window.innerWidth - 40, 1400);
+          const maxHeight = Math.min(window.innerHeight - 120, 1200);
+          const newWidth = Math.max(300, Math.min(startWidth + deltaX, maxWidth));
+          const newHeight = Math.max(350, Math.min(startHeight + deltaY, maxHeight));
+          setVoiceChatWidth(newWidth);
+          setVoiceChatHeight(newHeight);
+        };
             const handleMouseUp = (upEvent) => {
               upEvent.preventDefault();
               upEvent.stopPropagation();
@@ -947,45 +881,49 @@ Use this context to provide more relevant and specific answers about what the us
         />
       )}
 
-      {/* Dock Toolbar (Square Icon Actions) */}
-      {dockMode === 'chat' && (
+      {/* Dock Toolbar (Square Icon Actions) - only show when NOT in voice chat */}
+      {dockMode === 'chat' && !isLiveVoiceChatOpen && (
         <GlassDockToolbar
           liveOpen={isLiveVoiceChatOpen}
           listening={isVoiceListening}
           awarenessOn={isScreenAware}
           subtitlesOn={showSubtitles}
           onToggleLive={async () => {
-            if (isLiveVoiceChatOpen) {
-              if (connected) {
-                disconnect();
-                if (recorderRef.current) {
-                  recorderRef.current.stop();
-                  recorderRef.current = null;
-                }
-                setIsRecording(false);
-              }
-              setIsLiveVoiceChatOpen(false);
-            } else {
-              setIsLiveVoiceChatOpen(true);
-              try { await handleConnect(); } catch (e) {}
-            }
+            setIsLiveVoiceChatOpen(true);
+            try { await handleConnect(); } catch (e) {}
           }}
           onToggleListen={toggleVoiceListening}
           onToggleAwareness={toggleScreenAwareness}
           onToggleSubtitles={toggleSubtitles}
           onOpenHelp={() => setShowCapabilitiesInfo(true)}
           onOpenSettings={() => setIsSettingsOpen(true)}
+          onMinimize={() => { setIsMinimized(true); setDockMinimized(true); }}
         />
       )}
 
-      {/* Dock Items (Bottom Row) */}
-      <DockItemsRow
-        items={visibleItems}
-        isVoiceListening={isVoiceListening}
-        onClickItem={handleItemClick}
-        onRemoveItem={removeItem}
-        getIconFallback={getIconFallback}
-      />
+      {/* Primary Talk Button (prominent CTA) */}
+      {dockMode === 'chat' && !isLiveVoiceChatOpen && (
+        <button
+          className="primary-talk-btn"
+          title="Talk to the Orchestrator"
+          onClick={async (e) => {
+            e.stopPropagation();
+            if (!isLiveVoiceChatOpen) {
+              setIsLiveVoiceChatOpen(true);
+              try { await handleConnect(); } catch (e) {}
+            }
+          }}
+        >
+          <span className="icon" aria-hidden>psychology</span>
+          <span className="sr-only">Talk to the Orchestrator</span>
+        </button>
+      )}
+
+      {/* Extensible content frame for orchestrator (chat-mode) */}
+      {dockMode === 'chat' && !isLiveVoiceChatOpen && (
+        // Consumers can inject content via DockContentProvider/useDockContent
+        <OrchestratorSlot />
+      )}
 
       <div className="dock-handle">
         <span className="icon">drag_indicator</span>
@@ -997,17 +935,17 @@ Use this context to provide more relevant and specific answers about what the us
         </div>
       )}
 
-      {showSubtitles && (
+      {showSubtitles && orchestratorNarration && (
         <div className="subtitle-area">
           <div className="subtitle-text">
-            {orchestratorNarration || 'Orchestrator narration will appear here...'}
+            {orchestratorNarration}
           </div>
         </div>
       )}
 
 
       {showCapabilitiesInfo && (
-        <div className="capabilities-info-panel" onClick={(e) => e.stopPropagation()}>
+        <div className="capabilities-info-panel" onClick={(e) => e.stopPropagation()} style={{ height: `${isLiveVoiceChatOpen ? voiceChatHeight : 420}px` }}>
           <div className="capabilities-header">
             <div className="capabilities-title">
               <span className="icon">help</span>

@@ -215,6 +215,7 @@ export const createServiceConnectionSlice = (set, get) => ({
         set((state) => {
           state.connectedServices[serviceId] = {
             ...(state.connectedServices[serviceId] || {}),
+            connected: true,
             status: 'connected',
             error: null,
           };
@@ -338,6 +339,7 @@ export const createServiceConnectionSlice = (set, get) => ({
       set((state) => {
         state.connectedServices[serviceId] = {
           ...(state.connectedServices[serviceId] || {}),
+          connected: true,
           status: 'connected',
           info: {
             ...(state.connectedServices[serviceId]?.info || {}),

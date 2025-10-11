@@ -7,6 +7,8 @@
   position: relative;
   min-height: 100vh;
   width: 100%;
+  display: flex;
+  flex-direction: column;
   /* Neutral app background; remove blue gradient */
   background: var(--bg-main, #0e0f13);
   color: var(--text-primary, #eaeef7);
@@ -203,144 +205,242 @@
   background: linear-gradient(180deg, #1e2433, #131826);
 }
 
-/* Event Grid */
+/* Event Grid - Masonry/Sushibox Layout */
 .calendar-ai-grid {
   position: relative;
-  min-height: 100vh;
-  /* Consistent inner gutters */
-  padding: var(--panel-padding-md, 16px);
+  padding: var(--space-6, 24px);
   display: grid;
-  gap: var(--space-4, 16px);
-  grid-auto-rows: 8px;
-  grid-template-columns: repeat(auto-fill, minmax(min(360px, 100%), 1fr));
-  /* Constrain and center content */
-  max-width: 1200px;
+  gap: var(--space-5, 20px);
+  grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+  max-width: 1600px;
   margin: 0 auto;
   width: 100%;
+  /* Internal scroll */
+  flex: 1 1 auto;
+  overflow-y: auto;
+  box-sizing: border-box;
+}
+
+/* Masonry-like layout in multi mode using CSS columns */
+.calendar-ai-grid.multi {
+  display: block;
+  column-width: 340px;
+  column-gap: var(--space-5, 20px);
+  /* Thin stroke outline + subtle background */
+  border: 1px solid rgba(255, 255, 255, 0.10);
+  border-radius: var(--radius-lg, 12px);
+  background: color-mix(in oklab, var(--surface-secondary, #0c0f16) 88%, transparent);
+}
+
+.calendar-ai-grid.multi .event-card {
+  display: inline-block;
+  width: 100%;
+  break-inside: avoid;
+  margin: 0 0 var(--space-5, 20px);
+}
+
+@media (max-width: 768px) {
+  .calendar-ai-grid {
+    grid-template-columns: 1fr;
+    padding: var(--space-4, 16px);
+    gap: var(--space-4, 16px);
+  }
 }
 
 @media (min-width: 1200px) {
   .calendar-ai-grid {
-    gap: var(--space-5, 20px);
+    grid-template-columns: repeat(auto-fill, minmax(380px, 1fr));
+  }
+}
+
+@media (min-width: 1600px) {
+  .calendar-ai-grid {
+    gap: var(--space-6, 24px);
   }
 }
 
 .calendar-ai-grid.single {
-  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-height: calc(100vh - 200px);
 }
 
 .calendar-ai-grid.single .event-card {
-  height: calc(100vh - var(--spacing-md) * 2);
-  grid-column: 1 / -1;
+  max-height: calc(100vh - 250px);
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
 }
 
 /* Event Card */
 .event-card {
   position: relative;
   overflow: hidden;
-  border-radius: var(--radius-xl, 16px);
-  border: 1px solid var(--glass-panel-border, #23293a);
-  background: var(--bg-panel, #0c0f16);
-  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.25);
-  display: block;
-  aspect-ratio: var(--ar, 4/3);
-  contain: layout paint;
+  border-radius: var(--radius-lg, 12px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: var(--surface-secondary, #0c0f16);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3), 0 1px 3px rgba(0, 0, 0, 0.2);
+  display: flex;
+  flex-direction: column;
   cursor: pointer;
-  transition: box-shadow 0.2s ease, transform 0.2s ease;
+  transition: all 0.2s ease;
 }
 
 .event-card:hover {
-  transform: translateY(-2px);
+  transform: translateY(-4px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4), 0 2px 6px rgba(0, 0, 0, 0.3);
+  border-color: rgba(255, 255, 255, 0.12);
 }
 
 .event-card.selected {
-  box-shadow: 0 0 0 3px color-mix(in lab, var(--color-accent) 65%, white 15%), 0 8px 30px rgba(0, 0, 0, 0.25);
+  border-color: var(--color-accent, #4a9eff);
+  box-shadow: 0 0 0 2px var(--color-accent, #4a9eff), 0 8px 24px rgba(0, 0, 0, 0.4);
 }
 
 .event-card .media {
+  position: relative;
+  width: 100%;
+  overflow: hidden;
+  background: #0b0d13;
+  flex-shrink: 0;
+}
+
+/* Gradient veil at the bottom for legibility */
+.event-card .media::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 45%;
+  background: linear-gradient(0deg, rgba(0,0,0,0.65), rgba(0,0,0,0.0));
+  pointer-events: none;
+  z-index: 1;
+}
+
+.event-card .media .media-overlay {
   position: absolute;
   inset: 0;
-  overflow: hidden;
-  max-width: 100%;
-  max-height: 100%;
-  contain: paint;
-  display: grid;
-  place-items: center;
-  background: #0b0d13;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  padding: 14px 14px 12px;
+  z-index: 2;
+  pointer-events: none; /* keep card clicks working */
+}
+
+.event-card .media .overlay-meta {
+  margin-bottom: 8px;
+}
+
+.event-card .media .overlay-meta .title {
+  color: #fff;
+  text-shadow: 0 2px 8px rgba(0,0,0,0.6);
+}
+
+.event-card .media .overlay-meta .where {
+  color: rgba(255,255,255,0.85);
+  text-shadow: 0 1px 4px rgba(0,0,0,0.6);
+}
+
+.event-card .media .countdown-overlay {
+  background: transparent;
+  border: 0;
+  padding: 0;
+}
+
+.event-card .media .countdown-overlay .ui-ActionBar__btn {
+  pointer-events: none; /* display-only */
 }
 
 .event-card img {
   width: 100%;
-  height: 100%;
-  max-width: 100%;
-  max-height: 100%;
-  object-fit: var(--fit, contain);
+  height: auto;
   display: block;
+  object-fit: cover;
   filter: saturate(1.05) contrast(1.03);
 }
 
-.event-card .vignette {
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(180deg, rgba(0, 0, 0, 0.35) 0, rgba(0, 0, 0, 0.25) 50%, rgba(0, 0, 0, 0.55) 100%);
-  pointer-events: none;
+@media (max-width: 768px) {
+  .calendar-ai-grid.multi { column-width: 100%; }
+}
+
+/* Placeholder shader when no image is provided */
+.event-card .media.placeholder {
+  height: 240px;
+  background-size: 200% 200%;
+  animation: shaderFlow 6s ease infinite;
+}
+
+@keyframes shaderFlow {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
 }
 
 .event-card .meta {
-  position: absolute;
-  left: 12px;
-  top: 12px;
-  right: 12px;
+  padding: 12px 14px 10px;
   display: flex;
   flex-direction: column;
   gap: 4px;
-  z-index: 2;
-  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.6);
+  background: var(--surface-tertiary, #0e1117);
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
 }
 
 .event-card .title {
   font-weight: 700;
   letter-spacing: 0.2px;
-  font-size: clamp(16px, 1.5vw, 22px);
+  font-size: 16px;
+  color: var(--text-primary);
 }
 
 .event-card .where {
   font-size: 12px;
-  color: var(--color-text-secondary);
+  color: var(--text-secondary);
 }
 
 /* Countdown HUD */
-/* Countdown container positions ActionBar */
 .countdown {
-  position: absolute;
-  left: 50%;
-  bottom: 12px;
-  transform: translateX(-50%);
-  z-index: 2;
+  padding: 16px 12px;
+  background: var(--surface-quaternary, #0a0c10);
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
 }
+
+.event-card .countdown .countdown-stats {
+  gap: 12px;
+}
+
+.event-card .countdown .countdown-stats .ui-ActionBar__btn {
+  min-width: 60px;
+  padding: 12px 8px;
+}
+
+/* (Removed) countdown actions toolbar; actions live in header */
 
 .cd-part {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 8px 12px;
-  border-radius: 8px;
-  background: transparent;
+  gap: 4px;
 }
 
 .cd-num {
   font-variant-numeric: tabular-nums;
   font-weight: 700;
   letter-spacing: 0.5px;
-  font-size: clamp(16px, 2vw, 22px);
+  font-size: 22px;
+  line-height: 1;
   color: var(--text-primary);
 }
 
 .cd-lbl {
-  font-size: 10px;
+  font-size: 11px;
   color: var(--text-secondary);
-  margin-top: 2px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  line-height: 1;
 }
 
 /* Divider now provided by ActionBar (.action-divider) */
@@ -352,7 +452,13 @@
   top: 10px;
   display: flex;
   gap: 8px;
-  z-index: 2;
+  z-index: 10;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.event-card:hover .card-actions {
+  opacity: 1;
 }
 
 .mini {

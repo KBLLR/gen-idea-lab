@@ -16,6 +16,7 @@ const MindMapPanel = () => {
   const location = useLocation();
   const activeModuleId = useStore.use.activeModuleId();
   const assistantHistories = useStore.use.assistantHistories();
+  const activeChatId = useStore.use.activeChatId();
   const modules = useStore.use.modules();
 
   // Determine the root title from the module title or personality.
@@ -30,11 +31,18 @@ const MindMapPanel = () => {
     );
   }, [activeModuleId, modules]);
 
-  // Flatten the conversation history for the active module.
+  // Flatten the conversation history for the active module, filtered by current chat ID
   const history = useMemo(() => {
     if (!activeModuleId) return [];
-    return assistantHistories?.[activeModuleId] || [];
-  }, [assistantHistories, activeModuleId]);
+    const allHistory = assistantHistories?.[activeModuleId] || [];
+
+    // Filter by active chat ID if one exists
+    if (activeChatId) {
+      return allHistory.filter(msg => msg.chatId === activeChatId);
+    }
+
+    return allHistory;
+  }, [assistantHistories, activeModuleId, activeChatId]);
 
   // If seeded markdown is provided via route state, use it; otherwise compute from history.
   const content = useMemo(() => {

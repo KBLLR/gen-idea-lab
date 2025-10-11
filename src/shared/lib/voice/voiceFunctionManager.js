@@ -63,12 +63,12 @@ export class VoiceFunctionManager {
 
     // Orchestrator functions
     this.registerFunction('start_chat', {
-      description: 'Open the orchestrator chat',
+      description: 'Open the orchestrator dock',
       parameters: {},
       handler: () => {
-        const { setIsOrchestratorOpen } = useStore.getState().actions;
-        setIsOrchestratorOpen(true);
-        return { success: true, message: 'Orchestrator chat opened' };
+        const { expandDock } = useStore.getState().actions;
+        expandDock();
+        return { success: true, message: 'Orchestrator dock expanded' };
       }
     });
 

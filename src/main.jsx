@@ -19,7 +19,6 @@ const CalendarAI = lazy(() => import('./apps/calendarAI/index.jsx'))
 const EmpathyLab = lazy(() => import('./apps/empathyLab/index.jsx'))
 const GestureLab = lazy(() => import('./apps/gestureLab/index.jsx'))
 const Kanban     = lazy(() => import('./apps/kanban/index.jsx'))
-const MindMap    = lazy(() => import('./apps/multimindmap/index.jsx'))
 
 const withProviders = (node) => (
   <AppProviders>
@@ -44,7 +43,6 @@ const router = createBrowserRouter(
       <Route path="empathylab/*"  element={withProviders(<EmpathyLab />)} />
       <Route path="gesturelab/*"  element={withProviders(<GestureLab />)} />
       <Route path="kanban/*"      element={withProviders(<Kanban />)} />
-      <Route path="mindmap/*"     element={withProviders(<MindMap />)} />
       <Route path="*" element={<Navigate to="/idealab" replace />} />
     </Route>
   )

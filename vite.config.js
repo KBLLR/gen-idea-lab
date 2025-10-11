@@ -7,6 +7,15 @@ const r = (p) => fileURLToPath(new URL(p, import.meta.url))
 export default defineConfig(({ mode }) => {
   const isDev = mode === 'development'
   const serverPort = process.env.PORT || 8081
+  const frontendUrl = process.env.FRONTEND_URL || process.env.CLIENT_ORIGIN || ''
+  let devPort = 3000
+  try {
+    if (frontendUrl) {
+      const u = new URL(frontendUrl)
+      const parsed = Number(u.port)
+      if (!Number.isNaN(parsed) && parsed > 0) devPort = parsed
+    }
+  } catch {}
 
   return {
     plugins: [react()],
@@ -35,7 +44,7 @@ export default defineConfig(({ mode }) => {
     },
 
     server: {
-      port: 3000,
+      port: devPort,
       host: true,
       // Don't set COOP/COEP headers in dev - allows HMR postMessage and OAuth popups
       proxy: {

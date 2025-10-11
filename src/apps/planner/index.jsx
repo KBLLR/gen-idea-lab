@@ -13,7 +13,7 @@ export default function PlannerApp() {
   useEffect(() => {
     setActiveApp('planner');
     setLeftPane(<PlannerSidebar />);
-    setRightPane(<Panel title="Service States"><div id="planner-service-states" /></Panel>);
+    // No third-pane welcome; canvas becomes the main area
     return () => { clearLeftPane(); clearRightPane(); };
   }, [setActiveApp]);
 

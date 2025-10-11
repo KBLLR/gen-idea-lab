@@ -42,7 +42,7 @@ export const ActionBar = forwardRef(function ActionBar(
           key={it.id ?? it.key ?? i}
           ref={(el) => (btnRefs.current[i] = el)}
           type="button"
-          className="ui-ActionBar__btn"
+          className={clsx('ui-ActionBar__btn', it.className)}
           title={it.tooltip || it.label}
           aria-label={it.label}
           aria-pressed={typeof it.ariaPressed === 'boolean' ? it.ariaPressed : undefined}

@@ -13,6 +13,8 @@ import { extractCompleteContext } from '@shared/lib/contextExtraction.js';
 import ReactFlow, { Background, Controls, MiniMap, ReactFlowProvider, addEdge, useEdgesState, useNodesState, useReactFlow, Handle, Position } from 'reactflow';
 import NodeConfigModal from '@components/modals/NodeConfigModal.jsx';
 import 'reactflow/dist/style.css';
+import AppHomeBlock from '@components/ui/organisms/AppHomeBlock.jsx';
+import { appHomeContent } from '@components/ui/organisms/appHomeContent.js';
 import '../styles/planner.css';
 import { getAppPath } from '@routes';
 
@@ -2914,6 +2916,13 @@ function PlannerCanvasInner() {
         />
       </div>
       <div className="planner-canvas" ref={rfRef}>
+        {nodes.length === 0 && (
+          <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', pointerEvents: 'none', zIndex: 2 }}>
+            {(() => { const c = appHomeContent.planner; return (
+              <AppHomeBlock icon={c.icon} subtitle={c.subtitle} title={c.title} description={c.description} tips={c.tips} />
+            ); })()}
+          </div>
+        )}
         <NodeUpdateContext.Provider value={{ updateNode, canvasRef: rfRef }}>
           <ReactFlow
             nodes={nodes}

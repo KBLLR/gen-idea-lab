@@ -71,61 +71,47 @@ export default function WebcamStream({
 
   return (
     <div className={`webcam-stream ${className}`}>
-      <div className="webcam-container">
-        {/* Hidden video element */}
-        <video
-          ref={videoRef}
-          style={{ display: 'none' }}
-          playsInline
-          muted
-          autoPlay
-        />
+      {/* Hidden video element */}
+      <video
+        ref={videoRef}
+        style={{ display: 'none' }}
+        playsInline
+        muted
+        autoPlay
+      />
 
-        {/* Main canvas for video frames */}
-        <canvas ref={canvasRef} className="webcam-canvas" />
+      {/* Main canvas for video frames */}
+      <canvas ref={canvasRef} className="webcam-canvas" />
 
-        {/* Overlay canvas for detection results */}
-        <canvas ref={overlayCanvasRef} className="webcam-overlay" />
+      {/* Overlay canvas for detection results */}
+      <canvas ref={overlayCanvasRef} className="webcam-overlay" />
 
-        {/* Recording indicator */}
-        {isTracking && <RecordingIndicator active={true} />}
+      {/* Recording indicator */}
+      {isTracking && <RecordingIndicator active={true} />}
 
-        {/* Loading overlay */}
-        {isLoading && (
-          <div className="webcam-loading">
-            <div className="loading-spinner"></div>
-            <p>{loadingStatus || 'Loading...'}</p>
-          </div>
-        )}
+      {/* Loading overlay */}
+      {isLoading && (
+        <div className="webcam-loading">
+          <div className="loading-spinner"></div>
+          <p>{loadingStatus || 'Loading...'}</p>
+        </div>
+      )}
 
-        {/* Placeholder when inactive */}
-        {!isTracking && !isLoading && (
-          <div className="webcam-placeholder">
-            <span className="icon">videocam_off</span>
-            <p>Configure privacy settings and start tracking</p>
-          </div>
-        )}
+      {/* Placeholder when inactive */}
+      {!isTracking && !isLoading && (
+        <div className="webcam-placeholder">
+          <span className="icon">videocam_off</span>
+          <p>Configure privacy settings and start tracking</p>
+        </div>
+      )}
 
-        {/* Error display */}
-        {error && (
-          <div className="webcam-error">
-            <span className="icon">error</span>
-            <p>{error}</p>
-          </div>
-        )}
-
-        {/* Stats overlay - positioned at bottom */}
-        {isTracking && (fps > 0 || tensors > 0) && (
-          <div className="webcam-stats">
-            <span className="stat-item">
-              <span className="icon">speed</span> {fps} FPS
-            </span>
-            <span className="stat-item">
-              <span className="icon">memory</span> {tensors} tensors
-            </span>
-          </div>
-        )}
-      </div>
+      {/* Error display */}
+      {error && (
+        <div className="webcam-error">
+          <span className="icon">error</span>
+          <p>{error}</p>
+        </div>
+      )}
     </div>
   );
 }

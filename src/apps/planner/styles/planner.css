@@ -31,7 +31,14 @@
 }
 
 .accordion-header .icon { font-family: var(--typography-font-family-icon); }
-.accordion-header .title { font-size: var(--typography-font-size-lg); font-weight: var(--typography-font-weight-semibold); }
+.accordion-header .title {
+  font-family: 'Material Symbols Outlined', 'Google Sans Display', sans-serif;
+  font-size: var(--typography-font-size-sm);
+  font-weight: 600;
+  font-variation-settings: 'FILL' 0, 'wght' 600, 'GRAD' 0, 'opsz' 48;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
 
 .accordion-body {
   padding: var(--spacing-6) var(--spacing-8);

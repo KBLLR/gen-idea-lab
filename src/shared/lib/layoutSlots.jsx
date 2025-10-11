@@ -2,6 +2,7 @@ import React, { createContext, useContext, useMemo, useState } from 'react'
 
 const RightCtx = createContext(null)
 const LeftCtx = createContext(null)
+const DockCtx = createContext(null)
 
 export function RightPaneProvider({ children }) {
   const [node, setNode] = useState(null)
@@ -13,6 +14,12 @@ export function LeftPaneProvider({ children }) {
   const [node, setNode] = useState(null)
   const api = useMemo(() => ({ setLeftPane: setNode, clearLeftPane: () => setNode(null) }), [])
   return <LeftCtx.Provider value={{ node, ...api }}>{children}</LeftCtx.Provider>
+}
+
+export function DockContentProvider({ children }) {
+  const [node, setNode] = useState(null)
+  const api = useMemo(() => ({ setDockContent: setNode, clearDockContent: () => setNode(null) }), [])
+  return <DockCtx.Provider value={{ node, ...api }}>{children}</DockCtx.Provider>
 }
 
 export function useRightPane() {
@@ -47,4 +54,16 @@ export function RightPane() {
 export function LeftPane() {
   const ctx = useContext(LeftCtx)
   return ctx?.node ?? null
+}
+
+export function useDockContent() {
+  const ctx = useContext(DockCtx)
+  if (!ctx) throw new Error('useDockContent must be used within DockContentProvider')
+  return { setDockContent: ctx.setDockContent, clearDockContent: ctx.clearDockContent }
+}
+
+export function useDockContentNode() {
+  const ctx = useContext(DockCtx)
+  if (!ctx) throw new Error('useDockContentNode must be used within DockContentProvider')
+  return ctx.node
 }

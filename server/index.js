@@ -14,6 +14,7 @@ import createApiRouter from './apiRouter.js';
 import { getUserConnections } from './lib/userConnections.js';
 import geminiBootstrap from './lib/geminiBootstrap.js';
 import { getDb } from '../src/shared/lib/db.js';
+import { runStartupChecks } from './lib/startupChecks.js';
 
 // Load environment variables from .env, .env.local, and .env.development.local (in dev)
 dotenv.config();
@@ -30,9 +31,23 @@ app.set('trust proxy', 1);
 // Global middleware
 app.use(cookieParser());
 
-// CORS: lock to client origin and allow credentials
+// CORS: strict origin allowlist and credentials
+const allowedOrigins = [
+  process.env.FRONTEND_URL,
+  process.env.CLIENT_ORIGIN,
+  process.env.BACKEND_URL, // sometimes used for same-host checks
+  process.env.DOMAIN ? `https://${process.env.DOMAIN}` : null,
+  process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : null,
+  'http://localhost:3000',
+  'http://127.0.0.1:3000',
+].filter(Boolean);
+
 app.use(cors({
-  origin: process.env.CLIENT_ORIGIN || 'http://localhost:3000',
+  origin(origin, callback) {
+    if (!origin) return callback(null, true); // allow same-origin/non-browser requests
+    const ok = allowedOrigins.some((o) => origin.startsWith(o));
+    callback(ok ? null : new Error(`CORS not allowed: ${origin}`), ok);
+  },
   credentials: true,
 }));
 
@@ -58,6 +73,11 @@ app.use('/auth', auth);
 // Mount API router (full DI) at /api BEFORE SPA fallback
 const apiRouter = createApiRouter({ getUserConnections, geminiBootstrap, getDb });
 app.use('/api', apiRouter);
+
+// Health: configuration status (no secrets exposed)
+app.get('/healthz/config', (_req, res) => {
+  res.json(runStartupChecks());
+});
 
 // Static assets + SPA fallback (after API)
 const dist = path.resolve('dist');
@@ -101,20 +121,34 @@ async function findAvailablePort(startPort, maxAttempts = 10) {
 
 async function startServer() {
   try {
+    // Log configuration health at startup
+    runStartupChecks();
+
     await geminiBootstrap.initializeGeminiAPI();
 
-    if (hasCustomPort) {
-      const available = await isPortAvailable(CUSTOM_PORT);
+    // In development, require explicit/default port to match Vite proxy; do not silently fallback
+    if (process.env.NODE_ENV !== 'production') {
+      const desired = hasCustomPort ? CUSTOM_PORT : DEFAULT_PORT;
+      const available = await isPortAvailable(desired);
       if (!available) {
-        throw new Error(`Configured port ${CUSTOM_PORT} is already in use. Stop the process using it or set PORT to a different value.`);
+        throw new Error(`Dev server requires port ${desired}. Stop the process using it or set PORT to a different value to match Vite proxy.`);
       }
-      serverPort = CUSTOM_PORT;
+      serverPort = desired;
     } else {
-      const resolvedPort = await findAvailablePort(DEFAULT_PORT);
-      if (resolvedPort !== DEFAULT_PORT) {
-        logger.warn(`Port ${DEFAULT_PORT} is in use. Falling back to ${resolvedPort}.`);
+      // In production, attempt to find a nearby available port (more flexible)
+      if (hasCustomPort) {
+        const available = await isPortAvailable(CUSTOM_PORT);
+        if (!available) {
+          throw new Error(`Configured port ${CUSTOM_PORT} is already in use. Stop the process using it or set PORT to a different value.`);
+        }
+        serverPort = CUSTOM_PORT;
+      } else {
+        const resolvedPort = await findAvailablePort(DEFAULT_PORT);
+        if (resolvedPort !== DEFAULT_PORT) {
+          logger.warn(`Port ${DEFAULT_PORT} is in use. Falling back to ${resolvedPort}.`);
+        }
+        serverPort = resolvedPort;
       }
-      serverPort = resolvedPort;
     }
 
     const httpServer = http.createServer(app);

@@ -67,16 +67,11 @@ export function setupLiveApiProxy(server, apiKey) {
 
     const token = tokenFromCookie || tokenFromQuery;
 
-    // Dev bypass: allow connection without token if AUTH_BYPASS=1
+    // Require authentication token (no bypass in any environment)
     if (!token) {
-      if (process.env.AUTH_BYPASS === '1') {
-        isAuthenticated = true;
-        logger.warn('[Live API Proxy] AUTH_BYPASS enabled - allowing unauthenticated WS connection');
-      } else {
-        logger.warn('[Live API Proxy] No authentication token provided');
-        clientWs.close(4001, 'Authentication required');
-        return;
-      }
+      logger.warn('[Live API Proxy] No authentication token provided');
+      clientWs.close(4001, 'Authentication required');
+      return;
     }
 
     if (token) {
@@ -85,14 +80,9 @@ export function setupLiveApiProxy(server, apiKey) {
         isAuthenticated = true;
         logger.info(`[Live API Proxy] User authenticated: ${user.email}`);
       } catch (err) {
-        if (process.env.AUTH_BYPASS === '1') {
-          logger.warn('[Live API Proxy] Invalid token but AUTH_BYPASS enabled - proceeding');
-          isAuthenticated = true;
-        } else {
-          logger.warn('[Live API Proxy] Invalid authentication token:', err.message);
-          clientWs.close(4001, 'Invalid authentication token');
-          return;
-        }
+        logger.warn('[Live API Proxy] Invalid authentication token:', err.message);
+        clientWs.close(4001, 'Invalid authentication token');
+        return;
       }
     }
 

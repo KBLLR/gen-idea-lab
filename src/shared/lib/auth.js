@@ -11,8 +11,8 @@ function getJwtSecret() {
     return process.env.AUTH_SECRET || 'your-dev-secret-change-in-production';
 }
 
-// Dev bypass helpers
-const AUTH_BYPASS = process.env.AUTH_BYPASS === '1';
+// Dev bypass disabled: always require real authentication
+const AUTH_BYPASS = false;
 function getDevUser() {
     return {
         id: 'dev',

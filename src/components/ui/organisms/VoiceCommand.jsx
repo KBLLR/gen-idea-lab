@@ -23,7 +23,7 @@ export default function VoiceCommand() {
   const timeoutRef = useRef(null);
 
   const setIsSettingsOpen = useStore((state) => state.actions.setIsSettingsOpen);
-  const setIsOrchestratorOpen = useStore((state) => state.actions.setIsOrchestratorOpen);
+  const expandDock = useStore((state) => state.actions.expandDock);
   const setActiveApp = useStore((state) => state.actions.setActiveApp);
 
   useEffect(() => {
@@ -88,7 +88,7 @@ export default function VoiceCommand() {
           setIsSettingsOpen(true);
           break;
         case 'open-chat':
-          setIsOrchestratorOpen(true);
+          expandDock();
           break;
         case 'show-help':
           alert(data);
@@ -120,7 +120,7 @@ export default function VoiceCommand() {
       window.removeEventListener('voice-command', handleVoiceCommand);
       if (timeoutRef.current) clearTimeout(timeoutRef.current);
     };
-  }, [setIsSettingsOpen, setIsOrchestratorOpen, setActiveApp]);
+  }, [setIsSettingsOpen, expandDock, setActiveApp]);
 
   const toggleListening = async () => {
     if (isListening) {

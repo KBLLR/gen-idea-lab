@@ -17,7 +17,9 @@ export default function GestureLabSidebar() {
     ];
 
     const gestureExamples = useStore.use.gestureLab().examples;
-    const setGestureLabExample = useStore.use.actions().setGestureLabExample;
+    const actions = useStore.use.actions();
+    const setGestureLabExample = actions.setGestureLabExample;
+    const setGestureLabMode = actions.setGestureLabMode;
 
     // Tooltip state for example descriptions
     const [tooltip, setTooltip] = useState({ visible: false, x: 0, y: 0, content: '' });
@@ -80,7 +82,24 @@ export default function GestureLabSidebar() {
                               label={example.title}
                               description={null}
                               checked={!!gestureExamples[example.title]}
-                              onChange={(next) => setGestureLabExample(example.title, next)}
+                              onChange={(next) => {
+                                // Single-select semantics: enabling one disables others and switches mode.
+                                const title = example.title;
+                                const toMode = title === 'Whiteboard' ? 'whiteboard' : title === '3D Navigation' ? '3d' : 'ui';
+                                if (next) {
+                                  // Enable selected example and disable the rest
+                                  setGestureLabExample('Whiteboard', title === 'Whiteboard');
+                                  setGestureLabExample('3D Navigation', title === '3D Navigation');
+                                  setGestureLabExample('UI Control', title === 'UI Control');
+                                  setGestureLabMode(toMode);
+                                } else {
+                                  // If disabling current, fall back to Whiteboard
+                                  setGestureLabExample('Whiteboard', true);
+                                  setGestureLabExample('3D Navigation', false);
+                                  setGestureLabExample('UI Control', false);
+                                  setGestureLabMode('whiteboard');
+                                }
+                              }}
                               title={example.desc}
                           />
                         </div>
