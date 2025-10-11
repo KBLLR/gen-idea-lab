@@ -76,7 +76,7 @@ export default defineConfig(({ mode }) => {
 
     optimizeDeps: {
       entries: ['index.html', 'src/main.jsx'],
-      include: ['react','react-dom','zustand','reactflow','react-markdown','dompurify']
+      include: ['react','react-dom','zustand','reactflow','react-markdown','dompurify','markmap-common','markmap-lib','markmap-view']
     }
   }
 })
