@@ -280,7 +280,10 @@ const StellarScene = forwardRef(function StellarScene({ className = '' }, ref) {
     ctx.fillStyle = g;
     ctx.fillRect(0,0,size,size);
     const tex = new THREE.CanvasTexture(canvas);
-    tex.encoding = THREE.sRGBEncoding;
+    // three r0.172+: use colorSpace instead of encoding
+    if ('SRGBColorSpace' in THREE) {
+      tex.colorSpace = THREE.SRGBColorSpace;
+    }
     return tex;
   }
 
