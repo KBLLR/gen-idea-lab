@@ -66,6 +66,13 @@ export const appHomeContent = {
     title: 'Organize tasks across lanes',
     description: 'Create and drag tasks between columns to manage work in progress.',
     tips: ['Click + to add a task', 'Drag tasks to move between columns', 'Select a task to view details']
+  },
+  characterLab: {
+    icon: 'accessibility_new',
+    subtitle: 'Welcome to CharacterLab',
+    title: 'Rig 3D characters automatically',
+    description: 'Upload a .glb humanoid model and let Meshy AI add bones and animations.',
+    tips: ['Drag & drop a .glb file to upload', 'Track rigging status in the sidebar', 'Download rigged models as FBX']
   }
 };
 

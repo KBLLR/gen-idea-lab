@@ -1,5 +1,41 @@
 # Changelog
 
+2025-10-11: CharacterLab Google Drive import with real-time optimization progress
+- **Drive import endpoint**: `/api/drive/models` lists GLB files from specific folder (16MZ6twRIR6-wFcHmy8ZdU8Fikk5X9D5J); `/api/drive/import/:fileId` downloads and optimizes with Server-Sent Events progress streaming
+- **Enhanced optimization**: 11-step gltf-transform pipeline (dedup, instance, palette, flatten, join, weld, simplify with meshoptimizer, resample, prune, sparse, textureCompress to WebP) achieves 70-90% size reduction
+- **Real-time progress**: SSE streams each optimization step to client with step name, description, progress percentage, and timing metrics
+- **OAuth integration**: Uses existing Google Drive connection from getUserConnections for secure API access
+- **Temporary staging**: Downloads to temp/drive-imports/, optimizes, then moves to permanent storage in server/storage/models/
+- **Added meshoptimizer**: Installed meshoptimizer@0.25.0 for advanced mesh simplification in optimization pipeline
+
+2025-10-11: CharacterLab Gallery with local storage, Google Model Viewer, optimized GLB hosting
+- **Local-first storage**: Models stored in `server/storage/models/` after gltf-transform optimization (70-90% size reduction solves Google Drive "too big" issue)
+- **Gallery in right pane**: Toggleable gallery view following micro-app column pattern; vertical list with 3D previews, download, and delete actions
+- **Backend gallery endpoints**: `/api/rigging/gallery` (list), `/api/rigging/models/:filename` (serve with caching), `DELETE /api/rigging/gallery/:taskId`
+- **Reusable ModelViewer component**: `ModelViewer.jsx` wraps `@google/model-viewer` web component with React props, auto-rotate, camera controls, AR support, loading states
+- **Persistent storage**: Optimized GLBs moved from temp to permanent storage with metadata (original size, optimized size, savings percent)
+- **Gallery toggle button**: Added to CharacterLabHeader action bar to show/hide gallery in right column
+
+2025-10-11: CharacterLab Google Model Viewer integration, Zustand state management, GLB optimization
+- 3D Viewer: Integrated @google/model-viewer (installed with --legacy-peer-deps due to Three.js peer dependency) for interactive 3D preview of rigged characters with auto-rotate, camera controls, and AR support.
+- React wrapper: Created ModelViewer.jsx component wrapping model-viewer web component with React-friendly props, loading states, error handling, and animation support.
+- State management: Created riggingTasksSlice.js with complete task lifecycle management (add, update, remove, polling, submit); integrated into global store.js for app-wide task state.
+- Task polling: Implemented automatic 5-second polling for pending/in-progress tasks; starts on first submission, stops when all tasks complete or component unmounts.
+- Sidebar interactivity: Tasks are now clickable to preview in 3D viewer; added Download FBX, View in 3D, and Remove task buttons with proper event handling.
+- Visual feedback: Added .selected state to task cards with accent border and highlight; added rotating animation for in-progress status icons; error states with red styling.
+- Backend optimization: Enhanced /api/rigging/download-glb endpoint to check for cached optimized GLB, apply gltf-transform optimization pipeline (50-80% size reduction), and gracefully fallback to original on failure.
+- Header actions: Wired Refresh Tasks button to pollAllTasks() for manual task status updates; New Upload scrolls to upload zone.
+- CSS enhancements: Added model-viewer-container styles, rotating keyframe animation, error state styling, task-action-remove danger hover state, and responsive model info bar.
+
+2025-10-11: CharacterLab micro-app for 3D character rigging with Meshy AI API
+- New micro-app: Created CharacterLab following the _template pattern with index.jsx, CharacterLab.jsx (main component), CharacterLabSidebar.jsx (rigging queue), character-lab.css (design system tokens), and CharacterLab.stories.jsx for Storybook.
+- Backend integration: Added /api/rigging routes (submit, status, tasks, webhook, download) in server/routes/rigging.js; mounted in apiRouter.js; implemented secure proxy pattern to protect MESHY_API_KEY.
+- File upload: Integrated multer for .glb file uploads with 100MB limit; converts to base64 for Meshy API submission.
+- Routing: Registered characterlab routes in main.jsx with lazy loading; added to APP_ID_TO_SLUG and APP_ROUTE_MAP in routes.js.
+- Navigation: Added CharacterLab to AppSwitcher.jsx, appHomeContent.js (with icon, title, description, tips), and prefetch.js for bundle preloading.
+- Environment: Added MESHY_API_KEY configuration to .env.example with test mode key documentation; installed multer dependency.
+- UI features: Drag-and-drop upload zone, character height configuration, task status tracking, progress indicators, download actions for completed rigs.
+
 2025-10-11: GestureLab canvas fill, gestures, mirrored overlay, example toggles
 - Whiteboard layout: Drawing canvas now fills the available space in the middle column; controls moved into the Panel footer (palette, brush sizes, eraser, save/upload/gallery).
 - Gesture drawing: Implemented normalized pinch detection for consistent drawing across sizes; stabilized stroke continuity using a ref; eraser buttons switch to eraser mode (Open Palm) and pinch erases.

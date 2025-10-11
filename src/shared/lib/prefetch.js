@@ -11,6 +11,7 @@ export function prefetchApp(app) {
     case 'gesturelab': import('@apps/gestureLab/index.jsx'); break;
     case 'workflows': import('@apps/workflows/index.jsx'); break;
     case 'kanban': import('@apps/kanban/index.jsx'); break;
+    case 'characterlab': import('@apps/characterLab/index.jsx'); break;
     default: break;
   }
 }

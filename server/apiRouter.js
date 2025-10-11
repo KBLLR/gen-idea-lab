@@ -14,6 +14,8 @@ import createModulesRouter from './routes/modules.js';
 import createWorkflowDocsRouter from './routes/workflowDocs.js';
 import createOAuthRouter from './oauth/index.js';
 import createProxyRouter from './routes/proxy.js';
+import createRiggingRouter from './routes/rigging.js';
+import createDriveImportRouter from './routes/driveImport.js';
 
 // API router composer. Builds and returns an Express Router with all feature routers mounted.
 // Dependencies are injected for full DI: getUserConnections, geminiBootstrap, getDb
@@ -77,6 +79,12 @@ export default function createApiRouter({ getUserConnections, geminiBootstrap, g
 
   // Workflow docs
   router.use('/', createWorkflowDocsRouter());
+
+  // Character rigging (Meshy AI integration)
+  router.use('/', createRiggingRouter());
+
+  // Google Drive import with optimization
+  router.use('/', createDriveImportRouter({ getUserConnections }));
 
   return router;
 }

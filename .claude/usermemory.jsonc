@@ -1,0 +1,239 @@
+// GenGems – User Memory Profile (for assistants & tools)
+// Format: JSONC (JSON with comments). Keep concise, source of truth for preferences.
+// Last updated: 2025-10-11
+{
+  "identity": {
+    "preferred_names": ["David", "Lalo", "Dave", "KBLLR", "Caballero"],
+    "role": "Software Engineering / HCI Design (technical artist & researcher)",
+    "timezone": "Europe/Berlin",
+    "languages": ["English", "Spanish", "German"],
+    "location_note": "Primarily in Germany; origins in Spain; US-influenced mindset",
+  },
+
+  "communication": {
+    "tone": {
+      "style": "casual, direct, witty, transparent, process-oriented",
+      "emoji_rule": {
+        "normal_or_serious": "use 🗿",
+        "silly_or_joking": "use 🪨",
+      },
+      "principles": [
+        "Socratic prompts welcome—challenge assumptions",
+        "Short when troubleshooting; structured when architecting",
+        "Acknowledge uncertainty; expose reasoning and confidence",
+      ],
+    },
+    "writing_rules": {
+      "david_style_questions": [
+        "What is the problem?",
+        "What is the solution?",
+        "What is your intention?",
+        "What are you willing to risk?",
+      ],
+      "multilingual_preference": "comfortable code-switching EN/ES/DE",
+      "lyrics_rule": "avoid cliché rhymes; keep unique imagery",
+    },
+    "response_preferences": {
+      "transparency_first": true,
+      "citations_when_possible": true,
+      "render_ui_in_responses": [
+        "MCP/agents UI sketches and component code when relevant",
+        "agent workflow diagrams or code (React/vanilla) when helpful",
+        "use canvas for long code prototypes",
+      ],
+    },
+  },
+
+  "dev_stack": {
+    "front_end": {
+      "framework_preference": "Vite + Vanilla JS first; React used when appropriate",
+      "libs": ["Three.js", "Tweakpane 4.x"],
+      "versions_note": "As of 2025: Vite 6, Three.js r177, Tweakpane 4.x",
+      "arch": "monorepo with apps/, shared/, backend/, services/",
+      "aliases": {
+        "shared": "@shared/* -> shared/",
+        "styles": "@shared-styles/ -> shared/design-system/",
+        "services": "@shared-services/ -> shared/services/*",
+      },
+      "design_system": "CSS tokens + roles; components consume roles (not raw palette)",
+    },
+    "back_end": {
+      "gateway": "Fastify at /backend (API + WS, proxy /api, /ws)",
+      "services": "per-gem optional services (Whisper, FFmpeg, GPU/Metal)",
+      "ports": { "gateway": 5000, "services_base": 5100, "apps_base": 5170 },
+    },
+    "platform": {
+      "machine": "MacBook Pro M3 Max (36GB)",
+      "acceleration": ["Metal/MPS", "CoreML", "Metal 3", "WebGPU"],
+      "avoid": ["Conda", "non-native abstractions"],
+      "shell_pref": "Zsh; prefers scaffolding scripts",
+    },
+    "runtimes_and_tools": {
+      "adopted": [
+        "Node.js",
+        "pnpm/yarn",
+        "Ollama (local models)",
+        "OpenAI API",
+        "Google Gemini API",
+      ],
+      "not_adopted": ["Deno", "Bun"],
+      "pipelines": [
+        "WebSockets for real-time",
+        "Hume EVI (emotion) integration",
+        "MediaPipe Face/Hands/Holistic (self-hosted assets)",
+        "Storybook for components (ongoing expansion)",
+      ],
+    },
+  },
+
+  "workflow": {
+    "principles": [
+      "Modularity, clarity, cognitive alignment",
+      "Thin apps; move reusable code to shared/",
+      "Document decisions; versioned thinking",
+      "Prefer real data integrations (e.g., Home Assistant) over simulation",
+    ],
+    "factory": {
+      "scripts": ["scripts/new_gem.zsh", "scripts/new_service.zsh"],
+      "defaults": {
+        "vite": "tsconfig-paths; fs.allow ['..']; proxy /api,/ws -> :5000",
+        "aliases_source": "root tsconfig.json",
+      },
+    },
+    "permissions": {
+      "policy": "least privilege; explicit allow lists; deny destructive ops",
+      "exec_limits": { "timeout_ms": 20000, "rate_limit_per_min": 20 },
+    },
+    "automation_style": [
+      "multi-agent daily standups; supervisor/reflector agents",
+      "orchestrator with GlassDock; context sharing across micro-apps",
+      "agents can draft, test, and report; user-in-the-loop approvals",
+    ],
+  },
+
+  "design_preferences": {
+    "themes": { "default": "dark", "light_toggle": true },
+    "color_roles": [
+      "--color-bg",
+      "--color-surface",
+      "--color-surface-border",
+      "--color-text-primary",
+      "--color-text-secondary",
+      "--color-accent",
+    ],
+    "layout": "bento/grid with panel shell; layout tokens single-sourced",
+    "a11y": [
+      "prefers-reduced-motion guards",
+      "WCAG AA contrast",
+      "visible keyboard focus via --focus-ring",
+    ],
+    "ui_styles": [
+      "glassy (glassmorphism) surfaces",
+      "Memphis/Bauhaus glitch influences when appropriate",
+      "toolbar + floating modals; draggable panels",
+      "icons: Streamline Sharp Solid / Tabler (per project)",
+    ],
+  },
+  "research_interests": {
+    "core": [
+      "HCI and interaction design",
+      "AI-assisted creation and learning systems",
+      "multimodal UX (voice, vision, gesture)",
+    ],
+    "adjacent": [
+      "psychology and behavioral sciences",
+      "spirituality & intuition (as design lenses)",
+      "embodied cognition",
+      "neuro-symbolic models",
+      "multi-agent orchestration workflows",
+    ],
+    "practices": [
+      "process-oriented experimentation",
+      "Socratic critique and reflective design",
+      "documentation for reproducibility",
+    ],
+  },
+
+  "ai_agents_and_orchestration": {
+    "architecture": [
+      "Orchestrator (ADA) with micro-apps (GenGems)",
+      "manager + manifest pattern; PaneManager for UI",
+      "agents per API (Whisper, TTS, ASR, Vision); supervisor agent for reflection",
+    ],
+    "ui_preferences": [
+      "render MCP/agent UI elements in assistant responses when useful",
+      "agent workflow canvases, state diagrams, and React/vanilla components",
+      "glass dock overlays; terminal-like panels with logs",
+    ],
+    "runtime": [
+      "local + cloud LLM mix (Ollama + OpenAI/Gemini)",
+      "WS-first; fallback REST polling; token auth, reconnection, state subscriptions",
+    ],
+  },
+
+  "projects_active_examples": {
+    "GenGems_suite": [
+      "gen_avatar / debate arena",
+      "gen_idea-lab (mindmaps, MCP integrations)",
+      "gestureLab, empathyLab, workflows, calendarAI",
+      "Smart Campus (3D agents + Home Assistant)",
+    ],
+    "creative": [
+      "Monkey Business (music, character-based)",
+      "Project Anja (narrative/avatars)",
+      "Brutalist developer blog",
+      "Monkey Radio",
+    ],
+    "knowledge_management": [
+      "Archiva / Curator; 2200-paper knowledge_base.json",
+      "goal: link repos ↔ papers; structured prompts & CSV/MD exports",
+    ],
+  },
+
+  "music_creative": {
+    "interests": [
+      "AI-assisted music",
+      "character-based lyrics",
+      "afro/house/ballroom influences",
+    ],
+    "rules": [
+      "keep it raw when requested",
+      "no generic filler",
+      "platform-aware copy",
+    ],
+  },
+
+  "smart_campus_project": {
+    "notes": [
+      "3D floor plan with room agents; live sensors preferred",
+      "glassy toolbar; label system; Ready Player Me avatars",
+      "PaneManager + Manager+Manifest architecture",
+      "shift to abstract room blocks sized/colored by data",
+    ],
+  },
+
+  "code_style": {
+    "vanilla_first": true,
+    "react_usage": "selective; prefers clean componentization and Storybook",
+    "class_based_ui_modules": true,
+    "testing_and_docs": [
+      "expand Storybook coverage",
+      "CLAUDE.md / README scaffolds",
+      "architecture docs",
+    ],
+  },
+
+  "memory_hygiene": {
+    "do_store": [
+      "long-lived prefs (stack, aliases, style)",
+      "architecture decisions and active projects",
+      "reusable prompts, command scripts, scaffolds",
+    ],
+    "do_not_store": [
+      "sensitive personal data",
+      "short-lived tokens/keys",
+      "speculative/transient info without confirmation",
+    ],
+    "update_protocol": "Ask before persisting new personal info; summarize changes",
+  },
+}

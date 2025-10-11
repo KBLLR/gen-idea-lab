@@ -16,6 +16,7 @@ import tasksSlice from './tasksSlice.js'
 import { createAuthSlice } from '@shared/state/authSlice.js'
 import { createServiceConnectionSlice } from '@shared/state/serviceConnectionSlice.js'
 import { createAppSwitchingSlice } from '@shared/state/appSwitchingSlice.js'
+import { createRiggingTasksSlice } from '@shared/state/riggingTasksSlice.js'
 
 const IMAGE_PROVIDER_PRIORITY = ['gemini', 'openai', 'drawthings']
 
@@ -56,6 +57,7 @@ const storeImpl = (set, get) => ({
   ...createAuthSlice(set, get),
   ...createServiceConnectionSlice(set, get),
   ...createAppSwitchingSlice(set, get),
+  ...createRiggingTasksSlice(set, get),
 
   didInit: false,
   isWelcomeScreenOpen: true,

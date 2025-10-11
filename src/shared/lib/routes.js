@@ -10,6 +10,7 @@ export const APP_ID_TO_SLUG = {
   workflows: 'workflows',
   chat: 'chat',
   kanban: 'kanban',
+  characterlab: 'characterlab',
 };
 
 // Back-compat map (camel-case appIds used in parts of the app) → path
@@ -24,6 +25,7 @@ export const APP_ROUTE_MAP = {
   workflows: '/workflows',
   chat: '/chat',
   kanban: '/kanban',
+  characterLab: '/characterlab',
 };
 
 export function getAppPath(appId, subpath = '') {
