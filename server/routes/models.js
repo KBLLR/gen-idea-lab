@@ -7,7 +7,9 @@ export default function createModelsRouter({ getUserConnections }) {
 
   // Rate limiting and caching for Ollama discovery spam
   const modelCache = new Map();
+  const ollamaLogCache = new Map();
   const CACHE_TTL_MS = 5000; // Cache for 5 seconds
+  const LOG_THROTTLE_MS = 60000; // Only log Ollama discovery once per minute unless model count changes
 
   // Available models across providers
   router.get('/models', requireAuth, async (req, res) => {
@@ -60,7 +62,17 @@ export default function createModelsRouter({ getUserConnections }) {
             .filter(n => isTextish(n))
             .map(n => ({ id: n, name: n.split(':')[0] || n, provider: 'Ollama', category: 'text', available: true }));
           availableModels.push(...ollamaModels);
-          logger.info(`Discovered ${ollamaModels.length} Ollama models at ${ollamaUrl}`);
+          const logKey = ollamaUrl;
+          const lastLog = ollamaLogCache.get(logKey);
+          const now = Date.now();
+          const shouldLog = !lastLog
+            || lastLog.count !== ollamaModels.length
+            || (now - lastLog.timestamp) > LOG_THROTTLE_MS;
+
+          if (shouldLog) {
+            logger.info(`Discovered ${ollamaModels.length} Ollama models at ${ollamaUrl}`);
+            ollamaLogCache.set(logKey, { count: ollamaModels.length, timestamp: now });
+          }
         }
       } catch (e) {
         logger.debug('Ollama not available:', e.message);

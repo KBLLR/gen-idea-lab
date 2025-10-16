@@ -342,3 +342,4 @@
 2025-10-06: Server modularization: extracted auth, university, services, and image routes into separate files in `server/routes` directory. Created `server/config/env.js` for URL and environment helpers.
 
 2025-10-16: Added supplemental webfonts and typography tokens so Pilowlava, Henke, Flowa, Pirulen, and Roboto assets are available via `tokens.css`.
+2025-10-16: Throttled Ollama discovery logging to prevent repeated info spam when polling `/models`.
