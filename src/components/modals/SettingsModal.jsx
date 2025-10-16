@@ -921,17 +921,16 @@ export default function SettingsModal({ isOpen: controlledIsOpen, onClose }) {
     const isSettingsOpen = (typeof controlledIsOpen === 'boolean') ? controlledIsOpen : storeIsOpen;
     const user = useStore.use.user();
     const setIsSettingsOpen = useStore((state) => state.actions.setIsSettingsOpen);
-    const fetchConnectedServices = useStore((state) => state.actions.fetchConnectedServices);
-    const fetchServiceConfig = useStore((state) => state.actions.fetchServiceConfig);
     const [showHumeTest, setShowHumeTest] = useState(false);
     const [activeService, setActiveService] = useState(null);
 
     useEffect(() => {
         if (isSettingsOpen) {
-            fetchConnectedServices();
-            fetchServiceConfig();
+            const { fetchConnectedServices, fetchServiceConfig } = useStore.getState().actions ?? {};
+            fetchConnectedServices?.();
+            fetchServiceConfig?.();
         }
-    }, [isSettingsOpen, fetchConnectedServices, fetchServiceConfig]);
+    }, [isSettingsOpen]);
 
     if (!isSettingsOpen) return null;
 

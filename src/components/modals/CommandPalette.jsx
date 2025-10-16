@@ -23,11 +23,16 @@ export default function CommandPalette({ isOpen, onClose }) {
   const setActiveApp = useStore(state => state.actions.setActiveApp);
   const setIsLiveVoiceChatOpen = useStore(state => state.actions.setIsLiveVoiceChatOpen);
 
-  // Dev-only: render trace
-  if (typeof __DEV__ !== 'undefined' && __DEV__) {
-    // eslint-disable-next-line no-console
-    console.debug('[CommandPalette] Rendered with isOpen:', isOpen);
-  }
+  // Dev-only: log when open state toggles (avoid per-render spam)
+  const lastIsOpenRef = useRef(isOpen);
+  useEffect(() => {
+    if (typeof __DEV__ === 'undefined' || !__DEV__) return;
+    if (lastIsOpenRef.current !== isOpen) {
+      // eslint-disable-next-line no-console
+      console.debug('[CommandPalette] isOpen changed:', isOpen);
+      lastIsOpenRef.current = isOpen;
+    }
+  }, [isOpen]);
 
   // Memoize commands array to prevent infinite re-renders
   // Only depend on values that actually change (not functions which should be stable)

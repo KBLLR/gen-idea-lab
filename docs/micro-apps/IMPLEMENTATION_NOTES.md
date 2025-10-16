@@ -90,4 +90,4 @@ This document summarizes recent changes to ArchivAI and VizGen (Image Booth), th
 - Added manual `@font-face` registrations for experimental display families (Pilowlava, Henke, Flowa, Pirulen, Roboto weights) in `src/styles/tokens/tokens.css`.
 - Introduced new typography tokens (`--typography-font-family-display`, `headline`, `atmosphere`, `tech`) so feature teams can reference the fonts via design tokens while the pipeline is updated to ingest font assets.
 - Fonts are currently served from `/public/fonts`; once the tokens build supports asset bundling these declarations should move into the generated output.
-- Throttled Ollama discovery logging in `server/routes/models.js` so `/models` polling no longer floods logs with duplicate “Discovered X Ollama models” messages (logs only when counts change or once per minute).
+- Throttled Ollama discovery logging in `server/routes/models.js` so `/models` polling no longer floods logs with duplicate “Discovered X Ollama models” messages (logs only when counts change or once per minute) and adjusted `SettingsModal` to fetch service metadata once per open to avoid hammering the endpoint.
