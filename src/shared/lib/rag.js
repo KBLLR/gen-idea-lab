@@ -33,6 +33,13 @@ export async function upsertModuleChunks(moduleId, chunks, { embeddingModel } = 
     credentials: 'include',
     body: JSON.stringify(payload)
   });
+
+  // Check if response is JSON before parsing
+  const contentType = resp.headers.get('content-type');
+  if (!contentType || !contentType.includes('application/json')) {
+    throw new Error(`RAG endpoint not available (got ${contentType || 'HTML'})`);
+  }
+
   const json = await resp.json();
   if (!resp.ok) throw new Error(json.error || 'RAG upsert failed');
   return json;
@@ -45,6 +52,13 @@ export async function queryModule(moduleId, query, { topK = 4, embeddingModel } 
     credentials: 'include',
     body: JSON.stringify({ moduleId, query, topK, embeddingModel })
   });
+
+  // Check if response is JSON before parsing
+  const contentType = resp.headers.get('content-type');
+  if (!contentType || !contentType.includes('application/json')) {
+    throw new Error(`RAG endpoint not available (got ${contentType || 'HTML'})`);
+  }
+
   const json = await resp.json();
   if (!resp.ok) throw new Error(json.error || 'RAG query failed');
   return json.results || [];

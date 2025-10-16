@@ -5,8 +5,21 @@ import { requireAuth } from '../../src/shared/lib/auth.js';
 export default function createModelsRouter({ getUserConnections }) {
   const router = express.Router();
 
+  // Rate limiting and caching for Ollama discovery spam
+  const modelCache = new Map();
+  const CACHE_TTL_MS = 5000; // Cache for 5 seconds
+
   // Available models across providers
   router.get('/models', requireAuth, async (req, res) => {
+    // Check cache per user
+    const userKey = req.user?.email || 'anonymous';
+    const now = Date.now();
+    const cached = modelCache.get(userKey);
+
+    // Return cached response if still valid
+    if (cached && (now - cached.timestamp) < CACHE_TTL_MS) {
+      return res.json({ models: cached.models });
+    }
     try {
       const connections = getUserConnections(req.user.email);
       const availableModels = [];
@@ -99,6 +112,12 @@ export default function createModelsRouter({ getUserConnections }) {
       }
       if (connections.midjourney?.apiKey) availableModels.push({ id: 'midjourney-v6', name: 'Midjourney v6', provider: 'Midjourney', category: 'image', available: true });
       if (connections.runway?.apiKey) availableModels.push({ id: 'runway-gen3', name: 'Runway Gen-3', provider: 'Runway ML', category: 'video', available: true });
+
+      // Cache the response to prevent spam
+      modelCache.set(userKey, {
+        models: availableModels,
+        timestamp: Date.now()
+      });
 
       res.json({ models: availableModels });
     } catch (error) {

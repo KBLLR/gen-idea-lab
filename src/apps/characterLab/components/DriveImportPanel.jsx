@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import useStore from '@store';
 
 /**
  * DriveImportPanel - Lists GLB files from Google Drive and imports them with real-time optimization progress
@@ -10,6 +11,11 @@ export default function DriveImportPanel({ onImportComplete }) {
   const [error, setError] = useState(null);
   const [importingFileId, setImportingFileId] = useState(null);
   const [importProgress, setImportProgress] = useState(null);
+
+  // Check if Google Drive is connected
+  const connectedServices = useStore((s) => s.connectedServices);
+  const isDriveConnected = connectedServices?.googleDrive?.connected || false;
+  const connectService = useStore((s) => s.actions?.connectService);
 
   // Fetch available models from Drive
   const fetchDriveModels = async () => {
@@ -36,8 +42,13 @@ export default function DriveImportPanel({ onImportComplete }) {
   };
 
   useEffect(() => {
+    if (!isDriveConnected) {
+      setIsLoading(false);
+      setError('Google Drive not connected. Please connect your Drive account first.');
+      return;
+    }
     fetchDriveModels();
-  }, []);
+  }, [isDriveConnected]);
 
   // Import a model from Drive with SSE progress streaming
   const handleImport = async (fileId, fileName) => {
@@ -127,15 +138,34 @@ export default function DriveImportPanel({ onImportComplete }) {
   }
 
   if (error && !importingFileId) {
+    const handleConnectDrive = async () => {
+      try {
+        await connectService('googleDrive');
+        // Connection state will update automatically via store, triggering a refetch
+      } catch (err) {
+        console.error('Failed to connect Google Drive:', err);
+        setError('Failed to connect. Please try again or check settings.');
+      }
+    };
+
     return (
       <div className="drive-import-panel">
         <div className="drive-error">
           <span className="material-icons-round">error</span>
           <p>{error}</p>
-          <button onClick={fetchDriveModels} className="retry-button">
-            <span className="material-icons-round">refresh</span>
-            Retry
-          </button>
+          <div style={{ display: 'flex', gap: '8px', marginTop: '12px' }}>
+            {!isDriveConnected ? (
+              <button onClick={handleConnectDrive} className="retry-button">
+                <span className="material-icons-round">link</span>
+                Connect Drive
+              </button>
+            ) : (
+              <button onClick={fetchDriveModels} className="retry-button">
+                <span className="material-icons-round">refresh</span>
+                Retry
+              </button>
+            )}
+          </div>
         </div>
       </div>
     );

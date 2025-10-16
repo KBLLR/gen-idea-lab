@@ -1,8 +1,11 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { SidebarItemCard } from '@ui';
 import useStore from '@store';
+import DriveImportPanel from './DriveImportPanel';
 
 export default function CharacterLabSidebar() {
+  const [activeTab, setActiveTab] = useState('queue'); // 'queue' or 'drive'
+
   // Connect to store
   const tasks = useStore.use.riggingTasks();
   const selectedTaskId = useStore.use.selectedTaskId();
@@ -67,14 +70,41 @@ export default function CharacterLabSidebar() {
     }
   };
 
+  const handleDriveImportComplete = (data) => {
+    // Optionally switch to queue tab to see the new model
+    console.log('Import complete:', data);
+  };
+
   return (
     <div className="character-lab-sidebar">
-      <div className="sidebar-header">
-        <h3>Rigging Queue</h3>
-        <span className="task-count">{tasks.length}</span>
+      {/* Sidebar Tabs */}
+      <div className="sidebar-tabs">
+        <button
+          className={`sidebar-tab ${activeTab === 'queue' ? 'active' : ''}`}
+          onClick={() => setActiveTab('queue')}
+        >
+          <span className="material-icons-round">format_list_bulleted</span>
+          <span>Queue</span>
+          {tasks.length > 0 && <span className="tab-badge">{tasks.length}</span>}
+        </button>
+        <button
+          className={`sidebar-tab ${activeTab === 'drive' ? 'active' : ''}`}
+          onClick={() => setActiveTab('drive')}
+        >
+          <span className="material-icons-round">cloud_download</span>
+          <span>Drive Import</span>
+        </button>
       </div>
 
-      <div className="task-list">
+      {/* Rigging Queue Tab */}
+      {activeTab === 'queue' && (
+        <>
+          <div className="sidebar-header">
+            <h3>Rigging Queue</h3>
+            <span className="task-count">{tasks.length}</span>
+          </div>
+
+          <div className="task-list">
         {tasks.length === 0 ? (
           <div className="empty-state">
             <span className="material-icons-round">inbox</span>
@@ -151,7 +181,14 @@ export default function CharacterLabSidebar() {
             </div>
           ))
         )}
-      </div>
+          </div>
+        </>
+      )}
+
+      {/* Drive Import Tab */}
+      {activeTab === 'drive' && (
+        <DriveImportPanel onImportComplete={handleDriveImportComplete} />
+      )}
     </div>
   );
 }

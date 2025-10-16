@@ -1,5 +1,46 @@
 # Changelog
 
+2025-10-16: Dashboard UX, Markmap rendering fix, and RAG error handling improvements
+- **Logout button**: Added logout button to user info card in Dashboard header with red hover state for clear UX
+- **Component extraction**: Extracted UserInfoCard into separate component at `src/apps/home/components/UserInfoCard.jsx` for better modularity
+- **Width consistency**: Set UserInfoCard width to 380px to match sidebar width for visual balance
+- **Markmap race condition fix**: Fixed initialization race condition in MarkmapViewer where content would arrive before markmap finished loading, causing blank renders
+- **RAG error handling**: Added content-type check before JSON parsing to show clear "RAG endpoint not available" error instead of cryptic JSON parse errors
+- **@ mentions logging**: Changed @ mentions detection to use console.debug and simplified output format for cleaner logs
+- **Ollama discovery spam fix**: Fixed infinite re-fetching by removing `connectedServices` from useEffect dependencies in correct hook file
+- **Rate limit handling**: Replaced rate limiting with 5-second server-side caching to prevent "Too Many Requests" errors
+- **Rigging file size optimization**: Added smart submission using public URLs for files >30MB to avoid Data URI base64 overhead
+- **CalendarAI error handling**: Added graceful handling for corrupted localStorage data and 401/400 API responses
+
+2025-10-12: OAuth scope fixes and comprehensive setup documentation
+- **Figma scope fix**: Changed Figma OAuth scope from `files:read` to `file_read` (correct format with underscore)
+- **OAuth setup guide**: Created comprehensive documentation at `docs/OAUTH_SETUP.md` with step-by-step instructions for GitHub, Notion, Figma, and Google services
+- **Configuration help**: Guide includes common errors, debugging steps, redirect URI requirements, and environment variable setup
+- **Production notes**: Added deployment checklist and security best practices
+
+2025-10-12: Service connection fixes with proper OAuth redirects and error handling
+- **OAuth redirect fix**: Changed callback redirect parameter from `service` to `connected` to match Dashboard expectations
+- **Error handling**: Added comprehensive error toast notifications for OAuth failures (oauth_error, missing_params, invalid_state, token_exchange, callback_error)
+- **Service name formatting**: Improved service name display formatting (e.g., googleDrive → Google Drive) in toast messages
+- **Error parameter**: Changed error redirects to use `errorService` parameter to avoid conflicts with success flow
+- **User feedback**: All connection errors now show user-friendly toast messages with 7-second duration for better visibility
+- **Toast z-index fix**: Increased toast container z-index to 999999 to ensure toasts appear above all UI elements
+- **Real-time status updates**: Dashboard now calls fetchConnectedServices() after OAuth success to immediately refresh ServiceStatusWidget and AppCard states
+- **Reactive UI**: All service-dependent components (ServiceStatusWidget, AppCard) automatically update when connection state changes via Zustand reactivity
+
+2025-10-12: Production-ready Dashboard with app launcher, service status, and toast notifications
+- **Dashboard home page**: Complete production-ready Dashboard at root `/` with personalized greeting, app launcher grid, category filtering, and service overview sidebar
+- **App manifests**: Centralized metadata for all 11 micro-apps (idealab, imagebooth, calendarai, empathylab, gesturelab, planner, archiva, workflows, chat, kanban, characterlab) with services, features, categories, icons, colors, and status
+- **Service integration**: ServiceStatusWidget shows connection status with progress bar, service icons (react-icons), and quick access to Settings; AppCard components disable apps when required services are missing
+- **Toast notification system**: Global toast system with Toast, ToastContainer components integrated into Zustand store; supports success, error, warning, info types with auto-dismiss, animations, and glassmorphism design
+- **OAuth feedback**: Dashboard detects OAuth success redirect params and shows toast notification confirming service connection (e.g., "GoogleDrive connected successfully!")
+- **Login redirect**: Users now land on Dashboard (`/`) after successful authentication instead of staying on previous URL
+- **Dashboard navigation**: Added home button to UserBar footer for quick navigation back to Dashboard from any micro-app
+- **Clean Dashboard layout**: AppSwitcher and UserBar are hidden on Dashboard page to provide a full-screen, distraction-free landing experience
+- **Routing updates**: Changed root route from redirect to Dashboard component; updated getAppIdFromPath to recognize 'home' app; added home routes to APP_ID_TO_SLUG and APP_ROUTE_MAP
+- **Responsive design**: Two-column layout (app grid + sidebar) with mobile breakpoints; category filter buttons; quick stats showing app counts; quick links to common actions
+- **Glassmorphism styles**: 800+ lines of production-ready CSS using design system tokens (--space-*, --color-*, --radius-*) with backdrop-filter, smooth transitions, hover effects, and accessibility features
+
 2025-10-11: CharacterLab Google Drive import with real-time optimization progress
 - **Drive import endpoint**: `/api/drive/models` lists GLB files from specific folder (16MZ6twRIR6-wFcHmy8ZdU8Fikk5X9D5J); `/api/drive/import/:fileId` downloads and optimizes with Server-Sent Events progress streaming
 - **Enhanced optimization**: 11-step gltf-transform pipeline (dedup, instance, palette, flatten, join, weld, simplify with meshoptimizer, resample, prune, sparse, textureCompress to WebP) achieves 70-90% size reduction

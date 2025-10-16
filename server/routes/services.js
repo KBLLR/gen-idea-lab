@@ -38,7 +38,7 @@ export default function createServicesRouter({ getUserConnections }) {
       },
       figma: {
         clientId: process.env.FIGMA_CLIENT_ID,
-        scope: 'files:read',
+        scope: 'file_read',
         authUrl: 'https://www.figma.com/oauth'
       },
       googleDrive: {
@@ -115,7 +115,7 @@ export default function createServicesRouter({ getUserConnections }) {
 
     let authUrl;
     if (service.startsWith('google') || service === 'gmail') {
-      authUrl = `${config.authUrl}?client_id=${config.clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=${encodeURIComponent(config.scope)}&response_type=code&state=${encodeURIComponent(state)}&access_type=offline&prompt=consent`;
+      authUrl = `${config.authUrl}?client_id=${config.clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=${encodeURIComponent(config.scope)}&response_type=code&state=${encodeURIComponent(state)}&access_type=offline&prompt=select_account consent`;
     } else if (service === 'github') {
       authUrl = `${config.authUrl}?client_id=${config.clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=${encodeURIComponent(config.scope)}&state=${encodeURIComponent(state)}`;
     } else if (service === 'notion') {
@@ -131,20 +131,39 @@ export default function createServicesRouter({ getUserConnections }) {
     const { service } = req.params;
     const { code, state, error } = req.query;
 
+    const sendError = (errorType, errorMessage) => {
+      res.send(`
+        <!DOCTYPE html>
+        <html>
+        <head><title>OAuth Error</title></head>
+        <body>
+          <script>
+            if (window.opener) {
+              window.opener.postMessage({
+                type: 'OAUTH_ERROR',
+                error: '${errorMessage || errorType}'
+              }, window.location.origin);
+              setTimeout(() => window.close(), 1000);
+            } else {
+              window.location.href = '/?error=${errorType}&errorService=${service}';
+            }
+          </script>
+        </body>
+        </html>
+      `);
+    };
+
     if (error) {
-      const front = getFrontendBaseUrl(req);
-      return res.redirect(`${front}/?error=oauth_error&service=${service}`);
+      return sendError('oauth_error', error);
     }
 
     if (!code || !state) {
-      const front = getFrontendBaseUrl(req);
-      return res.redirect(`${front}/?error=missing_params&service=${service}`);
+      return sendError('missing_params', 'Missing authorization code or state');
     }
 
     const [userEmail] = state.split(':');
     if (!userEmail) {
-      const front = getFrontendBaseUrl(req);
-      return res.redirect(`${front}/?error=invalid_state&service=${service}`);
+      return sendError('invalid_state', 'Invalid state parameter');
     }
 
     try {
@@ -183,8 +202,7 @@ export default function createServicesRouter({ getUserConnections }) {
         if (!response.ok) {
           const text = await response.text();
           logger.error('Notion token exchange failed', { status: response.status, text });
-          const front = getFrontendBaseUrl(req);
-          return res.redirect(`${front}/?error=token_exchange&service=${service}`);
+          return sendError('token_exchange', `Notion token exchange failed: ${response.status}`);
         }
         tokenResponse = await response.json();
       } else if (service === 'figma') {
@@ -221,8 +239,7 @@ export default function createServicesRouter({ getUserConnections }) {
 
       if (tokenResponse.error) {
         logger.error(`OAuth error for ${service}:`, tokenResponse.error);
-        const front = getFrontendBaseUrl(req);
-        return res.redirect(`${front}/?error=token_exchange&service=${service}`);
+        return sendError('token_exchange', tokenResponse.error_description || tokenResponse.error);
       }
 
       await tokenStore.upsertOAuthToken(userEmail, service, {
@@ -234,13 +251,65 @@ export default function createServicesRouter({ getUserConnections }) {
       });
 
       logger.info(`Successfully connected ${service} for user ${userEmail}`);
-      const front = getFrontendBaseUrl(req);
-      res.redirect(`${front}/?success=connected&service=${service}`);
+
+      // Send postMessage for popup-based OAuth flow
+      res.send(`
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <title>OAuth Success</title>
+          <style>
+            body {
+              font-family: system-ui, -apple-system, sans-serif;
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              height: 100vh;
+              margin: 0;
+              background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+              color: white;
+            }
+            .container {
+              text-align: center;
+            }
+            .icon { font-size: 48px; margin-bottom: 16px; }
+            h1 { margin: 0 0 8px 0; }
+            p { opacity: 0.9; }
+          </style>
+        </head>
+        <body>
+          <div class="container">
+            <div class="icon">✓</div>
+            <h1>Connected Successfully</h1>
+            <p>You can close this window now.</p>
+          </div>
+          <script>
+            // Send success message to opener window
+            if (window.opener) {
+              window.opener.postMessage({
+                type: 'OAUTH_SUCCESS',
+                payload: {
+                  service: '${service}',
+                  connectedAt: new Date().toISOString()
+                }
+              }, window.location.origin);
+
+              // Close popup after a short delay
+              setTimeout(() => window.close(), 1500);
+            } else {
+              // Fallback: redirect to main app
+              setTimeout(() => {
+                window.location.href = '/?success=connected&service=${service}';
+              }, 1500);
+            }
+          </script>
+        </body>
+        </html>
+      `);
 
     } catch (error) {
       logger.error(`Error during ${service} OAuth callback:`, error);
-      const front = getFrontendBaseUrl(req);
-      res.redirect(`${front}/?error=callback_error&service=${service}`);
+      return sendError('callback_error', error.message);
     }
   });
 

@@ -84,7 +84,7 @@ export default function createApiRouter({ getUserConnections, geminiBootstrap, g
   router.use('/', createRiggingRouter());
 
   // Google Drive import with optimization
-  router.use('/', createDriveImportRouter({ getUserConnections }));
+  router.use('/', createDriveImportRouter());
 
   return router;
 }

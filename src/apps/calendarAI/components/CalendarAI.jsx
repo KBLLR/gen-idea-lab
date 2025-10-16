@@ -50,8 +50,14 @@ const CalendarAI = () => {
     try {
       const stored = localStorage.getItem('calendarai.events.v1');
       if (stored) {
-        const parsed = JSON.parse(stored);
-        setEvents(parsed);
+        try {
+          const parsed = JSON.parse(stored);
+          setEvents(parsed);
+        } catch (parseErr) {
+          console.warn('Corrupted CalendarAI events data in localStorage, clearing...', parseErr);
+          localStorage.removeItem('calendarai.events.v1');
+          setEvents([]);
+        }
       }
 
       const storedFit = localStorage.getItem('calendarai.prefs.fit');
@@ -128,7 +134,11 @@ const CalendarAI = () => {
       });
 
       if (!response.ok) {
-        throw new Error('Failed to fetch calendar events');
+        if (response.status === 400 || response.status === 401) {
+          console.warn('[CalendarAI] Google Calendar not connected. Please connect in Settings.');
+          return;
+        }
+        throw new Error(`Failed to fetch calendar events: ${response.statusText}`);
       }
 
       const data = await response.json();
@@ -149,14 +159,17 @@ const CalendarAI = () => {
       }));
 
       // Merge with existing local events (keep non-Google events)
-      const localEvents = events.filter(e => e.source !== 'google-calendar');
-      saveEvents([...localEvents, ...formattedEvents]);
+      // Use functional update to avoid dependency on events
+      saveEvents(currentEvents => {
+        const localEvents = currentEvents.filter(e => e.source !== 'google-calendar');
+        return [...localEvents, ...formattedEvents];
+      });
 
       console.log(`[CalendarAI] Fetched ${formattedEvents.length} events from Google Calendar`);
     } catch (err) {
       console.error('Failed to fetch Google Calendar events:', err);
     }
-  }, [isCalendarConnected, events, saveEvents]);
+  }, [isCalendarConnected, saveEvents]);
 
   useEffect(() => {
     if (isCalendarConnected) {

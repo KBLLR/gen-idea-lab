@@ -60,18 +60,28 @@ const MarkmapViewer = ({ content }) => {
           const markmap = Markmap.create(svg);
           mapRef.current = markmap;
           console.log('[Markmap] Initialized with dimensions:', rect.width, 'x', rect.height);
+
+          // Render existing content immediately after initialization
+          if (content) {
+            console.log('[Markmap] Rendering initial content after initialization');
+            throttledUpdate(content);
+          }
         } catch (error) {
           console.error('[Markmap] Initialization failed:', error);
         }
       }, 100);
     }
     return () => { if (initTimeoutRef.current) clearTimeout(initTimeoutRef.current); };
-  }, []);
+  }, [content, throttledUpdate]);
 
   // Update the mind map when the content changes.
   useEffect(() => {
-    if (content) {
-      try { throttledUpdate(content); } catch (error) { console.error('[Markmap] Update failed:', error); }
+    if (content && mapRef.current && transformerRef.current) {
+      try {
+        throttledUpdate(content);
+      } catch (error) {
+        console.error('[Markmap] Update failed:', error);
+      }
     }
   }, [content, throttledUpdate]);
 

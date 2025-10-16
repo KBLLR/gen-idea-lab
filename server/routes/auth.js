@@ -45,4 +45,45 @@ router.get('/me', optionalAuth, (req, res) => {
   }
 });
 
+// GET /auth/connect/:service - OAuth initiation bridge
+router.get('/connect/:service', optionalAuth, async (req, res) => {
+  const { service } = req.params;
+
+  if (!req.user) {
+    return res.status(401).send('Authentication required');
+  }
+
+  try {
+    // Fetch the OAuth URL from the services API
+    const protocol = req.headers['x-forwarded-proto'] || req.protocol;
+    const host = req.headers['x-forwarded-host'] || req.get('host');
+    const baseUrl = `${protocol}://${host}`;
+
+    const response = await fetch(`${baseUrl}/api/services/${service}/connect`, {
+      method: 'POST',
+      headers: {
+        'Cookie': req.headers.cookie || '',
+        'Content-Type': 'application/json',
+      },
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      return res.status(response.status).send(`Failed to initiate OAuth: ${error.error || 'Unknown error'}`);
+    }
+
+    const data = await response.json();
+
+    if (data.authUrl) {
+      // Redirect to the OAuth provider
+      res.redirect(data.authUrl);
+    } else {
+      res.status(500).send('No auth URL returned');
+    }
+  } catch (error) {
+    logger.error(`Failed to initiate OAuth for ${service}:`, error);
+    res.status(500).send('Failed to initiate OAuth flow');
+  }
+});
+
 export default router;

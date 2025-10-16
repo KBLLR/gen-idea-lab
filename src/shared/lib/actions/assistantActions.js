@@ -164,7 +164,7 @@ export const sendAssistantMessage = async (content) => {
 
   console.log(`[Assistant] Message: "${content.substring(0, 50)}"...`);
   if (hasMentions) {
-    console.log(`[Assistant] Detected ${mentions.length} @ mentions:`, mentions);
+    console.debug(`[Assistant] Detected ${mentions.length} @ mentions:`, mentions.map(m => m.name).join(', '));
   }
 
   set(state => {

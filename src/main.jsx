@@ -9,6 +9,7 @@ import App from './components/App.jsx'
 import './index.css'
 import { APP_ID_TO_SLUG } from '@routes'
 
+const Dashboard    = lazy(() => import('./apps/home/index.jsx'))
 const Chat         = lazy(() => import('./apps/chat/index.jsx'))
 const IdeaLab      = lazy(() => import('./apps/ideaLab/index.jsx'))
 const ImageBooth   = lazy(() => import('./apps/imageBooth/index.jsx'))
@@ -33,7 +34,7 @@ const defaultSlug = defaultApp && APP_ID_TO_SLUG[String(defaultApp).toLowerCase(
 const router = createBrowserRouter(
   createRoutesFromElements(
     <Route element={withProviders(<App />)}>
-      <Route index element={defaultSlug ? <Navigate to={`/${defaultSlug}`} replace /> : <Navigate to="/idealab" replace />} />
+      <Route index element={withProviders(<Dashboard />)} />
       <Route path="chat/*"         element={withProviders(<Chat />)} />
       <Route path="idealab/*"      element={withProviders(<IdeaLab />)} />
       <Route path="imagebooth/*"   element={withProviders(<ImageBooth />)} />
@@ -45,7 +46,7 @@ const router = createBrowserRouter(
       <Route path="gesturelab/*"   element={withProviders(<GestureLab />)} />
       <Route path="kanban/*"       element={withProviders(<Kanban />)} />
       <Route path="characterlab/*" element={withProviders(<CharacterLab />)} />
-      <Route path="*" element={<Navigate to="/idealab" replace />} />
+      <Route path="*" element={<Navigate to="/" replace />} />
     </Route>
   )
 )

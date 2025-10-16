@@ -72,6 +72,27 @@ const storeImpl = (set, get) => ({
   theme: 'dark',
   accentTheme: 'azure',
 
+  // Toast notifications
+  toasts: [],
+  addToast: (toast) => set((state) => {
+    const id = toast.id || `toast-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    const newToast = {
+      id,
+      message: toast.message || '',
+      type: toast.type || 'info',
+      duration: toast.duration !== undefined ? toast.duration : 4000,
+    };
+    state.toasts = [...state.toasts, newToast];
+    return id;
+  }),
+  removeToast: (id) => set((state) => {
+    state.toasts = state.toasts.filter(t => t.id !== id);
+  }),
+  showToast: (message, type = 'info', duration = 4000) => {
+    const id = get().addToast({ message, type, duration });
+    return id;
+  },
+
   // Glass Dock state
   dockPosition: { x: 20, y: typeof window !== 'undefined' ? (window.innerHeight - 100) : 20 },
   dockDimensions: { width: 0, height: 0 },
@@ -354,6 +375,11 @@ const storeImpl = (set, get) => ({
 
     // Local UI actions
     setIsSystemInfoOpen: (open) => set((state) => { state.isSystemInfoOpen = open }),
+
+    // Toast notifications
+    addToast: (...args) => get().addToast(...args),
+    removeToast: (...args) => get().removeToast(...args),
+    showToast: (...args) => get().showToast(...args),
 
     // Settings modal proxies
     setIsSettingsOpen: (...args) => get().setIsSettingsOpen(...args),

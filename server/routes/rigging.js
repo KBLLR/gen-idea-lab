@@ -52,19 +52,42 @@ export default function createRiggingRouter() {
       // Get optional parameters
       const characterHeight = parseFloat(req.body.characterHeight) || 1.7;
 
-      // Convert file buffer to base64
-      const base64Model = req.file.buffer.toString('base64');
+      // Choose submission method based on file size
+      // Data URIs increase size by ~33%, so use public URL for files > 30MB
+      const MAX_DATAURI_SIZE = 30 * 1024 * 1024; // 30MB
+      let modelUrl;
 
-      // Call Meshy API
-      const meshyResponse = await fetch('https://api.meshy.ai/v1/auto-rigging', {
+      if (req.file.size > MAX_DATAURI_SIZE) {
+        // Store file temporarily and provide public URL
+        const tempDir = path.join(process.cwd(), 'temp', 'rigging-uploads');
+        await fs.mkdir(tempDir, { recursive: true });
+
+        const tempId = `${Date.now()}_${Math.random().toString(36).slice(2, 11)}`;
+        const tempPath = path.join(tempDir, `${tempId}.glb`);
+        await fs.writeFile(tempPath, req.file.buffer);
+
+        // Get public URL (use environment variable or default to localhost)
+        const baseUrl = process.env.BACKEND_URL || 'http://localhost:8081';
+        modelUrl = `${baseUrl}/api/rigging/temp/${tempId}.glb`;
+
+        logger.info(`File too large for Data URI (${req.file.size} bytes), using public URL: ${modelUrl}`);
+      } else {
+        // Convert file buffer to base64 Data URI
+        const base64Model = req.file.buffer.toString('base64');
+        modelUrl = `data:model/gltf-binary;base64,${base64Model}`;
+        logger.info(`Using Data URI for file (${req.file.size} bytes)`);
+      }
+
+      // Call Meshy API (OpenAPI v1)
+      const meshyResponse = await fetch('https://api.meshy.ai/openapi/v1/rigging', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${meshyApiKey}`,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          base64_model: base64Model,
-          character_height: characterHeight,
+          model_url: modelUrl,
+          height_meters: characterHeight,
         }),
       });
 
@@ -78,20 +101,23 @@ export default function createRiggingRouter() {
 
       const taskData = await meshyResponse.json();
 
+      // Meshy returns { result: "task_id" }
+      const taskId = taskData.result;
+
       // Store task info
-      tasks.set(taskData.id, {
-        id: taskData.id,
-        status: taskData.status,
-        progress: taskData.progress || 0,
+      tasks.set(taskId, {
+        id: taskId,
+        status: 'PENDING',
+        progress: 0,
         modelName: req.file.originalname,
         createdAt: new Date().toISOString(),
       });
 
-      logger.info(`Rigging task submitted: ${taskData.id} for ${req.file.originalname}`);
+      logger.info(`Rigging task submitted: ${taskId} for ${req.file.originalname}`);
 
       res.json({
-        taskId: taskData.id,
-        status: taskData.status,
+        taskId: taskId,
+        status: 'PENDING',
         modelName: req.file.originalname,
       });
     } catch (error) {
@@ -114,8 +140,8 @@ export default function createRiggingRouter() {
         return res.status(500).json({ error: 'Server configuration error' });
       }
 
-      // Query Meshy API for task status
-      const meshyResponse = await fetch(`https://api.meshy.ai/v1/auto-rigging/${taskId}`, {
+      // Query Meshy API for task status (OpenAPI v1)
+      const meshyResponse = await fetch(`https://api.meshy.ai/openapi/v1/rigging/${taskId}`, {
         headers: {
           'Authorization': `Bearer ${meshyApiKey}`,
         },
@@ -423,6 +449,45 @@ export default function createRiggingRouter() {
       res.json({ success: true });
     } catch (error) {
       logger.error('Error deleting model:', error);
+      res.status(500).json({ error: 'Internal server error' });
+    }
+  });
+
+  // GET /api/rigging/temp/:filename - Serve temporary upload files for Meshy
+  router.get('/rigging/temp/:filename', async (req, res) => {
+    try {
+      const { filename } = req.params;
+
+      // Security: only allow alphanumeric, dash, underscore, and .glb extension
+      if (!/^[a-zA-Z0-9_-]+\\.glb$/.test(filename)) {
+        return res.status(400).json({ error: 'Invalid filename' });
+      }
+
+      const filePath = path.join(process.cwd(), 'temp', 'rigging-uploads', filename);
+
+      // Check if file exists
+      try {
+        await fs.access(filePath);
+      } catch {
+        return res.status(404).json({ error: 'File not found' });
+      }
+
+      // Serve the file
+      res.setHeader('Content-Type', 'model/gltf-binary');
+      res.setHeader('Cache-Control', 'public, max-age=3600'); // Cache for 1 hour
+      res.sendFile(filePath);
+
+      // Clean up after 1 hour (Meshy should have downloaded it by then)
+      setTimeout(async () => {
+        try {
+          await fs.unlink(filePath);
+          logger.info(`Cleaned up temporary file: ${filename}`);
+        } catch (err) {
+          logger.warn(`Failed to clean up temporary file ${filename}: ${err.message}`);
+        }
+      }, 3600000); // 1 hour
+    } catch (error) {
+      logger.error('Error serving temporary file:', error);
       res.status(500).json({ error: 'Internal server error' });
     }
   });

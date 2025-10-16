@@ -45,10 +45,11 @@ export function useAvailableModels() {
     }
   }, []);
 
-  // Fetch models when component mounts or when connected services change
+  // Fetch models when component mounts
+  // Note: connectedServices is read server-side, so we don't need to re-fetch on client changes
   useEffect(() => {
     fetchModels();
-  }, [fetchModels, connectedServices]);
+  }, [fetchModels]);
 
   // Filter models by category
   const getModelsByCategory = useCallback((category) => {

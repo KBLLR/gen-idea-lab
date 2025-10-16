@@ -5,24 +5,25 @@ import fs from 'fs/promises';
 import { fileURLToPath } from 'url';
 import logger from '../../src/shared/lib/logger.js';
 import optimizeGlb from '../lib/optimizeGlb.js';
+import tokenStore from '../../src/lib/secureTokens.js';
+import { requireAuth } from '../../src/lib/auth.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// The specific Drive folder ID from your link
-const DRIVE_FOLDER_ID = '16MZ6twRIR6-wFcHmy8ZdU8Fikk5X9D5J';
+// The specific Drive folder ID from your link (can be overridden via env var)
+const DRIVE_FOLDER_ID = process.env.GOOGLE_DRIVE_MODELS_FOLDER_ID || '16MZ6twRIR6-wFcHmy8ZdU8Fikk5X9D5J';
 
-export default function createDriveImportRouter({ getUserConnections }) {
+export default function createDriveImportRouter() {
   const router = express.Router();
 
   // GET /api/drive/models - List GLB files from the specific Drive folder
-  router.get('/drive/models', async (req, res) => {
+  router.get('/drive/models', requireAuth, async (req, res) => {
     try {
-      // Get user's Google Drive credentials
-      const userConnections = await getUserConnections(req.user?.id || 'default');
-      const driveConnection = userConnections?.google;
+      // Get user's Google Drive token from tokenStore
+      const driveToken = await tokenStore.getOAuthToken(req.user.email, 'googleDrive');
 
-      if (!driveConnection?.accessToken) {
+      if (!driveToken?.accessToken) {
         return res.status(401).json({
           error: 'Google Drive not connected',
           message: 'Please connect your Google Drive account first'
@@ -35,7 +36,7 @@ export default function createDriveImportRouter({ getUserConnections }) {
 
       const response = await fetch(url, {
         headers: {
-          'Authorization': `Bearer ${driveConnection.accessToken}`,
+          'Authorization': `Bearer ${driveToken.accessToken}`,
         },
       });
 
@@ -66,15 +67,14 @@ export default function createDriveImportRouter({ getUserConnections }) {
   });
 
   // POST /api/drive/import/:fileId - Import and optimize a file from Drive
-  router.post('/drive/import/:fileId', async (req, res) => {
+  router.post('/drive/import/:fileId', requireAuth, async (req, res) => {
     try {
       const { fileId } = req.params;
 
-      // Get user's Google Drive credentials
-      const userConnections = await getUserConnections(req.user?.id || 'default');
-      const driveConnection = userConnections?.google;
+      // Get user's Google Drive token from tokenStore
+      const driveToken = await tokenStore.getOAuthToken(req.user.email, 'googleDrive');
 
-      if (!driveConnection?.accessToken) {
+      if (!driveToken?.accessToken) {
         return res.status(401).json({ error: 'Google Drive not connected' });
       }
 
@@ -92,7 +92,7 @@ export default function createDriveImportRouter({ getUserConnections }) {
       // Get file metadata
       const metaUrl = `https://www.googleapis.com/drive/v3/files/${fileId}?fields=id,name,size`;
       const metaResponse = await fetch(metaUrl, {
-        headers: { 'Authorization': `Bearer ${driveConnection.accessToken}` },
+        headers: { 'Authorization': `Bearer ${driveToken.accessToken}` },
       });
 
       if (!metaResponse.ok) {
@@ -113,7 +113,7 @@ export default function createDriveImportRouter({ getUserConnections }) {
       sendProgress({ step: 'download', message: 'Downloading from Drive...' });
       const downloadUrl = `https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`;
       const downloadResponse = await fetch(downloadUrl, {
-        headers: { 'Authorization': `Bearer ${driveConnection.accessToken}` },
+        headers: { 'Authorization': `Bearer ${driveToken.accessToken}` },
       });
 
       if (!downloadResponse.ok) {

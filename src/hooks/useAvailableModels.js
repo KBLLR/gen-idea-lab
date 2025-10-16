@@ -23,6 +23,16 @@ export function useAvailableModels() {
       });
 
       if (!response.ok) {
+        // Silently handle rate limiting (429) - server is preventing spam
+        if (response.status === 429) {
+          console.debug('[useAvailableModels] Rate limited, using fallback models');
+          setModels([
+            { id: 'gemini-2.5-flash', name: 'Gemini 2.5 Flash', provider: 'Gemini', category: 'text', available: true },
+            { id: 'gemini-2.0-flash-exp', name: 'Gemini 2.0 Flash Experimental', provider: 'Gemini', category: 'text', available: true }
+          ]);
+          setLoading(false);
+          return;
+        }
         throw new Error(`Failed to fetch models: ${response.statusText}`);
       }
 
@@ -46,10 +56,11 @@ export function useAvailableModels() {
     }
   }, []);
 
-  // Fetch models when component mounts or when connected services change
+  // Fetch models when component mounts
+  // Note: connectedServices is read server-side, so we don't need to re-fetch on client changes
   useEffect(() => {
     fetchModels();
-  }, [fetchModels, connectedServices]);
+  }, [fetchModels]);
 
   // Filter models by category
   const getModelsByCategory = useCallback(

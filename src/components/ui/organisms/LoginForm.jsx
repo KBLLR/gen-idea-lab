@@ -4,9 +4,11 @@
  */
 
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { loginWithGoogle } from '../../lib/actions';
 
 export default function LoginForm() {
+    const navigate = useNavigate();
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState(null);
     const CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID;
@@ -56,9 +58,11 @@ export default function LoginForm() {
 
         if (!result.success) {
             setError(result.error);
+            setIsLoading(false);
+        } else {
+            // Redirect to dashboard after successful login
+            navigate('/');
         }
-
-        setIsLoading(false);
     };
 
     return (

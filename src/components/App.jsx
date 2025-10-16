@@ -4,7 +4,7 @@
 */
 import c from 'clsx'
 import React, { Suspense, useEffect, useState } from 'react'
-import { Outlet } from 'react-router-dom'
+import { Outlet, useLocation } from 'react-router-dom'
 import { LeftPaneProvider, LeftPane, RightPaneProvider, RightPane, useLeftPaneNode, useRightPaneNode, DockContentProvider } from '@shared/lib/layoutSlots'
 import { selectModule } from "@shared/lib/actions/ideaLabActions.js";
 import { checkAuthStatus } from "@shared/lib/actions/authActions.js";
@@ -16,6 +16,7 @@ import CommandPalette from './modals/CommandPalette.jsx'
 import GlassDock from './glassdock/GlassDock.jsx'
 import UserBar from './ui/organisms/UserBar.jsx'
 import AppSwitchOverlay from './ui/organisms/AppSwitchOverlay.jsx'
+import ToastContainer from '@shared/components/ToastContainer.jsx'
 import ModuleViewer from '@apps/ideaLab/components/ModuleViewer.jsx'
 import AppSwitcher from './headers/AppSwitcher.jsx'
 import { actions as globalActions } from '@shared/lib/actions.js'
@@ -310,9 +311,12 @@ const fetchServiceConfig = useStore(s => s.actions?.fetchServiceConfig)
   const hasModuleSelected = activeApp === 'ideaLab' && activeModuleId;
 
   const LayoutBody = () => {
+    const location = useLocation();
     const leftPaneNode = useLeftPaneNode();
     const rightPaneNode = useRightPaneNode();
     const isThreeColumnLayout = Boolean(rightPaneNode);
+    const isDashboard = location.pathname === '/';
+
     return (
       <main data-theme={theme} className={c({
         'three-column': isThreeColumnLayout
@@ -346,10 +350,11 @@ const fetchServiceConfig = useStore(s => s.actions?.fetchServiceConfig)
         <CommandPalette isOpen={isCommandPaletteOpen} onClose={() => setIsCommandPaletteOpen(false)} />
         <GlassDock />
         <AppSwitchOverlay />
+        <ToastContainer />
 
-      {leftPaneNode ? (
+      {!isDashboard && leftPaneNode ? (
         <>
-          <div 
+          <div
             className="left-column"
             style={{ width: `${leftColumnWidth}px` }}
           >
@@ -361,7 +366,7 @@ const fetchServiceConfig = useStore(s => s.actions?.fetchServiceConfig)
           </div>
 
           {/* Left column resizer */}
-          <div 
+          <div
             className="left-column-resizer"
             onMouseDown={handleLeftResizerMouseDown}
             role="separator"
@@ -369,12 +374,12 @@ const fetchServiceConfig = useStore(s => s.actions?.fetchServiceConfig)
             title="Drag to resize left panel"
           />
         </>
-      ) : (
+      ) : !isDashboard && !leftPaneNode ? (
         <>
           <AppSwitcher />
           <UserBar />
         </>
-      )}
+      ) : null}
 
       <div className="middle-column">
         <Outlet />
