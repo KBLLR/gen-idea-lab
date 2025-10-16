@@ -1,5 +1,14 @@
 # Changelog
 
+2025-10-16: Updated CLAUDE.md with comprehensive architecture guidance
+- **CLAUDE.md rewrite**: Complete overhaul focusing on micro-app architecture and data flow patterns
+- **Command reference**: All npm scripts with clear descriptions (dev, test, build, tokens, utilities)
+- **Architecture overview**: Micro-app system, layout slots, Zustand patterns, inter-app communication
+- **Critical rules**: Do/Don't lists for selectors, actions, app isolation, API conventions
+- **Code examples**: Patterns for adding new apps, endpoints, and features
+- **Debugging guides**: Common scenarios for app rendering, store updates, API issues, OAuth failures
+- **Technical debt**: Documented known issues and migration needs
+
 2025-10-16: Gemini CLI configuration and context files
 - **Gemini CLI setup**: Created `.gemini/settings.json` with optimal configuration for React/Node.js development
 - **Project overview**: Comprehensive `.gemini/project-overview.md` with 700+ lines covering full architecture, stack, patterns, and best practices
