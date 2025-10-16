@@ -1,5 +1,22 @@
 # Changelog
 
+2025-10-16: Gemini CLI configuration and context files
+- **Gemini CLI setup**: Created `.gemini/settings.json` with optimal configuration for React/Node.js development
+- **Project overview**: Comprehensive `.gemini/project-overview.md` with 700+ lines covering full architecture, stack, patterns, and best practices
+- **Context file**: Updated `GEMINI.md` with quick reference, FAQs, emergency fixes, and code review checklist
+- **Configuration research**: Researched Gemini CLI 0.9.0 settings including model config, context management, tool sandboxing, and UI customization
+- **Best practices**: Configured for micro-app architecture with proper file filtering, context inclusion, and allowed commands
+
+2025-10-16: Comprehensive architecture documentation - data contracts, flow patterns, and app templates
+- **Architecture analysis**: Deep analysis of all 13 micro-apps with complete data contract documentation
+- **Data flow architecture**: Created comprehensive docs/DATA_FLOW_ARCHITECTURE.md covering store structure, patterns, and best practices
+- **Visual diagrams**: Created docs/DATA_FLOW_DIAGRAM.md with ASCII diagrams showing data flow, app dependencies, and communication patterns
+- **App template**: Defined standardized template for new apps with code examples and checklist
+- **Pattern documentation**: Identified 7 common patterns and 7 anti-patterns across all apps
+- **Store slice mapping**: Documented all store slices, their consumers, and inter-app dependencies
+- **API contracts**: Listed all backend endpoints with request/response structures
+- **App dependency graph**: Created visual graph showing which apps share state and how they communicate
+
 2025-10-16: Dashboard UX, Markmap rendering fix, and RAG error handling improvements
 - **Logout button**: Added logout button to user info card in Dashboard header with red hover state for clear UX
 - **Component extraction**: Extracted UserInfoCard into separate component at `src/apps/home/components/UserInfoCard.jsx` for better modularity
