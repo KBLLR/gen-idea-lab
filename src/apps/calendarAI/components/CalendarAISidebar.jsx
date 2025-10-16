@@ -37,15 +37,8 @@ const CalendarAISidebar = () => {
     };
   }, [tooltip.open]);
 
-  // Get events from localStorage (we'll need to sync this with CalendarAI component state)
-  const events = useMemo(() => {
-    try {
-      const stored = localStorage.getItem('calendarai.events.v1');
-      return stored ? JSON.parse(stored) : [];
-    } catch {
-      return [];
-    }
-  }, []);
+  // Get events from Zustand store
+  const events = useStore.use.calendarAI()?.events || [];
 
   const categories = useMemo(() => {
     const now = new Date();
@@ -303,7 +296,9 @@ const CalendarAISidebar = () => {
                 const d = new Date(tooltip.date);
                 d.setHours(9, 0, 0, 0);
                 const isoLocal = new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
-                localStorage.setItem('calendarai.ui.newEventDate', isoLocal);
+                useStore.setState((state) => {
+                  state.calendarAI.ui.newEventDate = isoLocal;
+                });
               } catch {}
               useStore.getState().actions.setActiveApp('calendarAI');
               navigate(getAppPath('calendarAI'));
@@ -321,7 +316,9 @@ const CalendarAISidebar = () => {
                 const y = d.getFullYear();
                 const m = String(d.getMonth() + 1).padStart(2, '0');
                 const day = String(d.getDate()).padStart(2, '0');
-                localStorage.setItem('calendarai.ui.filterDate', `${y}-${m}-${day}`);
+                useStore.setState((state) => {
+                  state.calendarAI.ui.filterDate = `${y}-${m}-${day}`;
+                });
               } catch {}
               useStore.getState().actions.setActiveApp('calendarAI');
               navigate(getAppPath('calendarAI'));

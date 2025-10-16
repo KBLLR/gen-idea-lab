@@ -1,7 +1,19 @@
 /**
- * @license
- * SPDX-License-Identifier: Apache-2.0
+ * @file Zustand store - single source of truth for app state
+ * @license SPDX-License-Identifier: Apache-2.0
+ * @description Global state management with Immer and persist middleware
+ * @see {import('./store.types.js').StoreState} For complete type definitions
  */
+
+/**
+ * @typedef {import('./store.types.js').StoreState} StoreState
+ * @typedef {import('./store.types.js').StoreActions} StoreActions
+ * @typedef {import('./store.types.js').User} User
+ * @typedef {import('./store.types.js').Toast} Toast
+ * @typedef {import('./store.types.js').ConnectedServices} ConnectedServices
+ * @typedef {import('./store.types.js').CalendarAIState} CalendarAIState
+ */
+
 import 'immer'
 import { create } from 'zustand'
 import { immer } from 'zustand/middleware/immer'
@@ -20,6 +32,12 @@ import { createRiggingTasksSlice } from '@shared/state/riggingTasksSlice.js'
 
 const IMAGE_PROVIDER_PRIORITY = ['gemini', 'openai', 'drawthings']
 
+/**
+ * Resolve the active image provider based on availability
+ * @param {string} [currentProvider] - Currently selected provider
+ * @param {ConnectedServices} [connectedServices] - Service connection status
+ * @returns {string} Resolved provider name
+ */
 function resolveImageProvider(currentProvider, connectedServices = {}) {
   const normalizedCurrent = currentProvider || 'gemini'
   if (
@@ -39,6 +57,12 @@ function resolveImageProvider(currentProvider, connectedServices = {}) {
   return 'gemini'
 }
 
+/**
+ * Synchronize image provider state after service connection changes
+ * @param {StoreState} state - Zustand state object
+ * @param {Object} options - Sync options
+ * @param {boolean} [options.forceModelReset] - Force model reset even if provider unchanged
+ */
 function syncImageProviderState(state, { forceModelReset = false } = {}) {
   const previousProvider = state.imageProvider
   const resolvedProvider = resolveImageProvider(previousProvider, state.connectedServices)
@@ -49,6 +73,12 @@ function syncImageProviderState(state, { forceModelReset = false } = {}) {
   }
 }
 
+/**
+ * Store implementation function
+ * @param {function} set - Zustand set function
+ * @param {function} get - Zustand get function
+ * @returns {StoreState} Store state and actions
+ */
 const storeImpl = (set, get) => ({
   // Shared tasks model
   ...tasksSlice(set, get),
@@ -252,6 +282,18 @@ const storeImpl = (set, get) => ({
   activeEntryId: null,
   selectedTemplateForPreview: null,
 
+  // CalendarAI State
+  calendarAI: {
+    events: [],
+    preferences: {
+      imageFit: 'contain', // 'contain' or 'cover'
+    },
+    ui: {
+      filterDate: null, // 'YYYY-MM-DD'
+      newEventDate: '', // ISO string for default new event date
+    },
+  },
+
   // EmpathyLab State
   empathyLab: {
     consent: {
@@ -361,6 +403,7 @@ const storeImpl = (set, get) => ({
     toggleService: (...args) => get().toggleService(...args),
     connectService: (...args) => get().connectService(...args),
     disconnectService: (...args) => get().disconnectService(...args),
+    testServiceConnection: (...args) => get().testServiceConnection(...args),
 
     // Service config/connection fetchers
     fetchConnectedServices: (...args) => get().fetchConnectedServices(...args),
@@ -517,6 +560,7 @@ const baseStore = create(
         orchestratorSavedSessions: state.orchestratorSavedSessions,
         assistantHistories: state.assistantHistories,
         archivaEntries: state.archivaEntries,
+        calendarAI: state.calendarAI,
         empathyLab: state.empathyLab,
         connectedServices: state.connectedServices,
         serviceCredentials: state.serviceCredentials,

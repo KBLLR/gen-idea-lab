@@ -14,18 +14,23 @@ import AppHomeBlock from '@components/ui/organisms/AppHomeBlock.jsx';
 import { appHomeContent } from '@components/ui/organisms/appHomeContent.js';
 
 const CalendarAI = () => {
-  const [events, setEvents] = useState([]);
+  // Use Zustand store for persistent data
+  const events = useStore.use.calendarAI()?.events || [];
+  const imageFit = useStore.use.calendarAI()?.preferences?.imageFit || 'contain';
+  const storeFilterDate = useStore.use.calendarAI()?.ui?.filterDate || null;
+  const storeNewEventDate = useStore.use.calendarAI()?.ui?.newEventDate || '';
+
+  // Local UI state (not persisted)
   const [selectedEvent, setSelectedEvent] = useState(null);
   const [showEventModal, setShowEventModal] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [showHelp, setShowHelp] = useState(false);
   const [editingEvent, setEditingEvent] = useState(null);
-  const [imageFit, setImageFit] = useState('contain'); // 'contain' or 'cover'
   const [gridMode, setGridMode] = useState('single'); // 'single' or 'multi'
   const [currentMonth, setCurrentMonth] = useState(() => new Date());
-  const [dayFilter, setDayFilter] = useState(null); // 'YYYY-MM-DD'
+  const [dayFilter, setDayFilter] = useState(storeFilterDate);
   const [calendarPopover, setCalendarPopover] = useState({ open: false, x: 0, y: 0, date: null });
-  const [newEventDefaultWhen, setNewEventDefaultWhen] = useState('');
+  const [newEventDefaultWhen, setNewEventDefaultWhen] = useState(storeNewEventDate);
   const [showDataPane, setShowDataPane] = useState(false);
   const { setRightPane, clearRightPane } = useRightPane();
 
@@ -45,27 +50,69 @@ const CalendarAI = () => {
   const fetchGoogleDriveFiles = useStore((s) => s.actions?.fetchGoogleDriveFiles);
   const fetchGmailMessages = useStore((s) => s.actions?.fetchGmailMessages);
 
-  // Load events from localStorage on mount
+  // One-time migration from localStorage to Zustand (runs once per user)
   useEffect(() => {
-    try {
-      const stored = localStorage.getItem('calendarai.events.v1');
-      if (stored) {
-        try {
-          const parsed = JSON.parse(stored);
-          setEvents(parsed);
-        } catch (parseErr) {
-          console.warn('Corrupted CalendarAI events data in localStorage, clearing...', parseErr);
-          localStorage.removeItem('calendarai.events.v1');
-          setEvents([]);
+    const migrateFromLocalStorage = () => {
+      try {
+        // Check if migration already happened (if store has data, skip)
+        if (events.length > 0) {
+          console.log('[CalendarAI] Store already has events, skipping migration');
+          return;
         }
-      }
 
-      const storedFit = localStorage.getItem('calendarai.prefs.fit');
-      if (storedFit) setImageFit(storedFit);
-    } catch (err) {
-      console.error('Failed to load CalendarAI data:', err);
-    }
-  }, []);
+        const storedEvents = localStorage.getItem('calendarai.events.v1');
+        const storedFit = localStorage.getItem('calendarai.prefs.fit');
+        const storedFilterDate = localStorage.getItem('calendarai.ui.filterDate');
+        const storedNewEventDate = localStorage.getItem('calendarai.ui.newEventDate');
+
+        if (storedEvents || storedFit || storedFilterDate || storedNewEventDate) {
+          console.log('[CalendarAI] Migrating from localStorage to Zustand...');
+
+          useStore.setState((state) => {
+            // Migrate events
+            if (storedEvents) {
+              try {
+                const parsed = JSON.parse(storedEvents);
+                if (Array.isArray(parsed)) {
+                  state.calendarAI.events = parsed;
+                  console.log(`[CalendarAI] Migrated ${parsed.length} events`);
+                }
+              } catch (parseErr) {
+                console.warn('[CalendarAI] Corrupted events data, skipping migration');
+              }
+            }
+
+            // Migrate preferences
+            if (storedFit) {
+              state.calendarAI.preferences.imageFit = storedFit;
+            }
+
+            // Migrate UI state
+            if (storedFilterDate) {
+              state.calendarAI.ui.filterDate = storedFilterDate;
+              setDayFilter(storedFilterDate);
+            }
+            if (storedNewEventDate) {
+              state.calendarAI.ui.newEventDate = storedNewEventDate;
+              setNewEventDefaultWhen(storedNewEventDate);
+            }
+          });
+
+          // Clean up localStorage after successful migration
+          localStorage.removeItem('calendarai.events.v1');
+          localStorage.removeItem('calendarai.prefs.fit');
+          localStorage.removeItem('calendarai.ui.filterDate');
+          localStorage.removeItem('calendarai.ui.newEventDate');
+
+          console.log('[CalendarAI] Migration complete, localStorage cleaned up');
+        }
+      } catch (err) {
+        console.error('[CalendarAI] Migration failed:', err);
+      }
+    };
+
+    migrateFromLocalStorage();
+  }, []); // Run once on mount
 
   // Update grid mode based on event count
   useEffect(() => {
@@ -107,19 +154,11 @@ const CalendarAI = () => {
     return events.filter((e) => isSameDay(getEventDate(e), day));
   }, [events, dayFilter]);
 
-  // Save events to localStorage
+  // Save events to Zustand store (persisted automatically)
   const saveEvents = useCallback((newEvents) => {
-    // Always update in-memory state to avoid UX breakage when storage is full
-    setEvents(newEvents);
-    try {
-      localStorage.setItem('calendarai.events.v1', JSON.stringify(newEvents));
-    } catch (err) {
-      console.error('Failed to save events:', err);
-      // Best-effort fallback to sessionStorage
-      try {
-        sessionStorage.setItem('calendarai.events.v1', JSON.stringify(newEvents));
-      } catch {}
-    }
+    useStore.setState((state) => {
+      state.calendarAI.events = newEvents;
+    });
   }, []);
 
   // Fetch events from Google Calendar if connected
@@ -159,10 +198,9 @@ const CalendarAI = () => {
       }));
 
       // Merge with existing local events (keep non-Google events)
-      // Use functional update to avoid dependency on events
-      saveEvents(currentEvents => {
-        const localEvents = currentEvents.filter(e => e.source !== 'google-calendar');
-        return [...localEvents, ...formattedEvents];
+      useStore.setState((state) => {
+        const localEvents = state.calendarAI.events.filter(e => e.source !== 'google-calendar');
+        state.calendarAI.events = [...localEvents, ...formattedEvents];
       });
 
       console.log(`[CalendarAI] Fetched ${formattedEvents.length} events from Google Calendar`);
@@ -177,23 +215,24 @@ const CalendarAI = () => {
     }
   }, [isCalendarConnected, fetchGoogleCalendarEvents]);
 
-  // Listen for sidebar-initiated actions (filter or create)
+  // Listen for sidebar-initiated actions (filter or create) from store
   useEffect(() => {
-    try {
-      const pendingFilter = localStorage.getItem('calendarai.ui.filterDate');
-      if (pendingFilter) {
-        setDayFilter(pendingFilter);
-        localStorage.removeItem('calendarai.ui.filterDate');
-      }
-      const pendingNew = localStorage.getItem('calendarai.ui.newEventDate');
-      if (pendingNew) {
-        setNewEventDefaultWhen(pendingNew);
-        setEditingEvent(null);
-        setShowEventModal(true);
-        localStorage.removeItem('calendarai.ui.newEventDate');
-      }
-    } catch {}
-  }, []);
+    // Sync filter date from store to local state
+    if (storeFilterDate) {
+      setDayFilter(storeFilterDate);
+    }
+
+    // Sync new event date from store to local state
+    if (storeNewEventDate) {
+      setNewEventDefaultWhen(storeNewEventDate);
+      setEditingEvent(null);
+      setShowEventModal(true);
+      // Clear the pending action after handling
+      useStore.setState((state) => {
+        state.calendarAI.ui.newEventDate = '';
+      });
+    }
+  }, [storeFilterDate, storeNewEventDate]);
 
   // Create or update event
   const saveEvent = useCallback((eventData) => {
@@ -306,27 +345,32 @@ const CalendarAI = () => {
     try {
       const text = await file.text();
       const data = JSON.parse(text);
-      if (data.events && Array.isArray(data.events)) {
-        saveEvents(data.events);
-      }
-      if (data.prefs?.fit) {
-        setImageFit(data.prefs.fit);
-        localStorage.setItem('calendarai.prefs.fit', data.prefs.fit);
-      }
+
+      useStore.setState((state) => {
+        if (data.events && Array.isArray(data.events)) {
+          state.calendarAI.events = data.events;
+        }
+        if (data.prefs?.fit) {
+          state.calendarAI.preferences.imageFit = data.prefs.fit;
+        }
+      });
+
       setShowSettings(false);
     } catch (err) {
       console.error('Failed to import JSON:', err);
       alert('Import failed: invalid JSON');
     }
-  }, [saveEvents]);
+  }, []);
 
   // Reset all data
   const resetAll = useCallback(() => {
     if (!confirm('This will remove all events and preferences. Continue?')) return;
-    localStorage.removeItem('calendarai.events.v1');
-    localStorage.removeItem('calendarai.prefs.fit');
-    setEvents([]);
-    setImageFit('contain');
+    useStore.setState((state) => {
+      state.calendarAI.events = [];
+      state.calendarAI.preferences.imageFit = 'contain';
+      state.calendarAI.ui.filterDate = null;
+      state.calendarAI.ui.newEventDate = '';
+    });
     setShowSettings(false);
   }, []);
 
@@ -496,8 +540,9 @@ const CalendarAI = () => {
         <SettingsModal
           imageFit={imageFit}
           onImageFitChange={(fit) => {
-            setImageFit(fit);
-            localStorage.setItem('calendarai.prefs.fit', fit);
+            useStore.setState((state) => {
+              state.calendarAI.preferences.imageFit = fit;
+            });
           }}
           onExportJSON={exportJSON}
           onImportJSON={() => jsonInputRef.current?.click()}

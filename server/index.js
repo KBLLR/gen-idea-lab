@@ -51,17 +51,15 @@ app.use(cors({
   credentials: true,
 }));
 
-// COOP/COEP: only set in production to avoid dev warnings
 function setCoopCoepHeaders(req, res, next) {
-  // Allow OAuth popups to open
-  res.setHeader('Cross-Origin-Opener-Policy', 'same-origin-allow-popups');
-  // Do not require cross-origin isolation for embeds
+  const isProduction = process.env.NODE_ENV === 'production';
+  // Allow OAuth popups; relax in dev/test for compatibility with Jest + Supertest
+  res.setHeader('Cross-Origin-Opener-Policy', isProduction ? 'same-origin-allow-popups' : 'unsafe-none');
+  // Do not require cross-origin isolation for embeds (kept relaxed across environments)
   res.setHeader('Cross-Origin-Embedder-Policy', 'unsafe-none');
   next();
 }
-if (process.env.NODE_ENV === 'production') {
-  app.use(setCoopCoepHeaders);
-}
+app.use(setCoopCoepHeaders);
 
 // JSON body limit (large for base64 images)
 app.use(express.json({ limit: '10mb' }));

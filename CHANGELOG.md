@@ -1,5 +1,69 @@
 # Changelog
 
+2025-10-16: Fixed CommandPalette infinite render loop (final)
+- **Performance issue**: CommandPalette was re-rendering infinitely even when closed
+- **Root causes identified**:
+  1. `commands` array recreated every render (depends on store value `isLiveVoiceChatOpen`)
+  2. Actions retrieved via `useStore.use.actions()` which creates new object each render
+  3. Unnecessary store subscriptions to unused values (`activeApp`, `activeModuleId`)
+  4. Function dependencies in useMemo causing unnecessary recomputations
+- **Comprehensive fixes**:
+  - Changed action retrieval to stable selectors: `useStore(state => state.actions.actionName)`
+  - Removed unused store subscriptions (activeApp, activeModuleId)
+  - Wrapped `commands` in `useMemo` with minimal dependencies (only `isLiveVoiceChatOpen`)
+  - Wrapped `filteredCommands` in `useMemo` with dependencies (commands, query)
+  - Wrapped `executeCommand` in `useCallback` with dependency (onClose)
+  - Optimized useEffects to only run when palette is actually open
+  - Removed stable functions from useMemo dependencies (setActiveApp, navigate, etc.)
+- **Result**: CommandPalette now only re-renders when `isOpen`, `query`, or `isLiveVoiceChatOpen` actually change
+
+2025-10-16: Fixed missing testServiceConnection action and import error
+- **Store actions**: Added `testServiceConnection` to actions proxy in store.js (line 376)
+- **SettingsModal**: Created `handleTestConnection` with proper loading states and user feedback
+  - Shows "Testing..." state while connection test is in progress
+  - Success toast on successful connection test
+  - Error toast and inline error message on failure
+  - Disables button during test to prevent multiple clicks
+- **Error handler fix**: Changed import from named to default export (`import useStore from './store.js'`)
+- **User experience**: Users can now test service connections from Settings modal with clear feedback
+
+2025-10-16: Migrated Calendar AI from localStorage to Zustand persist middleware
+- **Store slice**: Added `calendarAI` slice to Zustand store with events, preferences, and UI state
+  - `events`: Array of calendar events (previously `calendarai.events.v1` in localStorage)
+  - `preferences.imageFit`: Image display preference ('contain' or 'cover')
+  - `ui.filterDate`: Current date filter for event view
+  - `ui.newEventDate`: Pending new event date from sidebar
+- **Persistence**: Added `calendarAI` to store's partialize function for automatic persistence
+- **One-time migration**: Automatic migration from localStorage to Zustand on first mount
+  - Reads existing localStorage data (`calendarai.events.v1`, `calendarai.prefs.fit`, etc.)
+  - Migrates to store with proper error handling
+  - Cleans up localStorage after successful migration
+- **Component updates**: Updated all Calendar AI components to use Zustand store
+  - `CalendarAI.jsx`: Replaced local useState and localStorage with store selectors
+  - `CalendarAISidebar.jsx`: Updated to read events from store, write UI actions to store
+  - `CalendarRightPane.jsx`: Replaced polling localStorage with reactive store subscriptions
+- **Benefits**: Events now persist across page reloads, sync automatically across components, and integrate with the app's unified state management
+
+2025-10-16: Standardized error handling system with global toast notifications
+- **Error handler utilities**: Created `src/shared/lib/errorHandler.js` with comprehensive error handling patterns
+  - `handleAsyncError`: Standardized error handler with automatic classification and toast notifications
+  - `withErrorHandling`: HOF wrapper for async functions with automatic error handling
+  - `withLoadingAndError`: Automatic loading state management with error handling
+  - `safeAction`: Safe Zustand actions that catch and handle errors
+  - `safeFetch`: Fetch wrapper with built-in error handling and content-type validation
+  - `withRetry`: Retry wrapper for flaky operations with exponential backoff
+- **React error boundaries**: Created `src/shared/components/ErrorBoundary.jsx` for catching component rendering errors
+  - Automatic toast notifications for user feedback
+  - Development mode error details
+  - Custom fallback UI support
+- **Error classification**: Automatic categorization (network, auth, validation, not_found, server, unknown)
+- **User-friendly messages**: Default messages for each error type with fallback support
+- **Migration example**: Updated `src/shared/lib/actions/assistantActions.js` to use new error handling patterns
+  - Proper try-catch-finally blocks ensuring loading states are always cleared
+  - User-facing error messages for assistant failures
+  - Graceful degradation in multi-agent conversations
+- **Documentation**: Created `docs/ERROR_HANDLING.md` with complete usage guide, best practices, and migration examples
+
 2025-10-16: Updated CLAUDE.md with comprehensive architecture guidance
 - **CLAUDE.md rewrite**: Complete overhaul focusing on micro-app architecture and data flow patterns
 - **Command reference**: All npm scripts with clear descriptions (dev, test, build, tokens, utilities)
@@ -276,3 +340,5 @@
 2025-10-06: Wire router with lazy micro-app routes; update AppSwitcher and CommandPalette to navigate via URL; add SPA fallbacks in server for new routes.
 2025-10-06: Navigation sync: updated VoiceCommand, GlassDock, ModuleViewer, CalendarAISidebar, and PlannerCanvas to navigate via routes alongside setting store state.
 2025-10-06: Server modularization: extracted auth, university, services, and image routes into separate files in `server/routes` directory. Created `server/config/env.js` for URL and environment helpers.
+
+2025-10-16: Added supplemental webfonts and typography tokens so Pilowlava, Henke, Flowa, Pirulen, and Roboto assets are available via `tokens.css`.

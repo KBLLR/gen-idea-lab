@@ -2,6 +2,79 @@
  * Do not edit directly, this file was auto-generated.
  */
 
+/* Temporary manual addition for supplementary webfonts until token pipeline supports font assets. */
+@font-face {
+  font-family: 'Flowa';
+  src: url('/fonts/flowa.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Henke';
+  src: url('/fonts/Henke.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Pilowlava';
+  src: url('/fonts/Pilowlava-Regular.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Pilowlava';
+  src: url('/fonts/Pilowlava-Atome.woff2') format('woff2');
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Pirulen';
+  src: url('/fonts/pirulen.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Roboto';
+  src: url('/fonts/Roboto-Thin.woff2') format('woff2');
+  font-weight: 100;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Roboto';
+  src: url('/fonts/Roboto-Regular.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Roboto';
+  src: url('/fonts/Roboto-Medium.woff2') format('woff2');
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Roboto';
+  src: url('/fonts/Roboto-Bold.woff2') format('woff2');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
 :root {
   --color-black: #000000;
   --color-white: #ffffff;
@@ -86,6 +159,10 @@
   --spacing-layout-flex-right-column-two-column: 1 1 75%;
   --spacing-layout-flex-right-column-three-column: 1 1 30%;
   --typography-font-family-primary: 'Space Mono', 'Google Sans Display', sans-serif;
+  --typography-font-family-display: 'Pilowlava', 'Space Mono', 'Google Sans Display', sans-serif;
+  --typography-font-family-headline: 'Henke', 'Space Mono', 'Google Sans Display', sans-serif;
+  --typography-font-family-atmosphere: 'Flowa', 'Space Mono', 'Google Sans Display', sans-serif;
+  --typography-font-family-tech: 'Pirulen', 'Space Mono', 'Google Sans Display', sans-serif;
   --typography-font-family-mono: 'Space Mono', Monaco, Menlo, monospace;
   --typography-font-family-icon: 'Material Symbols Outlined';
   --typography-font-weight-light: 300;

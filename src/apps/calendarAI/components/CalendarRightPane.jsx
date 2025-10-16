@@ -1,22 +1,14 @@
 import React, { useEffect, useMemo, useState } from 'react'
 import { ColumnHeaderBar, ActionBar, Panel } from '@ui'
-
-function loadEvents() {
-  try {
-    const raw = localStorage.getItem('calendarai.events.v1')
-    if (!raw) return []
-    const parsed = JSON.parse(raw)
-    return Array.isArray(parsed) ? parsed : []
-  } catch {
-    return []
-  }
-}
+import useStore from '@store'
 
 function useEventCountdowns() {
-  const [events, setEvents] = useState(() => loadEvents())
-  // naive refresh every 5s to reflect changes
+  // Get events from Zustand store (reactive)
+  const events = useStore.use.calendarAI()?.events || []
+  // Force re-render every second for countdown updates
+  const [tick, setTick] = useState(0)
   useEffect(() => {
-    const id = setInterval(() => setEvents(loadEvents()), 5000)
+    const id = setInterval(() => setTick((t) => t + 1), 1000)
     return () => clearInterval(id)
   }, [])
   return events

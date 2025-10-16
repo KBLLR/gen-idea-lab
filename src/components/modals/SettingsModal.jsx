@@ -519,6 +519,21 @@ const { initializeUniversityAuth, getGoogleIdToken, authenticateWithUniversity }
         }
     };
 
+    const handleTestConnection = async () => {
+        setIsConnecting(true);
+        setError(null);
+        try {
+            await useStore.getState().actions.testServiceConnection(service.id);
+            useStore.getState().showToast(`${service.name} connection test successful`, 'success');
+        } catch (error) {
+            console.error(`Failed to test ${service.name} connection:`, error);
+            setError(`Connection test failed: ${error.message}`);
+            useStore.getState().showToast(`${service.name} connection test failed`, 'error');
+        } finally {
+            setIsConnecting(false);
+        }
+    };
+
     return (
         <div className="service-connector">
             <span className={`card-status-dot ${isConnected ? 'connected' : 'disconnected'}`} title={isConnected ? 'Connected' : 'Disconnected'} />
@@ -632,7 +647,13 @@ const { initializeUniversityAuth, getGoogleIdToken, authenticateWithUniversity }
                             )}
                         </div>
                         <div style={{ marginLeft: 'auto', display: 'flex', gap: 8 }}>
-                          <button className="connect-btn" onClick={() => useStore.getState().actions.testServiceConnection(service.id)}>Test</button>
+                          <button
+                            className="connect-btn"
+                            onClick={handleTestConnection}
+                            disabled={isConnecting}
+                          >
+                            {isConnecting ? 'Testing...' : 'Test'}
+                          </button>
                           <button className="disconnect-btn" onClick={handleDisconnect}>Disconnect</button>
                         </div>
                     </div>

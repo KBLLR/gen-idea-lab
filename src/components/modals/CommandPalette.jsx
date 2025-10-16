@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import useStore from '@store';
 import { selectModule, toggleModuleChat } from "@shared/lib/actions";
@@ -15,11 +15,13 @@ export default function CommandPalette({ isOpen, onClose }) {
   const [query, setQuery] = useState('');
   const [selectedIndex, setSelectedIndex] = useState(0);
   const inputRef = useRef(null);
-  const activeApp = useStore.use.activeApp();
-  const activeModuleId = useStore.use.activeModuleId();
-  const setActiveApp = useStore.use.actions().setActiveApp;
-  const setIsLiveVoiceChatOpen = useStore.use.actions().setIsLiveVoiceChatOpen;
+
+  // Get store values with stable selectors (only subscribe to what we actually use)
   const isLiveVoiceChatOpen = useStore.use.isLiveVoiceChatOpen();
+
+  // Get actions via stable selector (not .use.actions() which creates new object each render)
+  const setActiveApp = useStore(state => state.actions.setActiveApp);
+  const setIsLiveVoiceChatOpen = useStore(state => state.actions.setIsLiveVoiceChatOpen);
 
   // Dev-only: render trace
   if (typeof __DEV__ !== 'undefined' && __DEV__) {
@@ -27,8 +29,9 @@ export default function CommandPalette({ isOpen, onClose }) {
     console.debug('[CommandPalette] Rendered with isOpen:', isOpen);
   }
 
-  // Define available commands
-  const commands = [
+  // Memoize commands array to prevent infinite re-renders
+  // Only depend on values that actually change (not functions which should be stable)
+  const commands = useMemo(() => [
     // App navigation
     {
       id: 'nav-idealab',
@@ -96,21 +99,31 @@ export default function CommandPalette({ isOpen, onClose }) {
       },
       keywords: ['module', module['Module Title'].toLowerCase(), module['Module Code'].toLowerCase()]
     }))
-  ];
+  ], [isLiveVoiceChatOpen]); // Only depend on value that changes command content, not stable functions
 
-  // Filter commands based on query
-  const filteredCommands = commands.filter(cmd => {
-    const searchText = query.toLowerCase();
-    return (
-      cmd.label.toLowerCase().includes(searchText) ||
-      cmd.keywords.some(kw => kw.includes(searchText))
-    );
-  });
+  // Filter commands based on query (memoized)
+  const filteredCommands = useMemo(() => {
+    return commands.filter(cmd => {
+      const searchText = query.toLowerCase();
+      return (
+        cmd.label.toLowerCase().includes(searchText) ||
+        cmd.keywords.some(kw => kw.includes(searchText))
+      );
+    });
+  }, [commands, query]);
 
-  // Reset selected index when filtered commands change
+  // Execute command callback (memoized)
+  const executeCommand = useCallback((command) => {
+    command.action();
+    onClose();
+  }, [onClose]);
+
+  // Reset selected index when query changes (only when open)
   useEffect(() => {
-    setSelectedIndex(0);
-  }, [query]);
+    if (isOpen) {
+      setSelectedIndex(0);
+    }
+  }, [query, isOpen]);
 
   // Focus input when opened
   useEffect(() => {
@@ -121,11 +134,11 @@ export default function CommandPalette({ isOpen, onClose }) {
     }
   }, [isOpen]);
 
-  // Handle keyboard navigation
+  // Handle keyboard navigation (only attach listener when open)
   useEffect(() => {
-    const handleKeyDown = (e) => {
-      if (!isOpen) return;
+    if (!isOpen) return; // Don't attach listener when closed
 
+    const handleKeyDown = (e) => {
       if (e.key === 'ArrowDown') {
         e.preventDefault();
         setSelectedIndex(prev =>
@@ -147,12 +160,7 @@ export default function CommandPalette({ isOpen, onClose }) {
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen, selectedIndex, filteredCommands, onClose]);
-
-  const executeCommand = (command) => {
-    command.action();
-    onClose();
-  };
+  }, [isOpen, selectedIndex, filteredCommands, onClose, executeCommand]);
 
   if (!isOpen) return null;
 
