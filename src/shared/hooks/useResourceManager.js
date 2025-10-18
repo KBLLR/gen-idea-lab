@@ -1,9 +1,10 @@
 /**
- * @license
- * SPDX-License-Identifier: Apache-2.0
+ * @file useResourceManager - Hook for managing module resources with lazy loading
+ * @license SPDX-License-Identifier: Apache-2.0
  */
 
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { handleAsyncError } from '@shared/lib/errorHandler.js';
 import { getResourceManager } from '../lib/services/ResourceManager.js';
 
 /**
@@ -105,7 +106,11 @@ export function useResourceManager(moduleId) {
 
       return resource;
     } catch (error) {
-      console.error(`Failed to load resource ${resourceKey}:`, error);
+      handleAsyncError(error, {
+        context: `Loading resource: ${resourceKey}`,
+        showToast: false, // Silent error, return null
+        silent: false
+      });
       return null;
     } finally {
       if (mountedRef.current) {
@@ -131,7 +136,11 @@ export function useResourceManager(moduleId) {
     try {
       return await resourceManager.current.searchResources(moduleId, query, resourceTypes);
     } catch (error) {
-      console.error('Search failed:', error);
+      handleAsyncError(error, {
+        context: 'Searching module resources',
+        showToast: false, // Silent error, return empty array
+        silent: false
+      });
       return [];
     }
   }, [moduleId]);
@@ -158,7 +167,11 @@ export function useResourceManager(moduleId) {
         }));
       }
     } catch (error) {
-      console.error(`Failed to refresh ${resourceType} index:`, error);
+      handleAsyncError(error, {
+        context: `Refreshing ${resourceType} resource index`,
+        showToast: false, // Silent background refresh
+        silent: false
+      });
     }
   }, [moduleId]);
 

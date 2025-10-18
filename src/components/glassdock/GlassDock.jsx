@@ -1,11 +1,12 @@
 /**
- * @license
- * SPDX-License-Identifier: Apache-2.0
+ * @file GlassDock - Voice-enabled dock interface with AI interaction
+ * @license SPDX-License-Identifier: Apache-2.0
  */
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import useStore from '@store';
+import { handleAsyncError } from '@shared/lib/errorHandler.js';
 import { voiceCommands } from '@shared/lib/voiceCommands.js';
 import { enhancedVoiceSystem, getVoicePersonality, voiceFunctionManager, useLiveAPI, AudioRecorder, AVAILABLE_VOICES, DEFAULT_VOICE } from '@shared/lib/voice';
 import NodeModePanel from '../panels/NodeModePanel.jsx';
@@ -313,7 +314,11 @@ export default function GlassDock() {
     };
 
     const onError = (error) => {
-      console.error('[GlassDock] Live API error:', error);
+      handleAsyncError(error, {
+        context: 'GlassDock Live API connection',
+        showToast: true,
+        fallbackMessage: 'Voice connection error. Please check your microphone and try again.'
+      });
       addMessage('error', `Error: ${error.message || error.type || 'Connection error'}`);
 
       if (recorderRef.current) {
@@ -525,7 +530,11 @@ export default function GlassDock() {
 
       console.log(`[GlassDock] Tool ${name} completed:`, result);
     } catch (error) {
-      console.error('[GlassDock] Tool execution error:', error);
+      handleAsyncError(error, {
+        context: `Executing GlassDock tool: ${name}`,
+        showToast: false, // Error sent to chat
+        silent: false
+      });
 
       // Send error response
       if (client && connected) {
@@ -565,7 +574,11 @@ export default function GlassDock() {
         }))
       }];
     } catch (error) {
-      console.error('[GlassDock] Failed to load tools:', error);
+      handleAsyncError(error, {
+        context: 'Loading GlassDock tools configuration',
+        showToast: false, // Fallback to minimal set
+        silent: false
+      });
 
       // Fallback to minimal set
       return [{
@@ -678,7 +691,11 @@ Use this context to provide more relevant and specific answers about what the us
       await recorderRef.current.start();
       setIsRecording(true);
     } catch (error) {
-      console.error('[GlassDock] Connection failed:', error);
+      handleAsyncError(error, {
+        context: 'Connecting GlassDock voice interface',
+        showToast: true,
+        fallbackMessage: 'Failed to connect to voice interface. Please check your microphone permissions.'
+      });
       addMessage('error', `Failed to connect: ${error.message}`);
 
       if (recorderRef.current) {

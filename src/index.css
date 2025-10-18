@@ -131,11 +131,7 @@ h5,
 h6 {
     font-family: 'Material Symbols Outlined', 'Google Sans Display', sans-serif;
     font-weight: 400;
-    font-variation-settings:
-      'FILL' 0,
-      'wght' 400,
-      'GRAD' 0,
-      'opsz' 48;
+    font-feature-settings: 'liga' 0; /* Disable ligatures to prevent icon conversion */
     letter-spacing: 0.02em;
 }
 

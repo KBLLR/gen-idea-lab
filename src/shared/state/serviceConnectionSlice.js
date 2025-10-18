@@ -1,9 +1,55 @@
 /**
- * @license
- * SPDX-License-Identifier: Apache-2.0
-*/
+ * @file serviceConnectionSlice - Service integration and OAuth management
+ * @license SPDX-License-Identifier: Apache-2.0
+ * MIGRATED: Now uses centralized API endpoints
+ */
 import { DEFAULT_IMAGE_MODELS, ALWAYS_AVAILABLE_IMAGE_PROVIDERS } from '@shared/lib/imageProviders.js';
+import { api } from '@shared/lib/dataLayer/endpoints.js';
 
+/**
+ * Service connection status
+ * @typedef {'connected'|'disconnected'|'connecting'|'error'} ServiceStatus
+ */
+
+/**
+ * Service connection information
+ * @typedef {Object} ServiceConnection
+ * @property {boolean} connected - Whether service is currently connected
+ * @property {ServiceStatus} status - Current connection status
+ * @property {Object} [info] - Service-specific connection info (e.g., user data, endpoint)
+ * @property {string} [lastChecked] - ISO timestamp of last status check
+ * @property {string} [error] - Error message if status is 'error'
+ */
+
+/**
+ * Service configuration from server
+ * @typedef {Object} ServiceConfig
+ * @property {boolean} configured - Whether service has required env vars configured
+ * @property {string[]} [missing] - Missing environment variables
+ * @property {string} [redirectUri] - OAuth redirect URI for service setup
+ */
+
+/**
+ * Service credentials (API keys, tokens, URLs)
+ * @typedef {Object} ServiceCredentials
+ * @property {string} [apiKey] - API key for service
+ * @property {string} [url] - Custom endpoint URL for service
+ * @property {string} [transport] - Transport protocol (e.g., 'http', 'grpc')
+ * @property {string} storedAt - ISO timestamp when credentials were stored
+ */
+
+/**
+ * Options for syncing image provider state
+ * @typedef {Object} SyncImageProviderOptions
+ * @property {boolean} [forceModelReset] - Force model reset even if provider unchanged
+ */
+
+/**
+ * Resolve the active image provider based on availability
+ * @param {string} [currentProvider] - Currently selected provider
+ * @param {Record<string, ServiceConnection>} [connectedServices] - Service connection status
+ * @returns {string} Resolved provider name
+ */
 function resolveImageProvider(currentProvider, connectedServices = {}) {
   const normalizedCurrent = currentProvider || 'gemini'
   if (
@@ -25,6 +71,11 @@ function resolveImageProvider(currentProvider, connectedServices = {}) {
   return 'gemini'
 }
 
+/**
+ * Synchronize image provider state after service connection changes
+ * @param {Object} state - Zustand state object
+ * @param {SyncImageProviderOptions} [options] - Sync options
+ */
 function syncImageProviderState(state, { forceModelReset = false } = {}) {
   const previousProvider = state.imageProvider
   const resolvedProvider = resolveImageProvider(previousProvider, state.connectedServices)
@@ -38,6 +89,40 @@ function syncImageProviderState(state, { forceModelReset = false } = {}) {
   }
 }
 
+/**
+ * Service connection slice state
+ * @typedef {Object} ServiceConnectionSliceState
+ * @property {Record<string, ServiceConnection>} connectedServices - Map of service ID to connection status
+ * @property {Record<string, ServiceConfig>} serviceConfig - Map of service ID to server configuration
+ * @property {Record<string, ServiceCredentials>} serviceCredentials - Map of service ID to stored credentials
+ */
+
+/**
+ * Service connection slice actions
+ * @typedef {Object} ServiceConnectionSliceActions
+ * @property {(services: Record<string, ServiceConnection>) => void} setConnectedServices - Set all service connections
+ * @property {(serviceId: string, connectionInfo: Partial<ServiceConnection>) => void} updateServiceConnection - Update single service connection
+ * @property {(serviceId: string) => void} removeServiceConnection - Remove service connection
+ * @property {(serviceId: string, credentials: ServiceCredentials) => void} storeServiceCredentials - Store service credentials
+ * @property {(serviceId: string, enabled: boolean) => Promise<void>} toggleService - Toggle service on/off using stored credentials
+ * @property {(serviceId: string, credentials?: ServiceCredentials) => Promise<Object>} connectService - Connect to a service with optional credentials
+ * @property {(serviceId: string) => Promise<Object>} disconnectService - Disconnect from a service
+ * @property {() => Promise<void>} fetchConnectedServices - Fetch all connected services from server
+ * @property {() => Promise<void>} fetchServiceConfig - Fetch service configuration from server
+ * @property {(serviceId: string) => Promise<Object>} testServiceConnection - Test service connection
+ */
+
+/**
+ * @typedef {ServiceConnectionSliceState & ServiceConnectionSliceActions} ServiceConnectionSlice
+ */
+
+/**
+ * Create service connection slice for Zustand store
+ * Manages OAuth connections, API key services, and image provider state
+ * @param {Function} set - Zustand set function
+ * @param {Function} get - Zustand get function
+ * @returns {ServiceConnectionSlice} Service connection slice state and actions
+ */
 export const createServiceConnectionSlice = (set, get) => ({
   // Service connections state
   // connectedServices[serviceId] shape:
@@ -163,42 +248,9 @@ export const createServiceConnectionSlice = (set, get) => ({
           error: null,
         };
       });
-      const response = await fetch(`/api/services/${serviceId}/connect`, {
-        method: 'POST',
-        credentials: 'include',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(credentials)
-      });
 
-      if (!response.ok) {
-        let errorMessage = `Failed to connect service (${response.status})`;
-        try {
-          const error = await response.json();
-          errorMessage = error.error || errorMessage;
-        } catch (e) {
-          // Response body might be empty or not JSON
-          const text = await response.text().catch(() => '');
-          if (text) errorMessage = text;
-        }
-        set((state) => {
-          state.connectedServices[serviceId] = {
-            ...(state.connectedServices[serviceId] || {}),
-            status: 'error',
-            error: errorMessage,
-          };
-        });
-        throw new Error(errorMessage);
-      }
-
-      let result;
-      try {
-        result = await response.json();
-      } catch (e) {
-        // Empty or invalid JSON response
-        result = { success: false, error: 'Invalid response from service' };
-      }
+      // Use centralized API endpoint
+      const result = await api.services.connect(serviceId, credentials);
 
       // For OAuth services, redirect to auth URL
       if (result.authUrl) {
@@ -245,22 +297,9 @@ export const createServiceConnectionSlice = (set, get) => ({
           error: null,
         };
       });
-      const response = await fetch(`/api/services/${serviceId}`, {
-        method: 'DELETE',
-        credentials: 'include'
-      });
 
-      if (!response.ok) {
-        const error = await response.json();
-        set((state) => {
-          state.connectedServices[serviceId] = {
-            ...(state.connectedServices[serviceId] || {}),
-            status: 'error',
-            error: error.error || 'Failed to disconnect service',
-          };
-        });
-        throw new Error(error.error || 'Failed to disconnect service');
-      }
+      // Use centralized API endpoint
+      const result = await api.services.disconnect(serviceId);
 
       // Update local state
       set((state) => {
@@ -273,7 +312,7 @@ export const createServiceConnectionSlice = (set, get) => ({
         };
       });
 
-      return await response.json();
+      return result;
     } catch (error) {
       console.error(`Failed to disconnect ${serviceId}:`, error);
       throw error;
@@ -282,26 +321,21 @@ export const createServiceConnectionSlice = (set, get) => ({
 
   fetchConnectedServices: async () => {
     try {
-      const response = await fetch('/api/services', {
-        credentials: 'include'
+      // Use centralized API endpoint
+      const services = await api.services.list();
+      const now = new Date().toISOString();
+      set((state) => {
+        for (const [id, data] of Object.entries(services || {})) {
+          state.connectedServices[id] = {
+            connected: !!data?.connected,
+            status: data?.connected ? 'connected' : 'disconnected',
+            info: data?.info || null,
+            lastChecked: now,
+            error: null,
+          };
+        }
+        syncImageProviderState(state);
       });
-
-      if (response.ok) {
-        const services = await response.json();
-        const now = new Date().toISOString();
-        set((state) => {
-          for (const [id, data] of Object.entries(services || {})) {
-            state.connectedServices[id] = {
-              connected: !!data?.connected,
-              status: data?.connected ? 'connected' : 'disconnected',
-              info: data?.info || null,
-              lastChecked: now,
-              error: null,
-            };
-          }
-          syncImageProviderState(state);
-        });
-      }
     } catch (error) {
       console.error('Failed to fetch connected services:', error);
     }
@@ -309,15 +343,11 @@ export const createServiceConnectionSlice = (set, get) => ({
 
   fetchServiceConfig: async () => {
     try {
-      const response = await fetch('/api/services/config', {
-        credentials: 'include'
+      // Use centralized API endpoint
+      const config = await api.services.config();
+      set((state) => {
+        state.serviceConfig = config || {};
       });
-      if (response.ok) {
-        const config = await response.json();
-        set((state) => {
-          state.serviceConfig = config || {};
-        });
-      }
     } catch (error) {
       console.error('Failed to fetch service configuration:', error);
     }
@@ -325,17 +355,8 @@ export const createServiceConnectionSlice = (set, get) => ({
 
   testServiceConnection: async (serviceId) => {
     try {
-      const response = await fetch(`/api/services/${serviceId}/test`, {
-        method: 'POST',
-        credentials: 'include'
-      });
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || 'Connection test failed');
-      }
-
-      const result = await response.json();
+      // Use centralized API endpoint
+      const result = await api.services.test(serviceId);
       set((state) => {
         state.connectedServices[serviceId] = {
           ...(state.connectedServices[serviceId] || {}),

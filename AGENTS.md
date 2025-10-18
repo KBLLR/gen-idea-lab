@@ -44,11 +44,14 @@
 ## Agent-Specific Instructions
 - Treat this file as authoritative. Follow directory scopes when adding or modifying files under `src/`, `tokens/`, and `tests/`.
 - UI spacing migration: Gradually migrate remaining hard‑coded `--spacing-*` in app‑specific styles to the new 8px tokens (`--space-*`) or semantic tokens (e.g., `--panel-padding-*`, `--gutter-*`, `--stack-gap-*`) when touching those files (calendar grids, custom modals, etc.).
+- Settings modal now fetches connected services/config once per open via `useStore.getState().actions`; avoid reintroducing effects that subscribe to action proxies, which caused `/api/models` polling loops.
+- When logging Ollama availability, the server throttles duplicate messages—keep any new logging behind similar guards to prevent dev console spam.
 
 ## Recent Changes & Rationale
 - For a concise summary of the latest implementation updates (Markdown rendering, mock persistence, drawer UI, centered layouts, headers), see `docs/IMPLEMENTATION_NOTES.md`.
 - UI primitives and usage are documented in `docs/ui/components.md`; tokens are described in `docs/ui/tokens.md`.
  - Sidebar improvements: Calendar sidebar now provides a day-actions tooltip (create/see) and integrates with the main view. See `docs/ui/sidebar.md`.
+- Supplementary display fonts (Pilowlava, Henke, Flowa, Pirulen, Roboto weights) are temporarily registered in `src/styles/tokens/tokens.css`; reference new typography tokens (`--typography-font-family-display`, `--typography-font-family-headline`, etc.) instead of hardcoding font stacks until the token build pipeline absorbs them.
 
 ## Changelog Process (All Agents)
 - Before committing and pushing changes:

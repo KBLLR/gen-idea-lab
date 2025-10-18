@@ -45,6 +45,28 @@ export default function ServiceStatusWidget() {
     actions?.openSettings?.();
   };
 
+  const handleToggleService = async (serviceId, isConnected) => {
+    if (isConnected) {
+      // Disconnect service
+      if (confirm(`Disconnect ${SERVICE_NAMES[serviceId] || serviceId}?`)) {
+        try {
+          const response = await fetch(`/api/services/${serviceId}/disconnect`, {
+            method: 'POST',
+            credentials: 'include'
+          });
+          if (response.ok) {
+            actions?.fetchConnectedServices?.();
+          }
+        } catch (error) {
+          console.error('Failed to disconnect service:', error);
+        }
+      }
+    } else {
+      // Connect service - open OAuth flow
+      window.location.href = `/api/services/${serviceId}/connect`;
+    }
+  };
+
   const getServiceIcon = (serviceId) => {
     const IconComponent = SERVICE_ICONS[serviceId];
     if (IconComponent) {
@@ -95,12 +117,24 @@ export default function ServiceStatusWidget() {
                 <span className="service-status-item-email">{data.email}</span>
               )}
             </div>
-            <div className="service-status-item-status">
-              {data?.connected ? (
-                <span className="material-icons-round status-icon connected">check_circle</span>
-              ) : (
-                <span className="material-icons-round status-icon disconnected">cancel</span>
-              )}
+            <div className="service-status-item-actions">
+              <button
+                className={`service-toggle-btn ${data?.connected ? 'disconnect' : 'connect'}`}
+                onClick={() => handleToggleService(serviceId, data?.connected)}
+                title={data?.connected ? 'Disconnect' : 'Connect'}
+              >
+                {data?.connected ? (
+                  <>
+                    <span className="material-icons-round">link_off</span>
+                    <span className="btn-label">Disconnect</span>
+                  </>
+                ) : (
+                  <>
+                    <span className="material-icons-round">link</span>
+                    <span className="btn-label">Connect</span>
+                  </>
+                )}
+              </button>
             </div>
           </div>
         ))}

@@ -1,12 +1,14 @@
 /**
  * @license
  * SPDX-License-Identifier: Apache-2.0
+ * MIGRATED: Now uses centralized API endpoints
 */
 import { useMemo, useState } from 'react';
 import useStore from '@store';
 import c from 'clsx';
 import { setActiveEntryId, createNewArchivaEntry } from '@shared/lib/actions/archivaActions.js';
 import { templates } from '@apps/archiva/lib/templates.js';
+import { api } from '@shared/lib/dataLayer/endpoints.js';
 
 export default function ArchivaSidebar() {
     const archivaEntries = useStore.use.archivaEntries();
@@ -46,14 +48,10 @@ export default function ArchivaSidebar() {
                 setSearchResults(localResults.slice(0, 10));
             } else {
                 // Try backend search as fallback if local search finds nothing
-                const response = await fetch(`/api/modules/general/resources/documentation/search?q=${encodeURIComponent(query)}`, {
-                    credentials: 'include'
-                });
-
-                if (response.ok) {
-                    const backendResults = await response.json();
+                try {
+                    const backendResults = await api.archiva.searchDocs(query);
                     setSearchResults(backendResults.slice(0, 10));
-                } else {
+                } catch (err) {
                     console.warn('Both local and backend search returned no results');
                     setSearchResults([]);
                 }

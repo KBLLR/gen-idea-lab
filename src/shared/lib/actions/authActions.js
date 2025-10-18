@@ -1,12 +1,22 @@
 /**
- * @license
- * SPDX-License-Identifier: Apache-2.0
-*/
+ * @file authActions - Authentication and user session management
+ * @license SPDX-License-Identifier: Apache-2.0
+ */
 import useStore from '../store';
 
 const set = useStore.setState;
 
-// Authentication actions
+/**
+ * Auth response result
+ * @typedef {Object} AuthResult
+ * @property {boolean} success - Whether operation succeeded
+ * @property {string} [error] - Error message if failed
+ */
+
+/**
+ * Check current authentication status from server
+ * @returns {Promise<void>}
+ */
 export const checkAuthStatus = async () => {
   try {
     const response = await fetch('/auth/me', {
@@ -37,6 +47,11 @@ export const checkAuthStatus = async () => {
   }
 };
 
+/**
+ * Authenticate user with Google ID token
+ * @param {string} idToken - Google OAuth ID token
+ * @returns {Promise<AuthResult>} Authentication result
+ */
 export const loginWithGoogle = async (idToken) => {
   try {
     const response = await fetch('/auth/google', {
@@ -71,6 +86,10 @@ export const loginWithGoogle = async (idToken) => {
   }
 };
 
+/**
+ * Log out current user and clear session
+ * @returns {Promise<void>}
+ */
 export const logout = async () => {
   try {
     await fetch('/auth/logout', {

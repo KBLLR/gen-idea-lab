@@ -1,11 +1,14 @@
 /**
- * @license
- * SPDX-License-Identifier: Apache-2.0
+ * @file EmpathyLab - Emotion detection and analysis interface
+ * @license SPDX-License-Identifier: Apache-2.0
+ * MIGRATED: Now uses centralized API endpoints
  */
 import { useState, useRef, useEffect, useCallback } from 'react';
 import BoothHeader from '@components/ui/organisms/BoothHeader.jsx';
 import { Button, Panel } from '@ui';
 import FormField from '@components/ui/atoms/FormField.jsx';
+import { handleAsyncError } from '@shared/lib/errorHandler.js';
+import { api } from '@shared/lib/dataLayer/endpoints.js';
 import WebcamStream from './WebcamStream.jsx';
 import EmotionsList from './EmotionsList.jsx';
 import EmotionFusionDisplay from './EmotionFusionDisplay.jsx';
@@ -312,29 +315,19 @@ export default function EmpathyLab() {
     // Save session to database
     const saveSessionToDatabase = useCallback(async () => {
         try {
-            const response = await fetch('/api/empathylab/sessions', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                credentials: 'include',
-                body: JSON.stringify({
-                    sessionData,
-                    consent,
-                    humeConfigId: selectedHumeConfigId
-                })
+            const result = await api.empathylab.saveSession({
+                sessionData,
+                consent,
+                humeConfigId: selectedHumeConfigId
             });
-
-            if (!response.ok) {
-                throw new Error('Failed to save session');
-            }
-
-            const result = await response.json();
             console.log('Session saved:', result.sessionId);
             alert(`Session saved successfully! ID: ${result.sessionId}`);
         } catch (err) {
-            console.error('Failed to save session:', err);
-            alert('Failed to save session. Please try again.');
+            handleAsyncError(err, {
+                context: 'Saving EmpathyLab session',
+                showToast: true,
+                fallbackMessage: 'Failed to save session data. Please try again or export locally.'
+            });
         }
     }, [sessionData, consent, selectedHumeConfigId]);
 

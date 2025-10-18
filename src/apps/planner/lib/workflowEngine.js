@@ -1,7 +1,10 @@
 /**
  * @license
  * SPDX-License-Identifier: Apache-2.0
+ * MIGRATED: Now uses centralized API endpoints
  */
+
+import { api } from '@shared/lib/dataLayer/endpoints.js';
 
 /**
  * Workflow Execution Engine
@@ -26,18 +29,7 @@ async function executeAICompletion({ model, prompt, systemPrompt, settings = {} 
     thinkingBudget: settings.thinkingBudget || 'medium'
   };
 
-  const response = await fetch('/api/chat', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(requestBody),
-  });
-
-  if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.error || `API request failed with status: ${response.status}`);
-  }
-
-  const data = await response.json();
+  const data = await api.chat.complete(requestBody);
   return data.response || data.text || '';
 }
 
@@ -72,18 +64,7 @@ const { WORKFLOW_TOOLS, executeTool } = await import('@shared/lib/workflowTools.
     provider // Pass provider for proper tool formatting
   };
 
-  const response = await fetch('/api/chat/tools', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(requestBody),
-  });
-
-  if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.error || `API request with tools failed: ${response.status}`);
-  }
-
-  const data = await response.json();
+  const data = await api.chat.tools(requestBody);
 
   // Check if AI wants to use tools
   if (data.toolCalls && data.toolCalls.length > 0) {
@@ -132,18 +113,7 @@ const { WORKFLOW_TOOLS, executeTool } = await import('@shared/lib/workflowTools.
       provider
     };
 
-    const followupResponse = await fetch('/api/chat/tools', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(followupBody),
-    });
-
-    if (!followupResponse.ok) {
-      const error = await followupResponse.json();
-      throw new Error(error.error || `Follow-up request failed: ${followupResponse.status}`);
-    }
-
-    const followupData = await followupResponse.json();
+    const followupData = await api.chat.tools(followupBody);
 
     return {
       response: followupData.response || followupData.text || '',

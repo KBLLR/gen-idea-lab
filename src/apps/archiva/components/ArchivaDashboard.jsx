@@ -3,6 +3,7 @@
 /**
  * @license
  * SPDX-License-Identifier: Apache-2.0
+ * MIGRATED: Now uses centralized API endpoints
 */
 import { useState, useEffect } from 'react';
 import ReactMarkdown from 'react-markdown';
@@ -12,6 +13,7 @@ import useStore from '@store';
 import { templates } from '@apps/archiva/lib/templates.js';
 import BoothHeader from '@components/ui/organisms/BoothHeader.jsx';
 import { Panel } from '@ui';
+import { api } from '@shared/lib/dataLayer/endpoints.js';
 import { render as renderProcessJournal } from '@apps/archiva/lib/process_journal.js';
 import { render as renderExperimentReport } from '@apps/archiva/lib/experiment_report.js';
 import { render as renderPromptCard } from '@apps/archiva/lib/prompt_card.js';
@@ -204,10 +206,7 @@ export default function ArchivaDashboard() {
       let exampleTemplate = '';
 
       try {
-        const templateResponse = await fetch(`/templates/archivai/${templateFileName}.md`);
-        if (templateResponse.ok) {
-          exampleTemplate = await templateResponse.text();
-        }
+        exampleTemplate = await api.archiva.loadTemplateExample(templateFileName);
       } catch (err) {
         console.warn('Could not load template example file:', err);
       }
@@ -223,15 +222,11 @@ Use this as a reference for the style, depth, and format of content to generate.
 ` : '';
 
       // Call AI to generate realistic mock data
-      const response = await fetch('/api/chat', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({
-          model: 'gemini-2.5-flash',
-          messages: [{
-            role: 'user',
-            content: `Generate realistic mock data for a "${templateInfo.name}" template with the following fields:
+      const data = await api.chat.complete({
+        model: 'gemini-2.5-flash',
+        messages: [{
+          role: 'user',
+          content: `Generate realistic mock data for a "${templateInfo.name}" template with the following fields:
 
 ${fieldDescriptions}
 
@@ -243,14 +238,8 @@ Create realistic, detailed content that would be typical for a ${templateInfo.ty
 
 Return a JSON object with sample values for each field listed above. Return ONLY valid JSON, no additional text or markdown code blocks.`
           }]
-        })
       });
 
-      if (!response.ok) {
-        throw new Error('Failed to generate mock data');
-      }
-
-      const data = await response.json();
       let generatedData;
 
       try {
@@ -314,17 +303,7 @@ Return a JSON object with sample values for each field listed above. Return ONLY
           run_id: currentWorkflowData?.run_id || null
         }
       };
-      const resp = await fetch('/api/archivai/mock', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify(payload)
-      });
-      if (!resp.ok) {
-        const text = await resp.text();
-        throw new Error(text || 'Failed to save mock');
-      }
-      const { id } = await resp.json();
+      const { id } = await api.archiva.saveMock(payload);
       console.log('[ArchivAI] Saved mock to data/archivai-mock:', id);
 
       // Create an Archiva entry in local state for editing/testing

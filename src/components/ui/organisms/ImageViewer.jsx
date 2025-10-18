@@ -1,8 +1,9 @@
 /**
- * @license
- * SPDX-License-Identifier: Apache-2.0
+ * @file ImageViewer - Image and camera feed viewer component
+ * @license SPDX-License-Identifier: Apache-2.0
  */
 import React, { useEffect, useRef, useState } from 'react';
+import { handleAsyncError } from '@shared/lib/errorHandler.js';
 
 /**
  * ImageViewer
@@ -53,7 +54,11 @@ export default function ImageViewer({
         }
         onStreamStart && onStreamStart(stream);
       } catch (e) {
-        console.error('Failed to start camera:', e);
+        handleAsyncError(e, {
+          context: 'Starting camera feed in ImageViewer',
+          showToast: true,
+          fallbackMessage: 'Failed to access camera. Please check camera permissions and try again.'
+        });
       }
     }
 

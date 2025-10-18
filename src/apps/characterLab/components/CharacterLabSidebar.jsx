@@ -1,6 +1,14 @@
+/**
+ * @file CharacterLabSidebar - Rigging queue and Drive import panel
+ * @license SPDX-License-Identifier: Apache-2.0
+ * MIGRATED: Now uses centralized API endpoints
+ */
+
 import React, { useState } from 'react';
 import { SidebarItemCard } from '@ui';
 import useStore from '@store';
+import { handleAsyncError } from '@shared/lib/errorHandler.js';
+import { api } from '@shared/lib/dataLayer/endpoints.js';
 import DriveImportPanel from './DriveImportPanel';
 
 export default function CharacterLabSidebar() {
@@ -46,10 +54,7 @@ export default function CharacterLabSidebar() {
 
   const handleDownloadFBX = async (taskId, taskName) => {
     try {
-      const response = await fetch(`/api/rigging/download/${taskId}`);
-      if (!response.ok) throw new Error('Download failed');
-
-      const blob = await response.blob();
+      const blob = await api.rigging.download(taskId);
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
@@ -59,8 +64,11 @@ export default function CharacterLabSidebar() {
       window.URL.revokeObjectURL(url);
       document.body.removeChild(a);
     } catch (error) {
-      console.error('Failed to download FBX:', error);
-      alert('Failed to download FBX file');
+      handleAsyncError(error, {
+        context: 'Downloading rigged FBX file',
+        showToast: true,
+        fallbackMessage: 'Failed to download FBX file. Please try again.'
+      });
     }
   };
 

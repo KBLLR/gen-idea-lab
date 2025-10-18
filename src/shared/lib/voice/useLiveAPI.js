@@ -1,9 +1,10 @@
 /**
- * @license
- * SPDX-License-Identifier: Apache-2.0
+ * @file useLiveAPI - React hook for Gemini Live API via backend proxy
+ * @license SPDX-License-Identifier: Apache-2.0
  */
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { handleAsyncError } from '../errorHandler.js';
 import { GenAIProxyClient } from './genAIProxyClient.js';
 import { AudioStreamer } from './audioStreamer.js';
 import { audioContext } from './utils.js';
@@ -38,7 +39,11 @@ export function useLiveAPI({ model }) {
             setVolume(ev.data.volume);
           })
           .catch(err => {
-            console.error('Error adding worklet:', err);
+            handleAsyncError(err, {
+              context: 'Adding audio worklet for volume meter',
+              showToast: false, // Silent error for worklet loading
+              silent: false
+            });
           });
       });
     }

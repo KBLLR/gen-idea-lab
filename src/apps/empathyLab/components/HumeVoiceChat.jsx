@@ -1,10 +1,12 @@
 /**
  * @license
  * SPDX-License-Identifier: Apache-2.0
+ * MIGRATED: Now uses centralized API endpoints
  */
 import { useState, useEffect, useRef } from 'react';
 import { VoiceProvider, useVoice } from '@humeai/voice-react';
 import { Button } from '@ui';
+import { api } from '@shared/lib/dataLayer/endpoints.js';
 import { EMOTION_COLORS, EMOTION_ICONS } from '../lib/humeColors.js';
 
 export default function HumeVoiceChat({ onEmotionUpdate, selectedConfigId, humeEmotions }) {
@@ -18,16 +20,7 @@ export default function HumeVoiceChat({ onEmotionUpdate, selectedConfigId, humeE
       setIsLoading(true);
       setError(null);
 
-      const response = await fetch('/api/services/hume/token', {
-        credentials: 'include'
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to fetch token');
-      }
-
-      const data = await response.json();
+      const data = await api.hume.token();
       setAccessToken(data.accessToken);
       console.log('[HumeVoiceChat] Access token fetched successfully');
     } catch (err) {

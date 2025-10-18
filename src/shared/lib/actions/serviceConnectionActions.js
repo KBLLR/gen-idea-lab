@@ -1,12 +1,32 @@
 /**
- * @license
- * SPDX-License-Identifier: Apache-2.0
-*/
+ * @file serviceConnectionActions - Legacy service connection actions
+ * @license SPDX-License-Identifier: Apache-2.0
+ * @deprecated Use actions from serviceConnectionSlice instead
+ */
 import useStore from '../store';
 
 const set = useStore.setState;
 
-// Service connection actions
+/**
+ * Service credentials for connection
+ * @typedef {Object} ServiceCredentials
+ * @property {string} [apiKey] - API key for key-based auth
+ * @property {string} [url] - Custom endpoint URL
+ */
+
+/**
+ * Service connection result
+ * @typedef {Object} ServiceConnectionResult
+ * @property {boolean} success - Whether connection succeeded
+ * @property {string} [error] - Error message if failed
+ */
+
+/**
+ * Connect to a service (OAuth, API key, or URL-based)
+ * @param {string} serviceId - Service identifier to connect
+ * @param {ServiceCredentials} [credentials] - Optional credentials for non-OAuth services
+ * @returns {Promise<ServiceConnectionResult>} Connection result
+ */
 export const connectService = async (serviceId, credentials = null) => {
   try {
     // Handle API key based connections
@@ -118,6 +138,11 @@ export const connectService = async (serviceId, credentials = null) => {
   }
 };
 
+/**
+ * Disconnect from a service and remove credentials
+ * @param {string} serviceId - Service identifier to disconnect
+ * @returns {Promise<ServiceConnectionResult>} Disconnection result
+ */
 export const disconnectService = async (serviceId) => {
   try {
     const response = await fetch(`/auth/disconnect/${serviceId}`, {
@@ -139,6 +164,10 @@ export const disconnectService = async (serviceId) => {
   }
 };
 
+/**
+ * Load all connected services from server
+ * @returns {Promise<void>}
+ */
 export const loadConnectedServices = async () => {
   try {
     const response = await fetch('/auth/services', {

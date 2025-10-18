@@ -1,8 +1,9 @@
 /**
- * @license
- * SPDX-License-Identifier: Apache-2.0
+ * @file genAIProxyClient - Backend-proxied real-time audio conversation with Gemini
+ * @license SPDX-License-Identifier: Apache-2.0
  */
 import EventEmitter from 'eventemitter3';
+import { handleAsyncError } from '../errorHandler.js';
 import { DEFAULT_LIVE_API_MODEL } from './constants.js';
 import { base64ToArrayBuffer } from './utils.js';
 
@@ -83,12 +84,20 @@ export class GenAIProxyClient extends EventEmitter {
           const message = JSON.parse(event.data);
           this.handleProxyMessage(message);
         } catch (err) {
-          console.error('[GenAIProxyClient] Failed to parse message:', err);
+          handleAsyncError(err, {
+            context: 'Parsing GenAI Proxy WebSocket message',
+            showToast: false, // Silent error during message parsing
+            silent: false
+          });
         }
       };
 
       this.ws.onerror = (error) => {
-        console.error('[GenAIProxyClient] WebSocket error:', error);
+        handleAsyncError(error, {
+          context: 'GenAI Proxy WebSocket error',
+          showToast: true,
+          fallbackMessage: 'WebSocket connection error. Please try again.'
+        });
         this._status = 'disconnected';
         const errorEvent = new ErrorEvent('error', {
           error,
@@ -120,7 +129,11 @@ export class GenAIProxyClient extends EventEmitter {
         });
       });
     } catch (e) {
-      console.error('[GenAIProxyClient] Connection error:', e);
+      handleAsyncError(e, {
+        context: 'GenAI Proxy connection',
+        showToast: true,
+        fallbackMessage: 'Failed to connect to voice proxy. Please check your connection and try again.'
+      });
       this._status = 'disconnected';
       const errorEvent = new ErrorEvent('error', {
         error: e,
@@ -332,7 +345,11 @@ export class GenAIProxyClient extends EventEmitter {
    */
   onError(e) {
     this._status = 'disconnected';
-    console.error('error:', e);
+    handleAsyncError(e, {
+      context: 'GenAI Proxy error event',
+      showToast: true,
+      fallbackMessage: 'Voice proxy connection error. Please try again.'
+    });
 
     const message = `Could not connect to Live API: ${e.message}`;
     this.log(`server.${e.type}`, message);

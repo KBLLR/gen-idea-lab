@@ -1,7 +1,10 @@
 /**
  * @license
  * SPDX-License-Identifier: Apache-2.0
+ * MIGRATED: Now uses centralized API endpoints
  */
+
+import { api } from '@shared/lib/dataLayer/endpoints.js';
 
 /**
  * Assistant-specific tools
@@ -166,21 +169,11 @@ export async function executeAssistantTool(toolName, args, context = {}) {
  */
 async function executeQueryKnowledgeBase({ query, top_k = 4 }, { moduleId }) {
   try {
-    const response = await fetch('/api/rag/query', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        query,
-        moduleId,
-        topK: top_k
-      })
+    const data = await api.rag.query({
+      query,
+      moduleId,
+      topK: top_k
     });
-
-    if (!response.ok) {
-      throw new Error('Knowledge base query failed');
-    }
-
-    const data = await response.json();
 
     return {
       success: true,
@@ -203,21 +196,11 @@ async function executeQueryKnowledgeBase({ query, top_k = 4 }, { moduleId }) {
  */
 async function executeAddToKnowledgeBase({ text, metadata = {} }, { moduleId }) {
   try {
-    const response = await fetch('/api/rag/upsert', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        text,
-        moduleId,
-        metadata
-      })
+    const data = await api.rag.upsert({
+      text,
+      moduleId,
+      metadata
     });
-
-    if (!response.ok) {
-      throw new Error('Failed to add to knowledge base');
-    }
-
-    const data = await response.json();
 
     return {
       success: true,
@@ -237,20 +220,10 @@ async function executeAddToKnowledgeBase({ text, metadata = {} }, { moduleId }) 
  */
 async function executeSearchWeb({ query, max_results = 3 }) {
   try {
-    const response = await fetch('/api/tools/web-search', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        query,
-        max_results
-      })
+    const data = await api.search.web({
+      query,
+      maxResults: max_results
     });
-
-    if (!response.ok) {
-      throw new Error('Web search failed');
-    }
-
-    const data = await response.json();
 
     return {
       success: true,
@@ -274,21 +247,11 @@ async function executeSearchWeb({ query, max_results = 3 }) {
  */
 async function executeCreateArchivaDocument({ title, content, tags = [] }) {
   try {
-    const response = await fetch('/api/archiva/entries', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        title,
-        content,
-        tags
-      })
+    const data = await api.archiva.createEntry({
+      title,
+      content,
+      tags
     });
-
-    if (!response.ok) {
-      throw new Error('Failed to create document');
-    }
-
-    const data = await response.json();
 
     return {
       success: true,
@@ -331,27 +294,17 @@ async function executeGetConversationContext({ messages_back = 10 }, { conversat
 async function executeSaveConversationMemory({ memory_text, memory_type = 'other' }, { moduleId, userId, conversationId }) {
   try {
     // Save to knowledge base as a memory
-    const response = await fetch('/api/rag/upsert', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        text: memory_text,
-        moduleId,
-        metadata: {
-          type: 'conversation_memory',
-          memory_type,
-          conversation_id: conversationId,
-          user_id: userId,
-          timestamp: new Date().toISOString()
-        }
-      })
+    const data = await api.rag.upsert({
+      text: memory_text,
+      moduleId,
+      metadata: {
+        type: 'conversation_memory',
+        memory_type,
+        conversation_id: conversationId,
+        user_id: userId,
+        timestamp: new Date().toISOString()
+      }
     });
-
-    if (!response.ok) {
-      throw new Error('Failed to save memory');
-    }
-
-    const data = await response.json();
 
     return {
       success: true,

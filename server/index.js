@@ -40,6 +40,8 @@ const allowedOrigins = [
   process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : null,
   'http://localhost:3000',
   'http://127.0.0.1:3000',
+  'http://localhost:5173', // Vite default dev port
+  'http://127.0.0.1:5173',
 ].filter(Boolean);
 
 app.use(cors({
@@ -171,3 +173,5 @@ if (process.env.NODE_ENV !== 'test') {
 
 export { startServer };
 export default app;
+ 
+ 

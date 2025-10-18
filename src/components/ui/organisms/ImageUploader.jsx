@@ -1,9 +1,10 @@
 /**
- * @license
- * SPDX-License-Identifier: Apache-2.0
+ * @file ImageUploader - Image file upload component with drag-and-drop
+ * @license SPDX-License-Identifier: Apache-2.0
 */
 import { setInputImage } from '@shared/lib/actions.js';
 import { fileToBase64 } from '@shared/lib/fileUtils.js';
+import { handleAsyncError } from '@shared/lib/errorHandler.js';
 
 export default function ImageUploader() {
     const handleFileChange = async (event) => {
@@ -13,7 +14,11 @@ export default function ImageUploader() {
                 const base64 = await fileToBase64(file);
                 setInputImage(base64);
             } catch (error) {
-                console.error("Error converting file to base64:", error);
+                handleAsyncError(error, {
+                    context: 'Converting uploaded image to base64',
+                    showToast: true,
+                    fallbackMessage: 'Failed to process uploaded image. Please try a different file.'
+                });
             }
         }
     };

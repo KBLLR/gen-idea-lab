@@ -1,6 +1,7 @@
 /**
  * Workflow JSON to Template Field Mapping System
  * Maps workflow execution results to ArchivAI template fields
+ * NOTE: Used by both client AND server - cannot use Vite aliases
  */
 
 import { getGenericTemplateConfig, isGenericTemplate, getTemplateIds } from './library.js';
@@ -533,7 +534,7 @@ Format your response as a JSON object with these keys: findings, improvements, n
       body: JSON.stringify({
         model,
         messages: [{ role: 'user', content: prompt }],
-        max_tokens: 1000
+        maxTokens: 1000
       })
     });
 

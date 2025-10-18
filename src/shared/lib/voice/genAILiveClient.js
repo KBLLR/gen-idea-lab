@@ -1,9 +1,10 @@
 /**
- * @license
- * SPDX-License-Identifier: Apache-2.0
+ * @file genAILiveClient - Real-time audio conversation with Gemini Live API
+ * @license SPDX-License-Identifier: Apache-2.0
  */
 import { GoogleGenAI } from '@google/genai';
 import EventEmitter from 'eventemitter3';
+import { handleAsyncError } from '../errorHandler.js';
 import { DEFAULT_LIVE_API_MODEL } from './constants.js';
 import { difference } from 'lodash';
 import { base64ToArrayBuffer } from './utils.js';
@@ -76,7 +77,11 @@ export class GenAILiveClient extends EventEmitter {
       });
       console.log('[GenAILiveClient] Session created successfully');
     } catch (e) {
-      console.error('[GenAILiveClient] Connection error:', e);
+      handleAsyncError(e, {
+        context: 'GenAI Live API connection',
+        showToast: true,
+        fallbackMessage: 'Failed to connect to Gemini Live API. Please check your API key and try again.'
+      });
       this._status = 'disconnected';
       this.session = null;
       const errorEvent = new ErrorEvent('error', {
@@ -258,7 +263,11 @@ export class GenAILiveClient extends EventEmitter {
    */
   onError(e) {
     this._status = 'disconnected';
-    console.error('error:', e);
+    handleAsyncError(e, {
+      context: 'GenAI Live API error event',
+      showToast: true,
+      fallbackMessage: 'Connection error with Gemini Live API. Please try again.'
+    });
 
     const message = `Could not connect to GenAI Live: ${e.message}`;
     this.log(`server.${e.type}`, message);

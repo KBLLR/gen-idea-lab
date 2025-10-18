@@ -1,0 +1,323 @@
+{
+  "integrations": {
+    "OS_01": {
+      "moduleCode": "OS_01",
+      "moduleName": "Introduction to Software Engineering",
+      "services": [
+        {
+          "name": "notion",
+          "required": false,
+          "priority": "high",
+          "purpose": "Note-taking and learning documentation",
+          "suggestedUse": "Create structured notes for each topic, maintain a glossary of programming concepts"
+        },
+        {
+          "name": "github",
+          "required": false,
+          "priority": "high",
+          "purpose": "Version control and code collaboration",
+          "suggestedUse": "Track code exercises, submit assignments, collaborate on projects"
+        },
+        {
+          "name": "figma",
+          "required": false,
+          "priority": "medium",
+          "purpose": "Software design and wireframing",
+          "suggestedUse": "Design UI mockups, create software architecture diagrams"
+        },
+        {
+          "name": "google-drive",
+          "required": false,
+          "priority": "medium",
+          "purpose": "File storage and sharing",
+          "suggestedUse": "Store lecture materials, share project documentation"
+        }
+      ]
+    },
+    "OS_02": {
+      "moduleCode": "OS_02",
+      "moduleName": "Interaction Design",
+      "services": [
+        {
+          "name": "figma",
+          "required": false,
+          "priority": "high",
+          "purpose": "Design tool for prototyping",
+          "suggestedUse": "Create interactive prototypes, design user interfaces"
+        },
+        {
+          "name": "notion",
+          "required": false,
+          "priority": "medium",
+          "purpose": "Design documentation",
+          "suggestedUse": "Document design decisions, maintain design system"
+        },
+        {
+          "name": "google-drive",
+          "required": false,
+          "priority": "medium",
+          "purpose": "Asset storage",
+          "suggestedUse": "Store design assets, share prototypes"
+        }
+      ]
+    },
+    "OS_03": {
+      "moduleCode": "OS_03",
+      "moduleName": "Product Management",
+      "services": [
+        {
+          "name": "notion",
+          "required": false,
+          "priority": "high",
+          "purpose": "Product documentation and roadmaps",
+          "suggestedUse": "Maintain product roadmaps, document feature specifications"
+        },
+        {
+          "name": "google-calendar",
+          "required": false,
+          "priority": "medium",
+          "purpose": "Sprint planning and scheduling",
+          "suggestedUse": "Schedule sprint meetings, track project milestones"
+        },
+        {
+          "name": "google-drive",
+          "required": false,
+          "priority": "medium",
+          "purpose": "Document collaboration",
+          "suggestedUse": "Share market research, collaborate on product specs"
+        }
+      ]
+    },
+    "OS_04": {
+      "moduleCode": "OS_04",
+      "moduleName": "Operating Systems",
+      "services": [
+        {
+          "name": "github",
+          "required": false,
+          "priority": "high",
+          "purpose": "Code management for OS projects",
+          "suggestedUse": "Version control for kernel code, manage assignments"
+        },
+        {
+          "name": "notion",
+          "required": false,
+          "priority": "medium",
+          "purpose": "Technical documentation",
+          "suggestedUse": "Document system calls, create OS concept notes"
+        },
+        {
+          "name": "google-drive",
+          "required": false,
+          "priority": "low",
+          "purpose": "Resource storage",
+          "suggestedUse": "Store lecture materials and reference documents"
+        }
+      ]
+    },
+    "DS": {
+      "moduleCode": "DS_*",
+      "moduleName": "Design Modules (General)",
+      "description": "Default configuration for all Design discipline modules",
+      "services": [
+        {
+          "name": "figma",
+          "required": false,
+          "priority": "high",
+          "purpose": "Primary design tool",
+          "suggestedUse": "Create designs, prototypes, and design systems"
+        },
+        {
+          "name": "notion",
+          "required": false,
+          "priority": "high",
+          "purpose": "Design documentation",
+          "suggestedUse": "Document design processes, maintain project logs"
+        },
+        {
+          "name": "google-drive",
+          "required": false,
+          "priority": "medium",
+          "purpose": "Asset management",
+          "suggestedUse": "Store design assets, images, and research materials"
+        },
+        {
+          "name": "google-calendar",
+          "required": false,
+          "priority": "low",
+          "purpose": "Design sprint scheduling",
+          "suggestedUse": "Schedule critique sessions and design reviews"
+        }
+      ]
+    },
+    "SE": {
+      "moduleCode": "SE_*",
+      "moduleName": "Software Engineering Modules (General)",
+      "description": "Default configuration for all Software Engineering discipline modules",
+      "services": [
+        {
+          "name": "github",
+          "required": false,
+          "priority": "high",
+          "purpose": "Code version control",
+          "suggestedUse": "Manage code repositories, code reviews, CI/CD"
+        },
+        {
+          "name": "notion",
+          "required": false,
+          "priority": "high",
+          "purpose": "Technical documentation",
+          "suggestedUse": "API docs, architecture decisions, project wikis"
+        },
+        {
+          "name": "google-drive",
+          "required": false,
+          "priority": "medium",
+          "purpose": "Documentation storage",
+          "suggestedUse": "Store technical specifications and diagrams"
+        }
+      ]
+    },
+    "STS": {
+      "moduleCode": "STS_*",
+      "moduleName": "Science, Technology & Society Modules (General)",
+      "description": "Default configuration for all STS discipline modules",
+      "services": [
+        {
+          "name": "notion",
+          "required": false,
+          "priority": "high",
+          "purpose": "Research documentation",
+          "suggestedUse": "Maintain research notes, bibliography, essay drafts"
+        },
+        {
+          "name": "google-calendar",
+          "required": false,
+          "priority": "medium",
+          "purpose": "Research scheduling",
+          "suggestedUse": "Schedule interviews, research sessions, discussions"
+        },
+        {
+          "name": "gmail",
+          "required": false,
+          "priority": "medium",
+          "purpose": "Academic communication",
+          "suggestedUse": "Contact experts, coordinate research collaborations"
+        },
+        {
+          "name": "google-drive",
+          "required": false,
+          "priority": "high",
+          "purpose": "Research material storage",
+          "suggestedUse": "Store papers, research data, interview transcripts"
+        }
+      ]
+    },
+    "BA": {
+      "moduleCode": "BA_*",
+      "moduleName": "Bachelor Synthesis Modules (General)",
+      "description": "Default configuration for synthesis/capstone projects - uses ALL integrations",
+      "services": [
+        {
+          "name": "notion",
+          "required": false,
+          "priority": "high",
+          "purpose": "Project management hub",
+          "suggestedUse": "Central project documentation, timeline, deliverables"
+        },
+        {
+          "name": "github",
+          "required": false,
+          "priority": "high",
+          "purpose": "Code repository",
+          "suggestedUse": "Manage project codebase, version control"
+        },
+        {
+          "name": "figma",
+          "required": false,
+          "priority": "high",
+          "purpose": "Design artifacts",
+          "suggestedUse": "Create final design deliverables and prototypes"
+        },
+        {
+          "name": "google-drive",
+          "required": false,
+          "priority": "high",
+          "purpose": "Asset storage",
+          "suggestedUse": "Store all project assets, presentations, documents"
+        },
+        {
+          "name": "google-calendar",
+          "required": false,
+          "priority": "medium",
+          "purpose": "Project timeline",
+          "suggestedUse": "Schedule milestones, mentor meetings, presentations"
+        },
+        {
+          "name": "gmail",
+          "required": false,
+          "priority": "medium",
+          "purpose": "Stakeholder communication",
+          "suggestedUse": "Coordinate with advisors, external collaborators"
+        }
+      ]
+    }
+  },
+  "fallbackConfig": {
+    "description": "Default configuration for modules without specific integration mapping",
+    "services": [
+      {
+        "name": "notion",
+        "required": false,
+        "priority": "medium",
+        "purpose": "General note-taking",
+        "suggestedUse": "Create module notes and documentation"
+      },
+      {
+        "name": "google-drive",
+        "required": false,
+        "priority": "medium",
+        "purpose": "File storage",
+        "suggestedUse": "Store module materials and assignments"
+      }
+    ]
+  },
+  "serviceMetadata": {
+    "notion": {
+      "displayName": "Notion",
+      "description": "Knowledge base and documentation platform",
+      "oauthScopes": ["workspace:read", "workspace:write"],
+      "connectionEndpoint": "/api/services/notion/connect"
+    },
+    "github": {
+      "displayName": "GitHub",
+      "description": "Version control and code collaboration",
+      "oauthScopes": ["repo", "read:user"],
+      "connectionEndpoint": "/api/services/github/connect"
+    },
+    "figma": {
+      "displayName": "Figma",
+      "description": "Design and prototyping tool",
+      "oauthScopes": ["file:read", "file:write"],
+      "connectionEndpoint": "/api/services/figma/connect"
+    },
+    "google-drive": {
+      "displayName": "Google Drive",
+      "description": "Cloud file storage and sharing",
+      "oauthScopes": ["drive.file", "drive.readonly"],
+      "connectionEndpoint": "/api/services/google-drive/connect"
+    },
+    "google-calendar": {
+      "displayName": "Google Calendar",
+      "description": "Event scheduling and calendar management",
+      "oauthScopes": ["calendar.events", "calendar.readonly"],
+      "connectionEndpoint": "/api/services/google-calendar/connect"
+    },
+    "gmail": {
+      "displayName": "Gmail",
+      "description": "Email communication",
+      "oauthScopes": ["gmail.send", "gmail.readonly"],
+      "connectionEndpoint": "/api/services/gmail/connect"
+    }
+  }
+}

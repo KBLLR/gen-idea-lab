@@ -1,6 +1,6 @@
 /**
- * @license
- * SPDX-License-Identifier: Apache-2.0
+ * @file BoothViewer - Image generation booth interface
+ * @license SPDX-License-Identifier: Apache-2.0
 */
 import { useMemo, useRef, useState } from 'react';
 import BoothHeader from '@components/ui/organisms/BoothHeader.jsx';
@@ -10,6 +10,7 @@ import useStore from '@store';
 import { generateImage, setInputImage } from '@shared/lib/actions/imageBoothActions.js';
 import ImageUploader from '@components/ui/organisms/ImageUploader.jsx';
 import { fileToBase64 } from '@shared/lib/fileUtils.js';
+import { handleAsyncError } from '@shared/lib/errorHandler.js';
 import modes from '@apps/imageBooth/lib/modes.js';
 import descriptions from '@apps/imageBooth/lib/descriptions.js';
 import { getImageProviderLabel, DEFAULT_IMAGE_MODELS } from '@shared/lib/imageProviders.js';
@@ -85,7 +86,11 @@ export default function BoothViewer() {
             const base64 = await fileToBase64(file);
             setInputImage(base64);
         } catch (error) {
-            console.error('Error converting file to base64:', error);
+            handleAsyncError(error, {
+                context: 'Converting image file to base64',
+                showToast: true,
+                fallbackMessage: 'Failed to process image file. Please try a different file.'
+            });
         }
     };
 

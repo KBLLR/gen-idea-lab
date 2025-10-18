@@ -1,11 +1,14 @@
 /**
- * @license
- * SPDX-License-Identifier: Apache-2.0
+ * @file orchestratorActions - Multi-agent orchestrator coordination and messaging
+ * @license SPDX-License-Identifier: Apache-2.0
+ * MIGRATED: Now uses centralized API endpoints
 */
 import useStore from '@store';
+import { handleAsyncError } from '@shared/lib/errorHandler.js';
 import { personalities } from '@shared/lib/assistant/personalities.js';
 import { createArchivaEntry } from './archivaActions.js'; // Will be created later
 import { upsertTasksFromAgent } from '@shared/lib/tasksIngest.js';
+import { api } from '@shared/lib/dataLayer/endpoints.js';
 
 const get = useStore.getState;
 const set = useStore.setState;
@@ -69,16 +72,8 @@ export const sendMessageToOrchestrator = async (message, options = {}) => {
         state.orchestratorHistory.push({ role: 'system', parts: [{ text: `*Searching for "${query}"...*` }] });
       });
 
-      // Perform the search
-      fetch('/api/search', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        credentials: 'include',
-        body: JSON.stringify({ query, maxResults: 3 })
-      })
-        .then(response => response.json())
+      // Perform the search using centralized API
+      api.search.web({ query, maxResults: 3 })
         .then(data => {
           let resultText = `**Search Results for "${query}":**\n\n`;
 
@@ -108,7 +103,11 @@ export const sendMessageToOrchestrator = async (message, options = {}) => {
           });
         })
         .catch(error => {
-          console.error('Search failed:', error);
+          handleAsyncError(error, {
+            context: 'Orchestrator web search',
+            showToast: true,
+            fallbackMessage: 'Web search failed. Please try again.'
+          });
           set(state => {
             state.orchestratorHistory.push({ role: 'system', parts: [{ text: `*Search failed: ${error.message}*` }] });
           });
@@ -151,22 +150,22 @@ export const sendMessageToOrchestrator = async (message, options = {}) => {
     let modelToUse = orchestratorModel;
 
     async function callChat(model) {
-      const resp = await fetch('/api/chat', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        credentials: 'include',
-        body: JSON.stringify({
+      try {
+        const data = await api.chat.complete({
           model,
           messages: conversationHistory,
           systemPrompt: systemPrompt,
           enableThinking,
           thinkingBudget
-        })
-      });
-      const raw = await resp.text();
-      return { ok: resp.ok, status: resp.status, raw };
+        });
+        // Success - parseResponse already handled errors
+        return { ok: true, status: 200, raw: JSON.stringify(data) };
+      } catch (error) {
+        // parseResponse throws on non-ok responses, extract status if available
+        const status = error.status || 500;
+        const raw = error.message || String(error);
+        return { ok: false, status, raw };
+      }
     }
 
     let { ok, status, raw } = await callChat(modelToUse);
@@ -205,7 +204,11 @@ export const sendMessageToOrchestrator = async (message, options = {}) => {
     });
 
   } catch (error) {
-    console.error('Orchestrator API call failed:', error);
+    handleAsyncError(error, {
+      context: 'Orchestrator API call',
+      showToast: true,
+      fallbackMessage: 'Failed to send message to orchestrator. Please check your connection and try again.'
+    });
     set(state => {
       state.isOrchestratorLoading = false;
       state.orchestratorHistory.push({
@@ -275,7 +278,11 @@ export async function ingestPlanAsTasks(plan) {
     }));
     return upsertTasksFromAgent(tasks, { defaultBucket: plan?.bucket ?? 'Orchestrator' });
   } catch (e) {
-    console.error('ingestPlanAsTasks failed:', e);
+    handleAsyncError(e, {
+      context: 'Ingesting orchestrator plan as tasks',
+      showToast: false, // Silent error, return empty array
+      silent: false
+    });
     return [];
   }
 }

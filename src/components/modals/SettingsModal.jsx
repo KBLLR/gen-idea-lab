@@ -1,12 +1,13 @@
 /**
- * @license
- * SPDX-License-Identifier: Apache-2.0
+ * @file SettingsModal - Application settings and service connections
+ * @license SPDX-License-Identifier: Apache-2.0
  */
 
 import { useState, useEffect, useRef } from 'react';
 import React from 'react';
 import useStore from '@store';
 import { useAvailableModels } from '@hooks/useAvailableModels.js';
+import { handleAsyncError } from '@shared/lib/errorHandler.js';
 import { SiFigma, SiGithub, SiNotion, SiGoogledrive, SiOpenai, SiGoogle, SiGmail } from 'react-icons/si';
 import { RiRobot2Line, RiBrainLine, RiSearchLine, RiImageLine, RiCalendarLine, RiCloudLine, RiServerLine, RiCpuLine, RiMovieLine, RiSchoolLine } from 'react-icons/ri';
 import HumeTest from '@apps/empathyLab/components/HumeTest.jsx';
@@ -401,8 +402,12 @@ const { initializeUniversityAuth, getGoogleIdToken, authenticateWithUniversity }
                     user: authResult.user
                 });
             } catch (error) {
-                console.error(`Failed to connect ${service.name}:`, error);
-                setError(`Failed to connect to ${service.name}: ${error.message}`);
+                const errorMsg = handleAsyncError(error, {
+                    context: `Connecting to ${service.name} via university auth`,
+                    showToast: true,
+                    fallbackMessage: `Failed to connect to ${service.name}. Please check your university credentials and try again.`
+                }).message;
+                setError(errorMsg);
             } finally {
                 setIsConnecting(false);
             }
@@ -429,8 +434,12 @@ const { initializeUniversityAuth, getGoogleIdToken, authenticateWithUniversity }
         try {
             await connectService(service.id);
         } catch (error) {
-            console.error(`Failed to connect ${service.name}:`, error);
-            setError(`Failed to connect to ${service.name}: ${error.message}`);
+            const errorMsg = handleAsyncError(error, {
+                context: `Connecting to ${service.name}`,
+                showToast: true,
+                fallbackMessage: `Failed to connect to ${service.name}. Please try again or check your credentials.`
+            }).message;
+            setError(errorMsg);
         } finally {
             setIsConnecting(false);
         }
@@ -449,8 +458,12 @@ const { initializeUniversityAuth, getGoogleIdToken, authenticateWithUniversity }
             setShowApiKeyInput(false);
             setApiKeyValue('');
         } catch (error) {
-            console.error(`Failed to connect ${service.name}:`, error);
-            setError(`Failed to connect: ${error.message}`);
+            const errorMsg = handleAsyncError(error, {
+                context: `Connecting to ${service.name} with API key`,
+                showToast: true,
+                fallbackMessage: `Failed to connect with provided API key. Please verify your key is valid.`
+            }).message;
+            setError(errorMsg);
         } finally {
             setIsConnecting(false);
         }
@@ -487,8 +500,12 @@ const { initializeUniversityAuth, getGoogleIdToken, authenticateWithUniversity }
                 );
             }
         } catch (error) {
-            console.error(`Failed to connect ${service.name}:`, error);
-            setError(`Failed to connect: ${error.message}`);
+            const errorMsg = handleAsyncError(error, {
+                context: `Connecting to ${service.name} with URL`,
+                showToast: true,
+                fallbackMessage: `Failed to connect to ${service.name}. Please verify the URL is correct and accessible.`
+            }).message;
+            setError(errorMsg);
         } finally {
             setIsConnecting(false);
         }
@@ -501,8 +518,12 @@ const { initializeUniversityAuth, getGoogleIdToken, authenticateWithUniversity }
         try {
             await toggleService(service.id, enabled);
         } catch (error) {
-            console.error(`Failed to toggle ${service.name}:`, error);
-            setError(`Failed to ${enabled ? 'enable' : 'disable'}: ${error.message}`);
+            const errorMsg = handleAsyncError(error, {
+                context: `Toggling ${service.name}`,
+                showToast: true,
+                fallbackMessage: `Failed to ${enabled ? 'enable' : 'disable'} ${service.name}. Please try again.`
+            }).message;
+            setError(errorMsg);
         } finally {
             setIsConnecting(false);
         }
@@ -513,8 +534,12 @@ const { initializeUniversityAuth, getGoogleIdToken, authenticateWithUniversity }
             try {
                 await disconnectService(service.id);
             } catch (error) {
-                console.error(`Failed to disconnect ${service.name}:`, error);
-                setError(`Failed to disconnect: ${error.message}`);
+                const errorMsg = handleAsyncError(error, {
+                    context: `Disconnecting from ${service.name}`,
+                    showToast: true,
+                    fallbackMessage: `Failed to disconnect from ${service.name}. Please try again.`
+                }).message;
+                setError(errorMsg);
             }
         }
     };
@@ -526,9 +551,12 @@ const { initializeUniversityAuth, getGoogleIdToken, authenticateWithUniversity }
             await useStore.getState().actions.testServiceConnection(service.id);
             useStore.getState().showToast(`${service.name} connection test successful`, 'success');
         } catch (error) {
-            console.error(`Failed to test ${service.name} connection:`, error);
-            setError(`Connection test failed: ${error.message}`);
-            useStore.getState().showToast(`${service.name} connection test failed`, 'error');
+            const errorMsg = handleAsyncError(error, {
+                context: `Testing ${service.name} connection`,
+                showToast: true,
+                fallbackMessage: `Connection test failed for ${service.name}. Please check your credentials and network connection.`
+            }).message;
+            setError(errorMsg);
         } finally {
             setIsConnecting(false);
         }
@@ -852,7 +880,7 @@ function WorkflowAutoTitleModelSelector() {
             console.log('Current model not available, switching to:', textModels[0].id);
             setWorkflowAutoTitleModel(textModels[0].id);
         }
-    }, [loading, textModels, currentModel, workflowAutoTitleModel, setWorkflowAutoTitleModel]);
+    }, [loading, textModels, currentModel, setWorkflowAutoTitleModel]);
 
     if (loading) {
         return (

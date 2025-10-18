@@ -1,4 +1,12 @@
+/**
+ * @file ModelGallery - Display and manage rigged character models
+ * @license SPDX-License-Identifier: Apache-2.0
+ * MIGRATED: Now uses centralized API endpoints
+ */
+
 import React, { useEffect, useState } from 'react';
+import { handleAsyncError } from '@shared/lib/errorHandler.js';
+import { api } from '@shared/lib/dataLayer/endpoints.js';
 
 export default function ModelGallery() {
   const [galleryModels, setGalleryModels] = useState([]);
@@ -8,18 +16,16 @@ export default function ModelGallery() {
   const fetchGallery = async () => {
     try {
       setIsLoading(true);
-      const response = await fetch('/api/rigging/gallery');
-
-      if (!response.ok) {
-        throw new Error('Failed to fetch gallery');
-      }
-
-      const data = await response.json();
+      const data = await api.rigging.gallery();
       setGalleryModels(data.models);
       setError(null);
     } catch (err) {
-      console.error('Error fetching gallery:', err);
-      setError(err.message);
+      const errorMsg = handleAsyncError(err, {
+        context: 'Fetching model gallery',
+        showToast: true,
+        fallbackMessage: 'Failed to load model gallery. Please try again.'
+      }).message;
+      setError(errorMsg);
     } finally {
       setIsLoading(false);
     }
@@ -33,16 +39,14 @@ export default function ModelGallery() {
     if (!confirm('Delete this model from gallery?')) return;
 
     try {
-      const response = await fetch(`/api/rigging/gallery/${modelId}`, {
-        method: 'DELETE',
-      });
-
-      if (!response.ok) throw new Error('Failed to delete');
-
+      await api.rigging.deleteFromGallery(modelId);
       setGalleryModels(prev => prev.filter(m => m.id !== modelId));
     } catch (err) {
-      console.error('Error deleting:', err);
-      alert('Failed to delete model');
+      handleAsyncError(err, {
+        context: 'Deleting model from gallery',
+        showToast: true,
+        fallbackMessage: 'Failed to delete model. Please try again.'
+      });
     }
   };
 

@@ -1,5 +1,14 @@
+/**
+ * @file DriveImportPanel - Google Drive 3D model import with optimization progress
+ * @license SPDX-License-Identifier: Apache-2.0
+ * @description Lists GLB files from Google Drive and imports them with real-time SSE streaming progress
+ * MIGRATED: Now uses centralized API endpoints
+ */
+
 import React, { useEffect, useState } from 'react';
 import useStore from '@store';
+import { handleAsyncError } from '@shared/lib/errorHandler.js';
+import { api } from '@shared/lib/dataLayer/endpoints.js';
 
 /**
  * DriveImportPanel - Lists GLB files from Google Drive and imports them with real-time optimization progress
@@ -21,21 +30,16 @@ export default function DriveImportPanel({ onImportComplete }) {
   const fetchDriveModels = async () => {
     try {
       setIsLoading(true);
-      const response = await fetch('/api/drive/models');
-
-      if (!response.ok) {
-        if (response.status === 401) {
-          throw new Error('Google Drive not connected. Please connect your Drive account first.');
-        }
-        throw new Error('Failed to fetch Drive models');
-      }
-
-      const data = await response.json();
+      const data = await api.drive.models();
       setDriveModels(data.files || []);
       setError(null);
     } catch (err) {
-      console.error('Error fetching Drive models:', err);
-      setError(err.message);
+      const errorMsg = handleAsyncError(err, {
+        context: 'Fetching Google Drive models',
+        showToast: true,
+        fallbackMessage: 'Failed to load models from Google Drive. Please check your connection and try again.'
+      }).message;
+      setError(errorMsg);
     } finally {
       setIsLoading(false);
     }
@@ -99,15 +103,24 @@ export default function DriveImportPanel({ onImportComplete }) {
       };
 
       eventSource.onerror = (err) => {
-        console.error('SSE error:', err);
+        handleAsyncError(err, {
+          context: 'Drive import SSE connection',
+          showToast: true,
+          fallbackMessage: 'Connection lost during import. Please try again.',
+          severity: 'error'
+        });
         setError('Connection lost. Please try again.');
         setImportingFileId(null);
         setImportProgress(null);
         eventSource.close();
       };
     } catch (err) {
-      console.error('Import error:', err);
-      setError(err.message);
+      const errorMsg = handleAsyncError(err, {
+        context: 'Importing Drive model',
+        showToast: true,
+        fallbackMessage: 'Failed to import model. Please try again.'
+      }).message;
+      setError(errorMsg);
       setImportingFileId(null);
       setImportProgress(null);
     }
@@ -143,8 +156,12 @@ export default function DriveImportPanel({ onImportComplete }) {
         await connectService('googleDrive');
         // Connection state will update automatically via store, triggering a refetch
       } catch (err) {
-        console.error('Failed to connect Google Drive:', err);
-        setError('Failed to connect. Please try again or check settings.');
+        const errorMsg = handleAsyncError(err, {
+          context: 'Connecting to Google Drive',
+          showToast: true,
+          fallbackMessage: 'Failed to connect to Google Drive. Please try again or check your settings.'
+        }).message;
+        setError(errorMsg);
       }
     };
 

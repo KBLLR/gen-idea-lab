@@ -1,6 +1,12 @@
 /**
- * @license
- * SPDX-License-Identifier: Apache-2.0
+ * @file CalendarAI - Event management and visualization
+ * @license SPDX-License-Identifier: Apache-2.0
+ * @description Calendar app with Google Calendar integration and local event management
+ * MIGRATED: Now uses centralized API endpoints
+ */
+
+/**
+ * @typedef {import('@shared/lib/store.types.js').CalendarEvent} CalendarEvent
  */
 
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
@@ -9,6 +15,8 @@ import BoothHeader from '@components/ui/organisms/BoothHeader.jsx';
 import { ActionBar } from '@ui';
 import CalendarRightPane from './CalendarRightPane.jsx';
 import { useRightPane } from '@shared/lib/layoutSlots';
+import { handleAsyncError } from '@shared/lib/errorHandler.js';
+import { api } from '@shared/lib/dataLayer/endpoints.js';
 import '../styles/calendar-ai.css';
 import AppHomeBlock from '@components/ui/organisms/AppHomeBlock.jsx';
 import { appHomeContent } from '@components/ui/organisms/appHomeContent.js';
@@ -107,7 +115,11 @@ const CalendarAI = () => {
           console.log('[CalendarAI] Migration complete, localStorage cleaned up');
         }
       } catch (err) {
-        console.error('[CalendarAI] Migration failed:', err);
+        handleAsyncError(err, {
+          context: 'Calendar AI migration',
+          showToast: false, // Silent migration, don't bother user
+          silent: false // But log to console for debugging
+        });
       }
     };
 
@@ -168,19 +180,7 @@ const CalendarAI = () => {
     try {
       console.log('[CalendarAI] Fetching Google Calendar events...');
 
-      const response = await fetch('/api/services/googleCalendar/events?maxResults=50', {
-        credentials: 'include'
-      });
-
-      if (!response.ok) {
-        if (response.status === 400 || response.status === 401) {
-          console.warn('[CalendarAI] Google Calendar not connected. Please connect in Settings.');
-          return;
-        }
-        throw new Error(`Failed to fetch calendar events: ${response.statusText}`);
-      }
-
-      const data = await response.json();
+      const data = await api.googleCalendar.events({ maxResults: 50 });
       const calendarEvents = data.events || [];
 
       // Convert Google Calendar events to CalendarAI format
@@ -205,7 +205,11 @@ const CalendarAI = () => {
 
       console.log(`[CalendarAI] Fetched ${formattedEvents.length} events from Google Calendar`);
     } catch (err) {
-      console.error('Failed to fetch Google Calendar events:', err);
+      handleAsyncError(err, {
+        context: 'Fetching Google Calendar events',
+        showToast: true,
+        fallbackMessage: 'Failed to fetch events from Google Calendar. Please check your connection and try again.'
+      });
     }
   }, [isCalendarConnected, saveEvents]);
 
@@ -279,8 +283,11 @@ const CalendarAI = () => {
       }));
       saveEvents([...events, ...newEvents]);
     } catch (err) {
-      console.error('Failed to import .ics:', err);
-      alert('Failed to import calendar file');
+      handleAsyncError(err, {
+        context: 'Importing calendar file',
+        showToast: true,
+        fallbackMessage: 'Failed to import calendar file. Please check the file format and try again.'
+      });
     }
   }, [events, saveEvents]);
 
@@ -357,8 +364,11 @@ const CalendarAI = () => {
 
       setShowSettings(false);
     } catch (err) {
-      console.error('Failed to import JSON:', err);
-      alert('Import failed: invalid JSON');
+      handleAsyncError(err, {
+        context: 'Importing JSON backup',
+        showToast: true,
+        fallbackMessage: 'Failed to import JSON backup. Please check the file format and try again.'
+      });
     }
   }, []);
 
@@ -449,9 +459,12 @@ const CalendarAI = () => {
                     try {
                       await connectService('googleCalendar');
                     } catch (err) {
-                      console.error('Failed to connect Google Calendar:', err);
-                      // Fallback to settings if OAuth fails
-                      setShowSettings(true);
+                      handleAsyncError(err, {
+                        context: 'Connecting to Google Calendar',
+                        showToast: true,
+                        fallbackMessage: 'Failed to connect to Google Calendar. Please try again or check your settings.',
+                        onError: () => setShowSettings(true) // Fallback to settings if OAuth fails
+                      });
                     }
                   } },
               { id: 'toggle-pane', icon: 'view_sidebar', label: showDataPane ? 'Hide Data Pane' : 'Show Data Pane', onClick: () => setShowDataPane(v => !v) },

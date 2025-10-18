@@ -1,10 +1,11 @@
 /**
- * @license
- * SPDX-License-Identifier: Apache-2.0
+ * @file voiceFunctionManager - Voice function call management for AI interactions
+ * @license SPDX-License-Identifier: Apache-2.0
  */
 
 import { getVoicePersonality, getAvailableTools } from './voicePersonalities.js';
 import useStore from '../store.js';
+import { handleAsyncError } from '../errorHandler.js';
 
 /**
  * Voice Function Call Manager
@@ -345,7 +346,11 @@ const { executeAssistantTool } = await import("../assistant/tools.js");
       return result;
     } catch (error) {
       lastError = error;
-      console.error(`[VoiceFunctionManager] Assistant tool ${functionName} failed:`, error);
+      handleAsyncError(error, {
+        context: `Voice function manager: ${functionName}`,
+        showToast: false, // Silent error, handled by retry logic
+        silent: false
+      });
     }
 
     // All attempts failed

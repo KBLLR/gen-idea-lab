@@ -39,6 +39,7 @@
     "@google/model-viewer": "^4.1.0",
     "@humeai/voice-react": "^0.2.5",
     "@mediapipe/tasks-vision": "^0.10.21",
+    "@notionhq/client": "^5.2.1",
     "@vladmandic/human": "^3.3.6",
     "auto-zustand-selectors-hook": "^3.0.1",
     "clsx": "^2.1.1",

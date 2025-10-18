@@ -1,9 +1,11 @@
 /**
  * Workflow Documentation Service
  * Client-side service for generating documentation from workflow results
+ * MIGRATED: Now uses centralized API endpoints
  */
 
 import { getTemplateIds, isGenericTemplate } from './library.js';
+import { api } from '@shared/lib/dataLayer/endpoints.js';
 
 // Generate documentation from workflow results
 export async function generateWorkflowDocumentation(workflowResult, templateId, options = {}) {
@@ -14,25 +16,12 @@ export async function generateWorkflowDocumentation(workflowResult, templateId, 
   } = options;
 
   try {
-    const response = await fetch('/api/workflow/generate-docs', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        workflowResult,
-        templateId,
-        enhanceWithAI,
-        model
-      })
+    const result = await api.workflow.generateDocs({
+      workflowResult,
+      templateId,
+      enhanceWithAI,
+      model
     });
-
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.error || 'Documentation generation failed');
-    }
-
-    const result = await response.json();
 
     // Return in requested format
     if (format === 'md') {

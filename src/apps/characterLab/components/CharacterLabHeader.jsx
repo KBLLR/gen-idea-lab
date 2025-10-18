@@ -1,7 +1,13 @@
+/**
+ * @file CharacterLabHeader - Header actions for character rigging
+ * @license SPDX-License-Identifier: Apache-2.0
+ */
+
 import React from 'react';
 import BoothHeader from '@components/ui/organisms/BoothHeader.jsx';
 import { ActionBar } from '@ui';
 import useStore from '@store';
+import { handleAsyncError } from '@shared/lib/errorHandler.js';
 
 const CharacterLabHeader = ({ showGallery, onToggleGallery }) => {
   const actions = useStore.use.actions();
@@ -20,7 +26,11 @@ const CharacterLabHeader = ({ showGallery, onToggleGallery }) => {
       await pollAllTasks();
       console.log('Tasks refreshed successfully');
     } catch (error) {
-      console.error('Failed to refresh tasks:', error);
+      handleAsyncError(error, {
+        context: 'Refreshing rigging tasks',
+        showToast: true,
+        fallbackMessage: 'Failed to refresh tasks. Please try again.'
+      });
     }
   };
 

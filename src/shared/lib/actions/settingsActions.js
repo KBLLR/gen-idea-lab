@@ -1,12 +1,15 @@
 /**
- * @license
- * SPDX-License-Identifier: Apache-2.0
-*/
+ * @file settingsActions - Settings modal control actions
+ * @license SPDX-License-Identifier: Apache-2.0
+ */
 import useStore from '../store';
 
 const set = useStore.setState;
 
-// Settings actions
+/**
+ * Open the settings modal
+ * @returns {void}
+ */
 export const openSettings = () => {
   set((state) => {
     state.ui = state.ui || {};
@@ -15,6 +18,10 @@ export const openSettings = () => {
   });
 };
 
+/**
+ * Close the settings modal
+ * @returns {void}
+ */
 export const closeSettings = () => {
   set((state) => {
     state.ui = state.ui || {};
@@ -23,6 +30,10 @@ export const closeSettings = () => {
   });
 };
 
+/**
+ * Toggle settings modal open/closed
+ * @returns {void}
+ */
 export const toggleSettings = () => {
   set((state) => {
     state.ui = state.ui || {};

@@ -1,10 +1,12 @@
 /**
  * @license
  * SPDX-License-Identifier: Apache-2.0
+ * MIGRATED: Now uses centralized API endpoints
 */
 import { personalities } from '@shared/lib/assistant/personalities.js';
 import { queryModule } from '@shared/lib/rag.js';
 import { ASSISTANT_TOOLS, executeAssistantTool } from './assistantTools.js';
+import { api } from '@shared/lib/dataLayer/endpoints.js';
 
 /**
  * Get assistant response with tool support
@@ -106,18 +108,7 @@ async function getAssistantResponseWithTools({ messages, systemInstruction, mode
     provider
   };
 
-  const response = await fetch('/api/chat/tools', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(requestBody),
-  });
-
-  if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.error || `API request failed: ${response.status}`);
-  }
-
-  const data = await response.json();
+  const data = await api.chat.tools(requestBody);
 
   // Check if assistant wants to use tools
   if (data.toolCalls && data.toolCalls.length > 0) {
@@ -167,18 +158,7 @@ async function getAssistantResponseWithTools({ messages, systemInstruction, mode
       provider
     };
 
-    const followupResponse = await fetch('/api/chat/tools', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(followupBody),
-    });
-
-    if (!followupResponse.ok) {
-      const error = await followupResponse.json();
-      throw new Error(error.error || `Follow-up failed: ${followupResponse.status}`);
-    }
-
-    const followupData = await followupResponse.json();
+    const followupData = await api.chat.tools(followupBody);
     const responseText = followupData.response || followupData.text || '';
 
     return {
@@ -204,18 +184,7 @@ async function getAssistantResponseSimple({ messages, systemInstruction, model }
     systemPrompt: systemInstruction
   };
 
-  const response = await fetch('/api/chat', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(requestBody),
-  });
-
-  if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.error || `API request failed: ${response.status}`);
-  }
-
-  const data = await response.json();
+  const data = await api.chat.complete(requestBody);
   const responseText = data.response || data.text || '';
 
   return {

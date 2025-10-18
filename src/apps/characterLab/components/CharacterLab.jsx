@@ -1,9 +1,15 @@
+/**
+ * @file CharacterLab - Main character rigging interface
+ * @license SPDX-License-Identifier: Apache-2.0
+ */
+
 import React, { useState, useRef, useEffect } from 'react';
 import { Panel } from '@ui';
 import Button from '../../../components/ui/atoms/Button';
 import CharacterLabHeader from './CharacterLabHeader.jsx';
 import ModelViewer from './ModelViewer.jsx';
 import useStore from '@store';
+import { handleAsyncError } from '@shared/lib/errorHandler.js';
 
 export default function CharacterLabCenter({ showGallery, onToggleGallery }) {
   const [selectedFile, setSelectedFile] = useState(null);
@@ -72,8 +78,11 @@ export default function CharacterLabCenter({ showGallery, onToggleGallery }) {
       await submitRiggingTask(selectedFile, { characterHeight });
       setSelectedFile(null);
     } catch (error) {
-      console.error('Failed to submit rigging task:', error);
-      alert('Failed to submit rigging task: ' + error.message);
+      handleAsyncError(error, {
+        context: 'Submitting character rigging task',
+        showToast: true,
+        fallbackMessage: 'Failed to submit rigging task. Please try again.'
+      });
     } finally {
       setIsSubmitting(false);
     }
@@ -154,7 +163,11 @@ export default function CharacterLabCenter({ showGallery, onToggleGallery }) {
                 ar={true}
                 className="character-model-viewer"
                 onLoad={() => console.log('Model loaded:', selectedTask.name)}
-                onError={(error) => console.error('Model viewer error:', error)}
+                onError={(error) => handleAsyncError(error, {
+                  context: 'Loading rigged model in viewer',
+                  showToast: true,
+                  fallbackMessage: 'Failed to load 3D model. The file may be corrupted.'
+                })}
               />
               <div className="model-info">
                 <span className="material-icons-round">check_circle</span>

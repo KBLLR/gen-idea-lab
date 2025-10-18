@@ -1,5 +1,11 @@
+/**
+ * @file ModelViewer - React wrapper for Google Model Viewer web component
+ * @license SPDX-License-Identifier: Apache-2.0
+ */
+
 import React, { useEffect, useRef } from 'react';
 import '@google/model-viewer';
+import { handleAsyncError } from '@shared/lib/errorHandler.js';
 
 /**
  * React wrapper for Google Model Viewer web component
@@ -47,7 +53,11 @@ export default function ModelViewer({
     };
 
     const handleError = (event) => {
-      console.error('Model Viewer error:', event.detail);
+      handleAsyncError(event.detail, {
+        context: 'Model Viewer component',
+        showToast: false, // Let parent component decide whether to show toast
+        silent: false // But log to console for debugging
+      });
       onError?.(event.detail);
     };
 

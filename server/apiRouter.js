@@ -16,6 +16,8 @@ import createOAuthRouter from './oauth/index.js';
 import createProxyRouter from './routes/proxy.js';
 import createRiggingRouter from './routes/rigging.js';
 import createDriveImportRouter from './routes/driveImport.js';
+import moduleKnowledge from './routes/moduleKnowledge.js';
+import mcpTools from './routes/mcpTools.js';
 
 // API router composer. Builds and returns an Express Router with all feature routers mounted.
 // Dependencies are injected for full DI: getUserConnections, geminiBootstrap, getDb
@@ -85,6 +87,12 @@ export default function createApiRouter({ getUserConnections, geminiBootstrap, g
 
   // Google Drive import with optimization
   router.use('/', createDriveImportRouter());
+
+  // Module knowledge system (MongoDB + RAG)
+  router.use('/knowledge', moduleKnowledge);
+
+  // MCP tools (on-demand integration loading)
+  router.use('/mcp', mcpTools);
 
   return router;
 }

@@ -1,84 +1,9 @@
 /**
- * @license
- * SPDX-License-Identifier: Apache-2.0
+ * @file useAvailableModels - Hook for fetching and managing AI model availability
+ * @license SPDX-License-Identifier: Apache-2.0
+ * @deprecated Use @shared/hooks/useAvailableModels instead (this is a re-export for backward compatibility)
+ * MIGRATED: Now uses centralized data layer (useQuery)
  */
 
-import { useState, useEffect, useCallback } from 'react';
-import useStore from '@store';
-
-// App-level hook: useAvailableModels
-export function useAvailableModels() {
-  const [models, setModels] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
-  const connectedServices = useStore.use.connectedServices();
-
-  const fetchModels = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-
-    try {
-      const response = await fetch('/api/models', {
-        credentials: 'include',
-      });
-
-      if (!response.ok) {
-        // Silently handle rate limiting (429) - server is preventing spam
-        if (response.status === 429) {
-          console.debug('[useAvailableModels] Rate limited, using fallback models');
-          setModels([
-            { id: 'gemini-2.5-flash', name: 'Gemini 2.5 Flash', provider: 'Gemini', category: 'text', available: true },
-            { id: 'gemini-2.0-flash-exp', name: 'Gemini 2.0 Flash Experimental', provider: 'Gemini', category: 'text', available: true }
-          ]);
-          setLoading(false);
-          return;
-        }
-        throw new Error(`Failed to fetch models: ${response.statusText}`);
-      }
-
-      let data;
-      try {
-        data = await response.json();
-      } catch (e) {
-        throw new Error('Invalid JSON response from models API');
-      }
-      setModels(data.models || []);
-    } catch (err) {
-      console.error('Error fetching available models:', err);
-      setError(err.message);
-      // Fallback to basic Gemini models if API fails
-      setModels([
-        { id: 'gemini-2.5-flash', name: 'Gemini 2.5 Flash', provider: 'Gemini', category: 'text', available: true },
-        { id: 'gemini-2.0-flash-exp', name: 'Gemini 2.0 Flash Experimental', provider: 'Gemini', category: 'text', available: true },
-      ]);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  // Fetch models when component mounts
-  // Note: connectedServices is read server-side, so we don't need to re-fetch on client changes
-  useEffect(() => {
-    fetchModels();
-  }, [fetchModels]);
-
-  // Filter models by category
-  const getModelsByCategory = useCallback(
-    (category) => {
-      return models.filter((model) => model.category === category);
-    },
-    [models]
-  );
-
-  // Get text models specifically (for workflow auto-titling)
-  const textModels = getModelsByCategory('text');
-
-  return {
-    models,
-    textModels,
-    loading,
-    error,
-    refetch: fetchModels,
-    getModelsByCategory,
-  };
-}
+// Re-export shared hook (avoid code duplication)
+export { useAvailableModels } from '@shared/hooks/useAvailableModels';

@@ -1,12 +1,13 @@
 /**
- * @license
- * SPDX-License-Identifier: Apache-2.0
+ * @file PlannerCanvas - Graph-based workflow and task planning canvas
+ * @license SPDX-License-Identifier: Apache-2.0
  */
 
 import React, { useCallback, useMemo, useRef, useState, useEffect, memo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { createPortal } from 'react-dom';
 import useStore from '@store';
+import { handleAsyncError } from '@shared/lib/errorHandler.js';
 import { modules } from '@shared/lib/modules.js';
 import { specializedTasks } from '@apps/ideaLab/lib/tasks.js';
 import { extractCompleteContext } from '@shared/lib/contextExtraction.js';
@@ -17,6 +18,9 @@ import AppHomeBlock from '@components/ui/organisms/AppHomeBlock.jsx';
 import { appHomeContent } from '@components/ui/organisms/appHomeContent.js';
 import '../styles/planner.css';
 import { getAppPath } from '@routes';
+import { useQuery } from '@shared/hooks/useQuery.js';
+import { useMutation } from '@shared/hooks/useMutation.js';
+import { api, queryKeys } from '@shared/lib/dataLayer/endpoints.js';
 
 const nodeStyles = {
   module: { className: 'node-card node-module' },
@@ -171,22 +175,23 @@ const ModelProviderNode = memo(function ModelProviderNode({ data, id }) {
     // Fetch available models from the unified endpoint
     let models = [];
     try {
-      const response = await fetch('/api/models', { credentials: 'include' });
-      if (response.ok) {
-        const responseData = await response.json();
-        const allModels = responseData.models || [];
-        // Filter models by this provider
-        const providerModels = allModels.filter(m =>
-          m.provider.toLowerCase() === data.providerId.toLowerCase()
-        );
-        models = providerModels.map(m => ({
-          id: m.id,
-          name: m.name,
-          description: `${m.provider} - ${m.category}`
-        }));
-      }
+      const responseData = await api.models.list();
+      const allModels = responseData.models || [];
+      // Filter models by this provider
+      const providerModels = allModels.filter(m =>
+        m.provider.toLowerCase() === data.providerId.toLowerCase()
+      );
+      models = providerModels.map(m => ({
+        id: m.id,
+        name: m.name,
+        description: `${m.provider} - ${m.category}`
+      }));
     } catch (error) {
-      console.error('Failed to fetch models:', error);
+      handleAsyncError(error, {
+        context: 'Fetching available AI models',
+        showToast: true,
+        fallbackMessage: 'Failed to load AI models. Some features may be unavailable.'
+      });
     }
 
     setAvailableModels(models);
@@ -448,7 +453,11 @@ const AppStateSnapshotNode = memo(function AppStateSnapshotNode({ data, id }) {
       });
 
     } catch (error) {
-      console.error('Failed to capture app state:', error);
+      handleAsyncError(error, {
+        context: 'Capturing application state snapshot',
+        showToast: false, // Silent error, handled by node update
+        silent: false
+      });
       updateNode(id, {
         ...data,
         sub: 'Capture failed - please try again'
@@ -1057,7 +1066,11 @@ const GoogleCalendarNode = memo(function GoogleCalendarNode({ data, id }) {
       setEvents(mockEvents);
       updateNode(id, { ...data, events: mockEvents, lastUpdated: new Date().toISOString() });
     } catch (error) {
-      console.error('Failed to fetch calendar events:', error);
+      handleAsyncError(error, {
+        context: 'Fetching Google Calendar events in planner',
+        showToast: true,
+        fallbackMessage: 'Failed to load calendar events. Please check your Google Calendar connection.'
+      });
     } finally {
       setIsLoading(false);
     }
@@ -1170,13 +1183,7 @@ const GoogleDriveNode = memo(function GoogleDriveNode({ data, id }) {
     if (!isConnected) return;
     setIsLoading(true);
     try {
-      const params = new URLSearchParams({ folderId });
-      const response = await fetch(`/api/services/googleDrive/files?${params.toString()}`, { credentials: 'include' });
-      if (!response.ok) {
-        const err = await response.json().catch(() => ({}));
-        throw new Error(err.error || 'Drive API error');
-      }
-      const payload = await response.json();
+      const payload = await api.googleDrive.files({ folderId });
       const list = (payload.files || []).map(f => ({
         id: f.id,
         name: f.name,
@@ -1188,8 +1195,12 @@ const GoogleDriveNode = memo(function GoogleDriveNode({ data, id }) {
       setFiles(list);
       updateNode(id, { ...data, files: list, currentFolder: folderId, lastUpdated: new Date().toISOString() });
     } catch (error) {
-      console.error('Failed to fetch Drive files:', error);
-    } finally {
+      handleAsyncError(error, {
+        context: 'Fetching Google Drive files in planner',
+        showToast: true,
+        fallbackMessage: 'Failed to load Drive files. Please check your Google Drive connection.'
+      });
+    } finally{
       setIsLoading(false);
     }
   }, [isConnected, id, data, updateNode]);
@@ -1207,18 +1218,15 @@ const GoogleDriveNode = memo(function GoogleDriveNode({ data, id }) {
   const searchFolders = useCallback(async () => {
     if (!isConnected) return;
     try {
-      const params = new URLSearchParams({ q: folderSearchTerm });
-      const res = await fetch(`/api/services/googleDrive/files?${params.toString()}`, { credentials: 'include' });
-      if (!res.ok) {
-        console.warn('Drive search failed');
-        setFolderResults([]);
-        return;
-      }
-      const json = await res.json();
+      const json = await api.googleDrive.files({ q: folderSearchTerm });
       const onlyFolders = (json.files || []).filter(f => (f.mimeType || '').includes('application/vnd.google-apps.folder'));
       setFolderResults(onlyFolders);
     } catch (e) {
-      console.error('Drive folder search error:', e);
+      handleAsyncError(e, {
+        context: 'Searching Google Drive folders',
+        showToast: false, // Silent error, handled by empty results
+        silent: false
+      });
       setFolderResults([]);
     }
   }, [folderSearchTerm, isConnected]);
@@ -1368,16 +1376,15 @@ const GooglePhotosNode = memo(function GooglePhotosNode({ data, id }) {
     if (!isConnected) return;
     setIsLoading(true);
     try {
-      const response = await fetch('/api/services/googlePhotos/albums', { credentials: 'include' });
-      if (!response.ok) {
-        const err = await response.json().catch(() => ({}));
-        throw new Error(err.error || 'Photos API error');
-      }
-      const payload = await response.json();
+      const payload = await api.googlePhotos.albums();
       setAlbums(payload.albums || []);
       updateNode(id, { ...data, albums: payload.albums || [], lastUpdated: new Date().toISOString() });
     } catch (error) {
-      console.error('Failed to fetch albums:', error);
+      handleAsyncError(error, {
+        context: 'Fetching Google Photos albums in planner',
+        showToast: true,
+        fallbackMessage: 'Failed to load photo albums. Please check your Google Photos connection.'
+      });
     } finally {
       setIsLoading(false);
     }
@@ -1387,18 +1394,16 @@ const GooglePhotosNode = memo(function GooglePhotosNode({ data, id }) {
     if (!isConnected) return;
     setIsLoading(true);
     try {
-      const params = new URLSearchParams({ albumId });
-      const response = await fetch(`/api/services/googlePhotos/mediaItems?${params.toString()}`, { credentials: 'include' });
-      if (!response.ok) {
-        const err = await response.json().catch(() => ({}));
-        throw new Error(err.error || 'Photos API error');
-      }
-      const payload = await response.json();
+      const payload = await api.googlePhotos.mediaItems(albumId);
       const list = (payload.mediaItems || []).map(m => ({ id: m.id, url: `${m.baseUrl}=w400-h400`, title: m.filename }));
       setPhotos(list);
       updateNode(id, { ...data, photos: list, selectedAlbum: albumId, lastUpdated: new Date().toISOString() });
     } catch (error) {
-      console.error('Failed to fetch photos:', error);
+      handleAsyncError(error, {
+        context: 'Fetching photos from Google Photos album',
+        showToast: true,
+        fallbackMessage: 'Failed to load photos from album. Please try again.'
+      });
     } finally {
       setIsLoading(false);
     }
@@ -1549,13 +1554,11 @@ const GmailNode = memo(function GmailNode({ data, id }) {
     if (!isConnected) return;
     setIsLoading(true);
     try {
-      const params = new URLSearchParams({ maxResults: '10', labelIds: labelValue || 'INBOX', q: queryValue || '' });
-      const response = await fetch(`/api/services/gmail/messages?${params.toString()}`, { credentials: 'include' });
-      if (!response.ok) {
-        const err = await response.json().catch(() => ({}));
-        throw new Error(err.error || 'Gmail API error');
-      }
-      const payload = await response.json();
+      const payload = await api.gmail.messages({
+        maxResults: 10,
+        labelIds: labelValue || 'INBOX',
+        q: queryValue || ''
+      });
       const list = (payload.messages || []).map(m => ({
         id: m.id,
         subject: m.subject,
@@ -1567,7 +1570,11 @@ const GmailNode = memo(function GmailNode({ data, id }) {
       setMessages(list);
       updateNode(id, { ...data, messages: list, unreadCount: list.filter(m => m.unread).length, lastUpdated: new Date().toISOString(), gmailLabelIds: labelValue, gmailQuery: queryValue });
     } catch (error) {
-      console.error('Failed to fetch Gmail messages:', error);
+      handleAsyncError(error, {
+        context: 'Fetching Gmail messages in planner',
+        showToast: true,
+        fallbackMessage: 'Failed to load Gmail messages. Please check your Gmail connection.'
+      });
     } finally {
       setIsLoading(false);
     }
@@ -1724,44 +1731,21 @@ const UniversityStudentNode = memo(function UniversityStudentNode({ data, id }) 
     if (!isConnected) return;
     setIsLoading(true);
     try {
-      const response = await fetch('/api/university/graphql', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          query: `query studentData {
-            me {
-              firstName
-              lastName
-              email
-              studentId
-              program
-              semester
-              enrollments {
-                course {
-                  name
-                  code
-                  credits
-                }
-                grade
-                status
-              }
-            }
-          }`,
-          operationName: 'studentData'
-        })
-      });
-
-      const data = await response.json();
-      if (data.data?.me) {
-        setStudentData(data.data.me);
-        updateNode(id, { ...data, studentData: data.data.me, lastUpdated: new Date().toISOString() });
+      const responseData = await api.university.studentData();
+      if (responseData.data?.me) {
+        setStudentData(responseData.data.me);
+        updateNode(id, { ...data, studentData: responseData.data.me, lastUpdated: new Date().toISOString() });
       }
     } catch (error) {
-      console.error('Failed to fetch student data:', error);
+      handleAsyncError(error, {
+        context: 'Fetching student data from university system',
+        showToast: true,
+        fallbackMessage: 'Failed to load student data. Please check your university account connection.'
+      });
     } finally {
       setIsLoading(false);
     }
-  }, [isConnected, id, updateNode]);
+  }, [isConnected, id, data, updateNode]);
 
   useEffect(() => {
     fetchStudentData();
@@ -1865,44 +1849,21 @@ const UniversityCoursesNode = memo(function UniversityCoursesNode({ data, id }) 
     if (!isConnected) return;
     setIsLoading(true);
     try {
-      const response = await fetch('/api/university/graphql', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          query: `query studentCourses {
-            me {
-              enrollments {
-                course {
-                  id
-                  name
-                  code
-                  credits
-                  semester
-                  instructor {
-                    firstName
-                    lastName
-                  }
-                }
-                grade
-                status
-              }
-            }
-          }`,
-          operationName: 'studentCourses'
-        })
-      });
-
-      const data = await response.json();
-      if (data.data?.me?.enrollments) {
-        setCourses(data.data.me.enrollments);
-        updateNode(id, { ...data, courses: data.data.me.enrollments, lastUpdated: new Date().toISOString() });
+      const responseData = await api.university.studentCourses();
+      if (responseData.data?.me?.enrollments) {
+        setCourses(responseData.data.me.enrollments);
+        updateNode(id, { ...data, courses: responseData.data.me.enrollments, lastUpdated: new Date().toISOString() });
       }
     } catch (error) {
-      console.error('Failed to fetch courses:', error);
+      handleAsyncError(error, {
+        context: 'Fetching courses from university system',
+        showToast: true,
+        fallbackMessage: 'Failed to load course data. Please check your university account connection.'
+      });
     } finally {
       setIsLoading(false);
     }
-  }, [isConnected, id, updateNode]);
+  }, [isConnected, id, data, updateNode]);
 
   useEffect(() => {
     fetchCourses();
@@ -2703,8 +2664,11 @@ function PlannerCanvasInner() {
       const { executeWorkflow } = await import('../lib/workflowEngine');
       await executeWorkflow(nodes, edges, setNodes, addOrchestratorMessage);
     } catch (error) {
-      console.error('Workflow execution failed:', error);
-      alert(`Workflow execution failed: ${error.message}`);
+      handleAsyncError(error, {
+        context: 'Executing workflow in planner',
+        showToast: true,
+        fallbackMessage: 'Workflow execution failed. Please check your workflow configuration and try again.'
+      });
     } finally {
       setIsExecuting(false);
     }
@@ -2796,47 +2760,35 @@ function PlannerCanvasInner() {
       // Show loading state
       setWorkflowTitle('Generating title...');
 
-      const response = await fetch('/api/chat', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          model: workflowAutoTitleModel,
-          messages: [{
-            role: 'user',
-            content: `Analyze this workflow/flow data and suggest a concise, descriptive title (2-4 words max). Return only the title, no explanation: ${JSON.stringify(flowData, null, 2)}`
-          }]
-        }),
-        credentials: 'include'
+      const responseData = await api.chat.complete({
+        model: workflowAutoTitleModel,
+        messages: [{
+          role: 'user',
+          content: `Analyze this workflow/flow data and suggest a concise, descriptive title (2-4 words max). Return only the title, no explanation: ${JSON.stringify(flowData, null, 2)}`
+        }]
       });
 
-      console.log('Response status:', response.status);
+      console.log('API response:', responseData);
 
-      if (response.ok) {
-        const data = await response.json();
-        console.log('API response:', data);
+      // Try different possible response formats
+      let suggestedTitle = responseData.content || responseData.response || responseData.message || responseData.text;
 
-        // Try different possible response formats
-        let suggestedTitle = data.content || data.response || data.message || data.text;
-
-        if (suggestedTitle) {
-          suggestedTitle = suggestedTitle.replace(/['"]/g, '').trim();
-          console.log('Suggested title:', suggestedTitle);
-          setWorkflowTitle(suggestedTitle);
-          setTitleError(null);
-        } else {
-          console.warn('No title in response:', data);
-          setWorkflowTitle('AI Generated Flow');
-          setTitleError(null);
-        }
+      if (suggestedTitle) {
+        suggestedTitle = suggestedTitle.replace(/['"]/g, '').trim();
+        console.log('Suggested title:', suggestedTitle);
+        setWorkflowTitle(suggestedTitle);
+        setTitleError(null);
       } else {
-        console.error('API error:', response.status, response.statusText);
-        const errorData = await response.json().catch(() => ({}));
-        console.error('Error details:', errorData);
-        setWorkflowTitle(previousTitle);
-        setTitleError('Unable to generate a new title. Please try again.');
+        console.warn('No title in response:', responseData);
+        setWorkflowTitle('AI Generated Flow');
+        setTitleError(null);
       }
     } catch (error) {
-      console.error('Failed to generate AI title:', error);
+      handleAsyncError(error, {
+        context: 'Generating AI workflow title',
+        showToast: false, // Handled by setTitleError
+        fallbackMessage: 'Failed to generate workflow title. Please try again or enter manually.'
+      });
       setWorkflowTitle(previousTitle);
       setTitleError('Unable to generate a new title. Please try again.');
     } finally {

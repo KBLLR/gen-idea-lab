@@ -1,12 +1,13 @@
 /**
- * @license
- * SPDX-License-Identifier: Apache-2.0
+ * @file audioStreamer - PCM16 audio streaming with Web Audio API
+ * @license SPDX-License-Identifier: Apache-2.0
  */
 
 import {
   createWorketFromSrc,
   registeredWorklets,
 } from './audioworkletRegistry.js';
+import { handleAsyncError } from '../errorHandler.js';
 
 /**
  * AudioStreamer handles PCM16 audio streaming using Web Audio API
@@ -92,7 +93,11 @@ export class AudioStreamer {
         const int16 = dataView.getInt16(i * 2, true);
         float32Array[i] = int16 / 32768;
       } catch (e) {
-        console.error(e);
+        handleAsyncError(e, {
+          context: 'Converting PCM16 audio sample to Float32',
+          showToast: false, // Silent error during audio conversion
+          silent: false
+        });
       }
     }
     return float32Array;

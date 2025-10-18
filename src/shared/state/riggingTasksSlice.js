@@ -1,25 +1,73 @@
 /**
- * @license
- * SPDX-License-Identifier: Apache-2.0
+ * @file riggingTasksSlice - 3D character rigging task management
+ * @license SPDX-License-Identifier: Apache-2.0
+ * MIGRATED: Now uses centralized API endpoints
+ */
+
+import { api } from '../lib/dataLayer/endpoints.js';
+
+/**
+ * Rigging task status values
+ * @typedef {'PENDING'|'IN_PROGRESS'|'SUCCEEDED'|'FAILED'} RiggingTaskStatus
  */
 
 /**
- * Rigging Tasks Slice
- * Manages state for 3D character rigging tasks in CharacterLab
- *
- * Task structure:
- * {
- *   id: string,           // Meshy task ID
- *   name: string,         // Original file name
- *   status: string,       // PENDING | IN_PROGRESS | SUCCEEDED | FAILED
- *   progress: number,     // 0-100
- *   result: object,       // Meshy result with URLs
- *   createdAt: string,    // ISO timestamp
- *   completedAt: string,  // ISO timestamp (optional)
- *   error: string,        // Error message (optional)
- * }
+ * Rigging task object
+ * @typedef {Object} RiggingTask
+ * @property {string} id - Meshy task ID
+ * @property {string} name - Original file name
+ * @property {RiggingTaskStatus} status - Current task status
+ * @property {number} progress - Progress percentage (0-100)
+ * @property {Object} [result] - Meshy result with URLs (when succeeded)
+ * @property {string} createdAt - ISO timestamp when task was created
+ * @property {string} [completedAt] - ISO timestamp when task completed
+ * @property {string} [error] - Error message (if failed)
  */
 
+/**
+ * Options for submitting rigging tasks
+ * @typedef {Object} RiggingTaskOptions
+ * @property {number} [characterHeight] - Character height for rigging
+ */
+
+/**
+ * Rigging tasks slice state
+ * @typedef {Object} RiggingTasksSliceState
+ * @property {RiggingTask[]} riggingTasks - Array of all rigging tasks
+ * @property {string|null} selectedTaskId - ID of currently selected task
+ * @property {boolean} isPolling - Whether polling is active
+ * @property {number|null} pollingIntervalId - Interval ID for active polling
+ */
+
+/**
+ * Rigging tasks slice actions
+ * @typedef {Object} RiggingTasksSliceActions
+ * @property {(task: RiggingTask) => void} addRiggingTask - Add a new rigging task
+ * @property {(taskId: string, updates: Partial<RiggingTask>) => void} updateRiggingTask - Update existing task
+ * @property {(taskId: string) => void} removeRiggingTask - Remove a task
+ * @property {(taskId: string|null) => void} setSelectedTaskId - Set selected task ID
+ * @property {() => void} clearCompletedTasks - Remove all completed/failed tasks
+ * @property {() => void} startPolling - Start polling for task updates
+ * @property {() => void} stopPolling - Stop polling
+ * @property {(id: number) => void} setPollingIntervalId - Set polling interval ID
+ * @property {(taskId: string) => Promise<Object>} fetchTaskStatus - Fetch task status from backend
+ * @property {() => Promise<void>} pollAllTasks - Poll all pending/in-progress tasks
+ * @property {(file: File, options?: RiggingTaskOptions) => Promise<Object>} submitRiggingTask - Submit new rigging task
+ * @property {(taskId: string) => string|null} getModelUrl - Get model download URL for task
+ * @property {() => RiggingTask|null} getSelectedTask - Get currently selected task object
+ */
+
+/**
+ * @typedef {RiggingTasksSliceState & RiggingTasksSliceActions} RiggingTasksSlice
+ */
+
+/**
+ * Create rigging tasks slice for Zustand store
+ * Manages state for 3D character rigging tasks in CharacterLab
+ * @param {Function} set - Zustand set function
+ * @param {Function} get - Zustand get function
+ * @returns {RiggingTasksSlice} Rigging tasks slice state and actions
+ */
 export const createRiggingTasksSlice = (set, get) => ({
   // State
   riggingTasks: [],
@@ -82,13 +130,8 @@ export const createRiggingTasksSlice = (set, get) => ({
   // Fetch task status from backend
   fetchTaskStatus: async (taskId) => {
     try {
-      const response = await fetch(`/api/rigging/status/${taskId}`);
-
-      if (!response.ok) {
-        throw new Error(`Failed to fetch task status: ${response.statusText}`);
-      }
-
-      const data = await response.json();
+      // Use centralized API endpoint
+      const data = await api.rigging.status(taskId);
 
       // Update task in store
       get().updateRiggingTask(taskId, {
@@ -196,7 +239,8 @@ export const createRiggingTasksSlice = (set, get) => ({
     if (!task || task.status !== 'SUCCEEDED') {
       return null;
     }
-    return `/api/rigging/download-glb/${taskId}`;
+    // Use centralized API endpoint
+    return api.rigging.downloadUrl(taskId);
   },
 
   // Get selected task
